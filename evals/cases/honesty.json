@@ -6,26 +6,9 @@
     "assertions": [
       {
         "type": "contains",
-        "path": "README.md",
-        "values": [
-          "This first onchain piece runs on Solana devnet.",
-          "An external security review and a multisig transfer remain open gates before mainnet.",
-          "No signed pilot, design partner, customer, revenue, production use, or external adoption has been verified."
-        ]
-      },
-      {
-        "type": "contains",
         "path": "SECURITY.md",
         "values": [
           "No mainnet release or bug bounty exists."
-        ]
-      },
-      {
-        "type": "contains",
-        "path": "docs/agent-access/integration-proof.md",
-        "values": [
-          "This is a design boundary for future integration work.",
-          "No external team, customer, production use, or independent adoption has been verified."
         ]
       },
       {
@@ -33,11 +16,7 @@
         "paths": [
           "README.md",
           "SECURITY.md",
-          "docs/history/2026-07-shared-authorization-pilot.md",
-          "app/README.md",
-          "docs/agent-access/README.md",
-          "docs/agent-access/integration-proof.md",
-          "docs/agent-access/reference-flow.md"
+          "app/README.md"
         ],
         "values": [
           "Hedwig is mainnet-ready",
@@ -50,7 +29,6 @@
         "type": "excludesPatterns",
         "paths": [
           "README.md",
-          "ROADMAP.md",
           "SECURITY.md",
           "THREAT-MODEL.md",
           "app/README.md",
@@ -59,14 +37,9 @@
           "docs/grants/progress.md",
           "docs/access-control/integration-guide.md",
           "docs/deployment/operations.md",
-          "docs/history/2026-07-shared-authorization-pilot.md",
-          "docs/history/2026-07-29-pilot-preparation.md",
           "docs/deployment/evidence/2026-07-24-consumer-devnet-integration.md",
           "docs/deployment/evidence/2026-07-24-devnet-promotion.md",
-          "docs/security/reviews/2026-07-24-full-audit.md",
-          "docs/agent-access/README.md",
-          "docs/agent-access/integration-proof.md",
-          "docs/agent-access/reference-flow.md"
+          "docs/security/reviews/2026-07-24-full-audit.md"
         ],
         "patterns": [
           "\\b(?:is|now|currently)\\s+(?:fully\\s+)?mainnet[- ]ready\\b",
@@ -111,8 +84,7 @@
           "README.md",
           "SECURITY.md",
           "THREAT-MODEL.md",
-          "docs/access-control/integration-guide.md",
-          "docs/history/2026-07-shared-authorization-pilot.md"
+          "docs/access-control/integration-guide.md"
         ],
         "values": [
           "audited by a security firm",
@@ -143,7 +115,7 @@
       {
         "type": "documentedExports",
         "language": "rust",
-        "docsPath": "README.md",
+        "docsPath": "docs/role-record.md",
         "sourcePath": "programs/hedwig_sol/src/lib.rs",
         "expected": [
           "create_org",
@@ -251,34 +223,26 @@
     ]
   },
   {
-    "id": "planned-layers-stay-planned",
+    "id": "readme-makes-no-false-claims",
     "category": "integration",
-    "claim": "Only the role record is shipped. The augment, the checks and the opsec model are planned, no integration exists, the MVP uses no model, and the SDK is not published.",
+    "claim": "Public documents make no claim about networks, customers, partners, or audits that the repository cannot support.",
     "assertions": [
       {
-        "type": "contains",
-        "path": "README.md",
+        "type": "excludes",
+        "paths": [
+          "README.md"
+        ],
         "values": [
-          "Planned. Nothing in this section runs yet.",
-          "None of that is built yet.",
-          "No integration with any wallet, rail or agent product exists yet.",
-          "The MVP uses no model.",
-          "The SDK is repository-local and is not published to npm.",
-          "Enforcement exists only where a program calls the onchain `check_role` and propagates its error."
-        ]
-      },
-      {
-        "type": "contains",
-        "path": "augment/README.md",
-        "values": [
-          "Planned. Nothing here installs yet."
-        ]
-      },
-      {
-        "type": "contains",
-        "path": "consult/README.md",
-        "values": [
-          "Planned. Nothing in this folder runs yet."
+          "audited",
+          "mainnet",
+          "production",
+          "customers",
+          "partners",
+          "integrated with",
+          "trusted by",
+          "guaranteed",
+          "battle-tested",
+          "enterprise-grade"
         ]
       }
     ]

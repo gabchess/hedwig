@@ -18,8 +18,8 @@ Public delivery review:
 
 | Delivery | Public evidence | State |
 | --- | --- | --- |
-| Seven-day pilot offer | [pilot program](../history/2026-07-shared-authorization-pilot.md) | Published |
-| Public preparation and claim record | [pilot preparation record](../history/2026-07-29-pilot-preparation.md), [roadmap](../../ROADMAP.md) | Published |
+| Seven-day pilot offer | [pilot program](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/docs/history/2026-07-shared-authorization-pilot.md) | Published |
+| Public preparation and claim record | [pilot preparation record](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/docs/history/2026-07-29-pilot-preparation.md), [roadmap](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/ROADMAP.md) | Published |
 | Signed pilot | External signed scope | Open |
 
 No signed pilot, design partner, customer, revenue, production use, or external
@@ -36,7 +36,7 @@ adoption was created by this preparation work.
 | Hedwig-gated state change in a separate program      | [`app/consumer-demo.ts`](../../app/consumer-demo.ts), [consumer promotion record](../deployment/evidence/2026-07-24-consumer-devnet-integration.md) | Verified on devnet                   |
 | Commit-pinned AI-assisted security and code review   | [full audit](../security/reviews/2026-07-24-full-audit.md)                                                                                    | Published with open risks            |
 | Reproducible release checks and CI hardening         | [workflow](../../.github/workflows/ci.yml), [operations runbook](../deployment/operations.md)                                                     | Shipped                              |
-| Public architecture and evidence-gated roadmap       | [architecture](../access-control/architecture.md), [roadmap](../../ROADMAP.md)                                                                        | Shipped                              |
+| Public architecture and evidence-gated roadmap       | [architecture](../access-control/architecture.md), [roadmap](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/ROADMAP.md)                                                                        | Shipped                              |
 
 ## Verification totals
 
@@ -63,7 +63,7 @@ production use, independent external audit, or mainnet release.
 ## Next claim gate
 
 The July seven-day pilot above is historical. When work resumes, the next
-product exercise is [one agent and one protected action](../agent-access/integration-proof.md).
+product exercise is [one agent and one protected action](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/docs/agent-access/integration-proof.md).
 It must show authenticated success, confirmed revocation or elapsed expiry, and
 a denied retry with unchanged protected state. An independent team's decision
 to retain the integration is separate demand evidence.
@@ -78,4 +78,4 @@ remain recorded history until the issuer supplies new evidence.
 - Obtain an external security review of a stable candidate.
 
 The roadmap is canonical for delivery order:
-[`ROADMAP.md`](../../ROADMAP.md).
+[`ROADMAP.md`](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/ROADMAP.md).
