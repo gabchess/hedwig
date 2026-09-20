@@ -8,8 +8,8 @@
         "type": "contains",
         "path": "README.md",
         "values": [
-          "Hedwig is a devnet-stage Anchor program",
-          "Mainnet is planned.",
+          "This first onchain piece runs on Solana devnet.",
+          "An external security review and a multisig transfer remain open gates before mainnet.",
           "No signed pilot, design partner, customer, revenue, production use, or external adoption has been verified."
         ]
       },
