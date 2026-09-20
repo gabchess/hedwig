@@ -2,7 +2,7 @@
   {
     "id": "network-stage-is-devnet",
     "category": "network",
-    "claim": "Hedwig ships a reviewed devnet program and proposes an agent access proof; mainnet and external adoption remain unverified future gates.",
+    "claim": "Hedwig ships a reviewed devnet role record; mainnet and external adoption remain unverified future gates.",
     "assertions": [
       {
         "type": "contains",
@@ -246,6 +246,39 @@
           "live production spending",
           "customer funds on mainnet",
           "externally operated production path"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "planned-layers-stay-planned",
+    "category": "integration",
+    "claim": "Only the role record is shipped. The augment, the checks and the opsec model are planned, no integration exists, the MVP uses no model, and the SDK is not published.",
+    "assertions": [
+      {
+        "type": "contains",
+        "path": "README.md",
+        "values": [
+          "Planned. Nothing in this section runs yet.",
+          "None of that is built yet.",
+          "No integration with any wallet, rail or agent product exists yet.",
+          "The MVP uses no model.",
+          "The SDK is repository-local and is not published to npm.",
+          "Enforcement exists only where a program calls the onchain `check_role` and propagates its error."
+        ]
+      },
+      {
+        "type": "contains",
+        "path": "augment/README.md",
+        "values": [
+          "Planned. Nothing here installs yet."
+        ]
+      },
+      {
+        "type": "contains",
+        "path": "consult/README.md",
+        "values": [
+          "Planned. Nothing in this folder runs yet."
         ]
       }
     ]

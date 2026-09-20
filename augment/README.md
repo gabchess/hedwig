@@ -42,7 +42,7 @@ The first two layouts target coding agents that read skills from disk today. A G
 
 ## Honest limit
 
-A skill is advice your agent can ignore. Enforcement comes from the checks and the role record, which run outside the agent's judgement.
+A skill and a check verdict are both advice your agent can ignore. Enforcement exists only where a program calls the onchain `check_role` and propagates its error.
 
 ## Tickets
 

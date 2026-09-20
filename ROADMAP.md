@@ -1,12 +1,12 @@
 # Hedwig roadmap
 
-Hedwig is becoming the augment an onchain agent consults before it pays: an expert on payment security, DeFi security and opsec that installs as a plugin or an MCP server, on any chain where agents move money. One piece of that is live today, the revocable role record on Solana devnet. Everything else here is planned, and this file says which is which.
+Hedwig is becoming the augment an onchain agent consults before it pays: an expert on payment security, DeFi security and opsec that installs as a plugin or an MCP server, on any chain where agents move money. One piece of that is shipped today, the revocable role record on Solana devnet. Everything else here is planned, and this file says which is which.
 
 ## Now: the MVP
 
 Two pieces, in this order.
 
-**The augment first.** An installable package with a front-door skill, capability skills added one at a time, and a knowledge base of markdown references covering token approvals and allowances, lookalike addresses, cloned contracts, admin keys and upgrade authority, signing hygiene for agents, x402 payment flow risks and a pre-transaction checklist. It is markdown, so it ships in days. A skill is advice an agent can ignore, so it carries evals for the scenarios it must flag.
+**The augment first.** An installable package with a front-door skill, capability skills added one at a time, and a knowledge base of markdown references covering token approvals and allowances, lookalike addresses, cloned contracts, admin keys and upgrade authority, signing hygiene for agents, x402 payment flow risks and a pre-transaction checklist. A skill is advice an agent can ignore, so it will carry evals for the scenarios it must flag.
 
 **The checks second.** Deterministic checks exposed as MCP tools and a local API, answering one question on one chain to start: may this agent call this program under the installing team's rules? The answer joins three records. The onchain member record says who holds which role now. A local policy file, owned by the installing team, says which roles may call which targets. A registry record in git says what an address is, who holds its upgrade authority and when it was last verified.
 
@@ -58,7 +58,7 @@ The [grant progress ledger](docs/grants/progress.md) maps shipped work to public
 
 **The opsec model, after funding.** An open-source model adapted with retrieval, fine-tuning and LoRA on security material. It reads, explains and flags. Deterministic checks decide. The model may move a verdict toward caution and may never produce an allow, because a wrong go-ahead costs the user money. Infrastructure for this waits on funding.
 
-**More chains, as registry additions.** Ethereum, Monad and other EVM chains enter as data once the registry and policy carry CAIP-2 ids. A chain adapter interface waits until the second chain arrives.
+**More chains.** The registry and policy carry CAIP-2 chain ids from the start, so records for Ethereum, Monad and other EVM chains can be added as data. Checks on a new chain also need code: a reader for that chain and a role record, or an equivalent grant, to join against. That interface gets designed when the second chain arrives.
 
 **Role admin and org authority rotation.** This stays the named next build for the shipped piece. No code exists yet.
 

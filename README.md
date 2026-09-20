@@ -7,15 +7,15 @@
 <p align="center"><strong>The safety trigger onchain agents check before they pay.</strong></p>
 
 <p align="center">
-  <a href="#what-exists-today"><img src="https://img.shields.io/badge/status-MVP%20in%20progress-d4a574?labelColor=221e18" alt="status: MVP in progress"></a>
+  <a href="#what-exists-today"><img src="https://img.shields.io/badge/status-role%20record%20on%20devnet%2C%20MVP%20planned-d4a574?labelColor=221e18" alt="status: role record on devnet, MVP planned"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-d4a574?labelColor=221e18" alt="license: MIT"></a>
 </p>
 
 ## What Hedwig is
 
-You tell your agent to check with Hedwig before it moves your money. The agent asks, Hedwig answers with what it can back up, and you see the reasoning. When the answer says stop, your agent is told to stop and to tell you why.
+Planned: you tell your agent to check with Hedwig before it moves your money. The agent will ask, Hedwig will answer with what it can back up, and you will see the reasoning. When the answer says stop, your agent is told to stop and to tell you why.
 
-Hedwig is an augment. It is an expert on payment security, DeFi security and opsec that other agents consult, installed as a plugin or run as an MCP server inside whatever app you already hand work to. The goal is to make DeFi and autonomous onchain payments a better place for agents, x402 and agentic finance. Every chain is in scope: Ethereum, Solana, Monad and others.
+Hedwig is planned as an augment: an expert on payment security, DeFi security and opsec that other agents will consult, installed as a plugin or run as an MCP server inside whatever app you already hand work to. None of that is built yet. The role record further down is the one shipped piece. The goal is to make DeFi and autonomous onchain payments a better place for agents, x402 and agentic finance. Every chain is in scope: Ethereum, Solana, Monad and others.
 
 ## How your agent uses it
 
@@ -53,7 +53,7 @@ Hedwig    ALLOW_UNDER_POLICY
           it does after you sign. That key is listed in the record.
 ```
 
-The three verdicts are `ALLOW_UNDER_POLICY`, `DENY` and `UNKNOWN`. Hedwig fails closed: a missing record, a stale record, an RPC error or any mismatch returns `UNKNOWN`. Wording above is illustrative and the answers carry typed evidence rather than free text.
+The three verdicts are `ALLOW_UNDER_POLICY`, `DENY` and `UNKNOWN`. Hedwig will fail closed: a missing record, a stale record, an RPC error or any mismatch returns `UNKNOWN`. Wording above is illustrative and the answers will carry typed evidence rather than free text.
 
 ## What exists today
 
@@ -61,10 +61,10 @@ The three verdicts are `ALLOW_UNDER_POLICY`, `DENY` and `UNKNOWN`. Hedwig fails 
 |---|---|---|
 | Augment | The installable package: a front-door skill, capability skills added one at a time, and the knowledge base of markdown references on payment security, DeFi security and opsec. | Planned, first in the MVP |
 | Checks | Deterministic checks the augment exposes over MCP and an API, returning `ALLOW_UNDER_POLICY`, `DENY` or `UNKNOWN`. | Planned, second in the MVP |
-| Role record | Revocable onchain roles for agents, enforced by the program that reads them. | Shipped, Solana devnet |
-| Opsec model | An open-source model adapted with retrieval, fine-tuning and LoRA. Reads, explains and flags. It can move a verdict toward caution and can never produce an allow. | Later, after funding |
+| Role record | Revocable onchain roles for agents, enforced only by programs that call `check_role`. | Shipped, Solana devnet |
+| Opsec model | Planned: an open-source model, to be adapted with retrieval, fine-tuning and LoRA. It will read, explain and flag. It may move a verdict toward caution and may never produce an allow. | Later, after funding |
 
-A skill is advice an agent can ignore. Enforcement comes from the checks and the role record.
+A skill and a check verdict are both advice an agent can ignore. Enforcement exists only where a program calls the onchain `check_role` and propagates its error.
 
 The MVP uses no model.
 
@@ -74,7 +74,7 @@ Hedwig is built for people running x402 payment tools and agent wallets. No inte
 
 Give an agent a role with an expiry. An integrated program checks that role before a protected action. Revoking membership or disabling the role denies later actions that enforce the check.
 
-This first onchain piece runs on Solana devnet. The crate `hedwig_sol` and the package `@hedwig-sol/sdk` keep the names they had when this repository was called hedwig-sol, because the deployed devnet evidence is bound to them.
+This first onchain piece runs on Solana devnet. The crate `hedwig_sol` and the package `@hedwig-sol/sdk` keep the names they had when this repository was called hedwig-sol, because the deployed devnet evidence is bound to them. The SDK is repository-local and is not published to npm.
 
 The program exports `create_org`, `create_role`, `assign_role`, `revoke_role`, `check_role` and `set_role_enabled`. The [architecture guide](docs/access-control/architecture.md) describes the account model.
 

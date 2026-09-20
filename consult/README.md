@@ -12,13 +12,13 @@ Slice 1 answers one question on one chain: may this agent call this program unde
 | --- | --- | --- |
 | Member | Onchain, in the shipped role record. | Who holds which role right now. |
 | Policy | A local `hedwig.policy.json` file your team owns. | Which roles may call which targets, plus the maximum registry age. |
-| Contract record | A JSON registry in git, changed only by PR. | The address, two evidence URLs and a verified-at slot. |
+| Registry record | A JSON registry in git, changed only by PR. | The address, two evidence URLs and a verified-at slot. |
 
 ## Verdicts
 
 | Verdict | Meaning |
 | --- | --- |
-| `ALLOW_UNDER_POLICY` | The call matches a live role and your policy permits it. |
+| `ALLOW_UNDER_POLICY` | The call matches an unexpired role and your policy permits it. |
 | `DENY` | A record rules the call out. |
 | `UNKNOWN` | The records on hand do not settle the question. |
 
