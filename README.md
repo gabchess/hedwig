@@ -18,7 +18,7 @@ Hedwig is a devnet-stage Anchor program with six instructions, a reference consu
 
 ## Run locally
 
-Requires Rust, Anchor CLI 1.0.2, Solana/Agave CLI 4.0.1+ and Yarn.
+Requires Rust, Anchor CLI 1.0.2, Solana/Agave CLI 4.0.1+, Node.js 22+ and Yarn.
 
 ```sh
 git clone https://github.com/gabchess/hedwig-sol.git
@@ -31,6 +31,8 @@ cargo build-sbf --manifest-path programs/hedwig_sol/Cargo.toml
 cargo test --workspace
 yarn sdk:typecheck
 yarn sdk:test
+yarn sdk:build
+npm ci --prefix app
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 ```
 
