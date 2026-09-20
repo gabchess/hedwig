@@ -116,4 +116,4 @@ npm ci --prefix app
 
 Build both SBF artifacts before the workspace tests. The tests run locally without a network connection. The [app guide](app/README.md) covers running the lifecycle on devnet.
 
-[Build plan](https://github.com/gabchess/hedwig/milestone/1) · [Glossary](CONTEXT.md) · [Roadmap](ROADMAP.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Build plan](https://github.com/gabchess/hedwig/milestone/1) · [Glossary](CONTEXT.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
