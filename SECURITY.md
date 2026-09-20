@@ -4,7 +4,7 @@ Hedwig is a devnet-stage program. No mainnet release or bug bounty exists.
 
 ## Report privately
 
-Use [GitHub's private security-advisory form](https://github.com/gabchess/hedwig-sol/security/advisories/new).
+Use [GitHub's private security-advisory form](https://github.com/gabchess/hedwig/security/advisories/new).
 If that form is unavailable, contact the repository owner through the private
 contact route on their GitHub profile and ask for a secure channel.
 

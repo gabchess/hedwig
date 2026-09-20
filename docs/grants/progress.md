@@ -12,7 +12,7 @@ milestone, that a repository fixture is a customer, or that unobserved demand
 exists.
 
 Public delivery review:
-[`#3: Ship secure consumer integration and grant evidence`](https://github.com/gabchess/hedwig-sol/pull/3)
+[`#3: Ship secure consumer integration and grant evidence`](https://github.com/gabchess/hedwig/pull/3)
 
 ## Preparation work started on 2026-07-29
 
