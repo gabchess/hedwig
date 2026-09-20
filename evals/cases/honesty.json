@@ -9,7 +9,7 @@
         "path": "README.md",
         "values": [
           "Hedwig is a devnet-stage Anchor program",
-          "| Network             | Devnet; mainnet is planned",
+          "Mainnet is planned.",
           "No signed pilot, design partner, customer, revenue, production use, or external adoption has been verified."
         ]
       },

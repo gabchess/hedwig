@@ -70,6 +70,14 @@ new_case_repository
 add_text_file "evals/runner.js" "'use strict';"
 expect_pass "public JavaScript eval runner"
 
+new_case_repository
+add_text_file "docs/logo.svg" '<svg xmlns="http://www.w3.org/2000/svg"/>'
+expect_pass "reviewed logo path"
+
+new_case_repository
+add_text_file "docs/other.svg" '<svg xmlns="http://www.w3.org/2000/svg"/>'
+expect_fail "unreviewed SVG path"
+
 for rejected_path in \
   "docs/.workspace/private.md" \
   ".github/workflows/internal/private.yml" \

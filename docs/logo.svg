@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 427" width="640" height="427">
+  <!-- Hedwig banner: designed mark in house tokens only (no AI imagery).
+       bg #0c0a08, surface #221e18, ink-dim #827b6f, ink-soft #b8b0a4, accent #d4a574 -->
+  <defs>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.03"/></feComponentTransfer>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <!-- 1 base -->
+  <rect width="640" height="427" fill="#221e18"/>
+
+  <!-- 3 hex lattice, top-right, sparse texture -->
+  <g fill="none" stroke="#827b6f" stroke-opacity="0.25" stroke-width="1">
+    <path d="M 560 -30 l 60.6 35 v 70 l -60.6 35 l -60.6 -35 v -70 z"/>
+    <path d="M 610 40 l 43.3 25 v 50 l -43.3 25 l -43.3 -25 v -50 z"/>
+    <path d="M 540 20 l 77.9 45 v 90 l -77.9 45 l -77.9 -45 v -90 z"/>
+    <path d="M 600 -20 l 34.6 20 v 40 l -34.6 20 l -34.6 -20 v -40 z"/>
+    <path d="M 615 95 l 47.6 27.5 v 55 l -47.6 27.5 l -47.6 -27.5 v -55 z"/>
+  </g>
+
+  <!-- 4-6 medallion + owl, re-centered and scaled up for thumbnail presence -->
+  <g transform="translate(320 214) scale(1.18) translate(-255 -218)">
+  <circle cx="255" cy="218" r="118" fill="#221e18" stroke="#827b6f" stroke-opacity="0.6" stroke-width="1.5"/>
+
+  <!-- 6 rim light: lower-left quadrant arc, hairline accent -->
+  <path d="M 143.9 249.7 A 118 118 0 0 0 234.5 334.2" fill="none" stroke="#d4a574" stroke-opacity="0.5" stroke-width="1"/>
+
+  <!-- 5 owl: flat paper-facet polygons, 2-tone -->
+  <!-- ear tufts -->
+  <polygon points="203,168 226,148 232,178" fill="#827b6f"/>
+  <polygon points="307,168 284,148 278,178" fill="#827b6f"/>
+  <!-- body kite -->
+  <polygon points="255,150 325,260 255,300 185,260" fill="#b8b0a4"/>
+  <!-- shoulder shadow facets -->
+  <polygon points="255,150 185,260 209,278 255,190" fill="#827b6f"/>
+  <polygon points="255,150 325,260 301,278 255,190" fill="#827b6f" fill-opacity="0.55"/>
+  <!-- eyes: the one accent moment -->
+  <circle cx="228" cy="205" r="16" fill="#d4a574"/>
+  <circle cx="282" cy="205" r="16" fill="#d4a574"/>
+  <circle cx="228" cy="205" r="6" fill="#0c0a08"/>
+  <circle cx="282" cy="205" r="6" fill="#0c0a08"/>
+  <!-- beak punches through to bg -->
+  <polygon points="245,222 265,222 255,242" fill="#0c0a08"/>
+  <!-- chest key glyph: role/access motif, dim outline -->
+  <g fill="none" stroke="#827b6f" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="255" cy="264" r="7"/>
+    <line x1="255" y1="271" x2="255" y2="288"/>
+    <line x1="255" y1="282" x2="262" y2="282"/>
+  </g>
+  </g>
+
+  <!-- 2 grain over everything, matches page texture -->
+  <rect width="640" height="427" filter="url(#grain)" opacity="1" fill="none"/>
+</svg>
