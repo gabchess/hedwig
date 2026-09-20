@@ -1,155 +1,29 @@
 # Hedwig
 
-**Agent access you can revoke and verify.**
+<p align="center">
+  <img src="docs/logo.svg" alt="Hedwig mark" width="240" height="160">
+</p>
 
-Hedwig gives Solana apps a shared, revocable role record for software agents.
+<p align="center"><strong>Shared, revocable roles for software agents on Solana.</strong></p>
 
-Give an agent a role with an expiry. Each integrated Solana program authenticates
-that agent and checks its current membership before a protected action. Revoke
-membership or disable the role to deny later actions that use that check.
+<p align="center">
+  <a href="#current-status"><img src="https://img.shields.io/badge/network-devnet-d4a574?labelColor=221e18" alt="network: devnet"></a>
+  <a href="sdk/README.md"><img src="https://img.shields.io/badge/SDK-alpha-d4a574?labelColor=221e18" alt="SDK: alpha"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-d4a574?labelColor=221e18" alt="license: MIT"></a>
+</p>
 
-Hedwig is a devnet-stage Anchor program with six instructions, a separate
-reference consumer, and a repository-local TypeScript SDK alpha. The consumer
-shows an authenticated actor changing a protected counter through CPI.
+Give an agent a role with an expiry. An integrated program checks that role before a protected action. Revoking membership or disabling the role denies later actions that enforce the check.
 
-To run the whole lifecycle yourself in about five minutes, see
-[Run locally](#run-locally).
-
-## Why Hedwig
-
-An agent can keep trying to work after a task ends or an operator intervenes.
-For an integrated Solana action, the useful question is whether the program
-will still accept that agent's authority when the transaction executes.
-
-Hedwig keeps `Org`, `Role`, and `Member` state in one onchain store. Related
-programs can check the same membership during their own transaction. The
-consumer defines the actions a role permits and must authenticate the actor.
-
-### Scope of the revocation guarantee
-
-Revocation takes effect through the updated chain state. It does not undo an
-executed transaction, terminate a process, remove unrelated credentials, or
-stop actions in programs that do not enforce the check. Transactions ordered
-before revocation can still succeed. Expiry and revocation alone are not a
-unique capability compared with wallet policy products.
-
-## Integration proof
-
-When work resumes, a technical owner can test one recurring protected action
-with a dedicated agent identity. The proof records valid membership, expiry or
-revocation, a denied retry, the transaction result, and unchanged protected
-state.
-
-The [integration proof](docs/agent-access/integration-proof.md) defines the scope and
-limits. The [reference flow](docs/agent-access/reference-flow.md) uses a generic vault
-rebalance job to make the access boundary concrete, not a claimed vault
-integration. See [Current status](#current-status) for the adoption record.
-
-## Current status
-
-| Surface                                   | Current state                                                                                   |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Anchor program                            | Six instructions implemented                                                                    |
-| Rust tests                                | 41 [LiteSVM](https://github.com/LiteSVM/litesvm) integration tests across the core and consumer |
-| TypeScript tests                          | 27 SDK tests plus SDK and app typechecks                                                        |
-| Devnet evidence                           | Upgrade verified at slot `478655638`; six-instruction lifecycle finalized afterward             |
-| Role circuit breaker (`set_role_enabled`) | Live `enabled=false` state verified on devnet                                                   |
-| TypeScript SDK                            | Repository-local `0.1.0-alpha.0`; built and tested, not published                               |
-| Secure CPI consumer                       | Deployed at slot `478667066`; live Hedwig-gated state change verified                           |
-| Upgrade authority                         | Single deployer key; 2-of-3 Squads (multisig) transfer planned before mainnet                   |
-| Validation                                | Agent-access integration hypothesis; no signed pilot or external adoption                       |
-| Network                                   | Devnet; mainnet is planned                                                                      |
-
-See [ROADMAP.md](ROADMAP.md) for evidence-gated delivery milestones and
-[THREAT-MODEL.md](THREAT-MODEL.md) for the current trust boundaries.
-
-The maintainer checked binary and lifecycle evidence on 2026-07-24. A
-[read-only presence check on 2026-09-06](docs/deployment/evidence/2026-09-06-program-presence.md)
-confirmed both program addresses and their recorded deployment slots. The live program was upgraded at
-slot `478655638`; its upgrade-authority pubkey remains
-`8gbaJEfM5VDs9BpFLgwMTq7s2FkVpEri8ZnPbxn4HPqY`. The reviewed ELF SHA-256 is
-`42670041e7df0f9832930bfa511b884e8b59ceebc8e14b0638c4627a83e6aed3`.
-See the
-[promotion record](docs/deployment/evidence/2026-07-24-devnet-promotion.md) for the
-transaction, loader-padding proof, and six lifecycle signatures.
-
-Funding history remains in the [grant progress ledger](docs/grants/progress.md).
-No signed pilot, design partner, customer, revenue, production use, or external
-adoption has been verified. The single builder-owned consumer proves a
-technical integration pattern, not demand from Solana agent teams.
-
-## Instructions
-
-| Instruction        | Authorization       | Effect                                                      |
-| ------------------ | ------------------- | ----------------------------------------------------------- |
-| `create_org`       | Authority signs     | Creates the authority's org namespace                       |
-| `create_role`      | Org authority signs | Creates an enabled named role under the org                 |
-| `assign_role`      | Role admin signs    | Creates a member PDA, optionally with expiry                |
-| `revoke_role`      | Role admin signs    | Closes the member PDA and returns its rent to the admin     |
-| `check_role`       | No signer required  | Returns success only for an enabled, unexpired membership   |
-| `set_role_enabled` | Role admin signs    | Enables or disables checks and new assignments for the role |
-
-The current program creates one org per authority. A role's admin is initialized
-to that org authority and cannot yet be changed. Disabling a role preserves its
-member accounts while causing `check_role` and new `assign_role` calls to fail.
-
-## Account model
-
-```text
-Org PDA       ["org", authority]
-  └─ Role PDA ["role", org, role_name]
-       └─ Member PDA ["member", role, holder]
-```
-
-The PDA seeds bind the namespace, role, and holder. Anchor account ownership,
-deserialization, seed, bump, and `has_one` constraints establish the account
-relationships used by each instruction.
-
-Role names are part of the role PDA seed and are therefore immutable. Membership
-expiry uses a Unix timestamp; `0` means no expiry. Revocation closes the member
-account, so a later grant creates it again.
-
-## Integrating with `check_role`
-
-`check_role` proves that the supplied `holder` pubkey has a valid member PDA for
-the supplied role, that the role is enabled, and that the membership has not
-expired. It does **not** prove that the transaction actor controls that holder.
-See [Caller authentication is an integration requirement](THREAT-MODEL.md#caller-authentication-is-an-integration-requirement)
-for the full boundary.
-
-A consuming program must authenticate the actor first, for example with a
-`Signer<'info>` for a wallet or with its own validated PDA constraints, and pass
-that authenticated account as `holder`. It must also bind the supplied role to
-its configured required role before the CPI, or an actor could supply an
-unrelated role it controls. The reference consumer uses
-`has_one = required_role` on its counter account for this binding:
-
-```rust
-hedwig_sol::cpi::check_role(CpiContext::new(
-    ctx.accounts.hedwig_program.key(),
-    hedwig_sol::cpi::accounts::CheckRole {
-        member: ctx.accounts.member.to_account_info(),
-        role: ctx.accounts.role.to_account_info(),
-        holder: ctx.accounts.actor.to_account_info(),
-    },
-))?;
-```
-
-The CPI returns `Ok(())` on active membership and a Hedwig error otherwise. With
-the `?` shown above, a failed check aborts the consuming instruction. Hedwig
-does not return a boolean to branch on, and it grants no transaction authority
-by itself.
-
-The Rust CPI interface comes from the program crate. The compiling reference
-consumer, its negative tests, and the TypeScript client flow are documented in
-[the integration guide](docs/access-control/integration-guide.md). See
-[Current status](#current-status) for its devnet deployment evidence.
+Hedwig is a devnet-stage Anchor program with six instructions, a reference consumer and a repository-local TypeScript SDK. Mainnet is planned. The SDK is not published.
 
 ## Run locally
 
-Requirements: Rust, Anchor CLI 1.0.2, and Solana/Agave CLI 4.0.1 or newer.
+Requires Rust, Anchor CLI 1.0.2, Solana/Agave CLI 4.0.1+ and Yarn.
 
-```bash
+```sh
+git clone https://github.com/gabchess/hedwig-sol.git
+cd hedwig-sol
+yarn install
 cargo fmt --check
 cargo build
 cargo build-sbf --manifest-path programs/hedwig_consumer/Cargo.toml
@@ -160,26 +34,28 @@ yarn sdk:test
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 ```
 
-The tests run without a network connection. Build both SBF artifacts before the
-workspace tests because the LiteSVM fixtures load them at compile time. To run
-the membership lifecycle against devnet, see
-[app/README.md](app/README.md).
+Build both SBF artifacts before the workspace tests. The tests run locally without a network connection. The [app guide](app/README.md) covers running the lifecycle on devnet.
 
-## Repository guide
+## Use it
 
-- [Agent access](docs/agent-access/README.md): product scope and integration evidence
-- [Use cases](docs/use-cases/privacy-control-plane.md): candidate control-plane authorization pattern
-- [Access control](docs/access-control/architecture.md): role model and code map
-- [Integration](docs/access-control/integration-guide.md): actor binding, CPI, and SDK
-- [SDK](sdk/README.md): TypeScript client, PDA helpers, and argument validation
-- [Security](THREAT-MODEL.md): boundaries, risks, and [recorded review](docs/security/reviews/2026-07-24-full-audit.md)
-- [Deployment](docs/deployment/operations.md): operations and [devnet evidence](docs/deployment/evidence/2026-07-24-consumer-devnet-integration.md)
-- [Grants](docs/grants/progress.md): funding and delivery evidence
-- [Claim evals](evals/README.md): offline harness that checks public claims against repository evidence
-- [History](docs/history/README.md): superseded pilot offer and dated records
-- [Roadmap](ROADMAP.md): shipped evidence and next product gates
-- [Contributing](CONTRIBUTING.md): verification and contribution workflow
+Create an organization and a role, then assign that role to an agent. Set an expiry or revoke membership when access should end.
 
-## License
+The program exports `create_org`, `create_role`, `assign_role`, `revoke_role`, `check_role` and `set_role_enabled`. The [architecture guide](docs/access-control/architecture.md) describes the account model.
 
-MIT. See [LICENSE](LICENSE).
+### Integrating with `check_role`
+
+Your program must authenticate the actor and bind the supplied role to its configured required role before calling `check_role`. Membership alone does not prove that the caller controls the holder account.
+
+The check returns success or a Hedwig error. Propagate that error to stop the protected action. The [integration guide](docs/access-control/integration-guide.md) includes the compiling CPI consumer, negative tests and SDK flow.
+
+Revocation applies through updated chain state. Transactions ordered before it can still succeed. It cannot undo transactions, terminate an agent process or block programs that skip the check.
+
+## Current status
+
+The core and reference consumer have devnet deployment evidence. The repository records 41 Rust integration tests and 27 SDK tests. See the [promotion record](docs/deployment/evidence/2026-07-24-devnet-promotion.md), [consumer integration](docs/deployment/evidence/2026-07-24-consumer-devnet-integration.md) and [September presence check](docs/deployment/evidence/2026-09-06-program-presence.md).
+
+Upgrade authority remains a single deployer key. An external security review and a multisig transfer remain open gates before mainnet. Read the [threat model](THREAT-MODEL.md) before integrating.
+
+No signed pilot, design partner, customer, revenue, production use, or external adoption has been verified.
+
+[Integration proof](docs/agent-access/integration-proof.md) · [SDK](sdk/README.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
