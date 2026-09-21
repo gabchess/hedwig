@@ -7,7 +7,10 @@
     "predemo": "npm --prefix .. run sdk:build",
     "demo": "tsx demo.ts",
     "preconsumer-demo": "npm --prefix .. run sdk:build",
-    "consumer-demo": "tsx consumer-demo.ts"
+    "consumer-demo": "tsx consumer-demo.ts",
+    "prerevoke-demo": "npm --prefix .. run sdk:build",
+    "revoke-demo": "tsx revoke-demo.ts",
+    "test": "tsx --test revoke-demo-lib.test.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "1.0.2",
