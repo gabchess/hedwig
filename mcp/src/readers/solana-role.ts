@@ -1,15 +1,23 @@
-import { buildCheckRoleTransaction, decodeBase58PublicKey } from "./wire";
+import {
+  buildCheckRoleTransaction,
+  decodeBase58PublicKey,
+  encodeBase58PublicKey,
+} from "./wire";
+import { findProgramAddress } from "./pda";
 
 // Reads whether a holder currently holds a named Solana role, by
 // simulating the on-chain check_role instruction. Returns a fact for
-// consult() to weigh, or undefined when there is nothing safe to report.
-// Never throws, never rejects: every exit is a plain return.
+// consult() to weigh, or undefined when there is nothing to confirm.
+// Never throws, never rejects, and always settles within deps.deadlineMs:
+// one AbortController and one timer bound the fetch AND the body read
+// together, so a stalled response can never hang this function open.
 
 export const SIMULATE_DEADLINE_MS = 800;
-
+const JSON_RPC_ID = 1;
 const MAX_RESPONSE_BYTES = 256 * 1024;
+const MEMBER_SEED = Buffer.from("member", "utf8");
 
-type DeployableCluster = "devnet" | "mainnet-beta";
+export type DeployableCluster = "devnet" | "mainnet-beta";
 
 // The program id this reader ever calls: the same id programs/hedwig_sol
 // declares (see Anchor.toml and lib.rs's declare_id!). A policy naming any
@@ -73,7 +81,10 @@ interface RequiredRoleFields {
   programId: string;
   role: string;
   holder: string;
-  member: string;
+  // The policy's own copy, if it has one. Never trusted on its own: the
+  // Reader always derives the address itself and only uses this to catch
+  // a stale or mistyped policy (see the mismatch check in gatherSolanaRole).
+  member: string | undefined;
 }
 
 // The owner's policy is read as unknown, untrusted JSON: every field is
@@ -110,8 +121,8 @@ function readRequiredRole(policyRole: unknown): RequiredRoleFields | undefined {
     !decodeBase58PublicKey(role) ||
     typeof holder !== "string" ||
     !decodeBase58PublicKey(holder) ||
-    typeof member !== "string" ||
-    !decodeBase58PublicKey(member)
+    (member !== undefined &&
+      (typeof member !== "string" || !decodeBase58PublicKey(member)))
   ) {
     return undefined;
   }
@@ -119,17 +130,44 @@ function readRequiredRole(policyRole: unknown): RequiredRoleFields | undefined {
     return undefined;
   }
 
-  return { cluster, programId, role, holder, member };
+  return {
+    cluster,
+    programId,
+    role,
+    holder,
+    member: typeof member === "string" ? member : undefined,
+  };
 }
 
-function isNonEmptyArray(value: unknown): boolean {
-  return Array.isArray(value) && value.length > 0;
+// Lets a caller (handler.ts) learn which cluster's config it needs to
+// resolve, using the exact same validation gatherSolanaRole itself applies
+// (mode, cluster, and a programId that matches the deployed id). A
+// "not-required" policy, or a required one naming the wrong programId or
+// an unrecognised cluster, returns undefined here: the caller then never
+// reaches config.ts at all, so a mismatched policy never triggers its
+// "is not set" startup lines.
+export function clusterForRoleRequirement(
+  policyRole: unknown
+): DeployableCluster | undefined {
+  return readRequiredRole(policyRole)?.cluster;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
+function allDistinct(buffers: Buffer[]): boolean {
+  return new Set(buffers.map((b) => b.toString("hex"))).size === buffers.length;
 }
 
 // `{ InstructionError: [index, { Custom: code }] }` is the one error shape
-// this reader ever trusts as a definite program-level answer. Anything
-// else (a bare string, a differently-shaped object, a string or non-integer
-// code) is treated as unreadable, never guessed at.
+// this reader ever trusts as a definite program-level answer: exactly one
+// top-level key, a two-element pair, an integer index, and a detail object
+// whose only key is Custom holding an integer. Anything else (a bare
+// string, an extra sibling key, a non-integer code) is unreadable, never
+// guessed at.
 function readInstructionErrorCustomCode(
   err: unknown
 ): { index: number; custom: number } | undefined {
@@ -152,7 +190,12 @@ function readInstructionErrorCustomCode(
   if (detail === null || typeof detail !== "object" || Array.isArray(detail)) {
     return undefined;
   }
-  const custom = (detail as Record<string, unknown>).Custom;
+  const detailRecord = detail as Record<string, unknown>;
+  const detailKeys = Object.keys(detailRecord);
+  if (detailKeys.length !== 1 || detailKeys[0] !== "Custom") {
+    return undefined;
+  }
+  const custom = detailRecord.Custom;
   if (typeof custom !== "number" || !Number.isInteger(custom)) {
     return undefined;
   }
@@ -166,16 +209,24 @@ interface ParsedOutcome {
   reason: RoleFactReason;
 }
 
-// The exact table this reader answers from. Every row not covered here
-// (a JSON-RPC error, a missing result, an unreadable err shape, an
-// instruction index other than 0, an unrecognised Custom code, or a
-// program result with no logs) means undefined: no fact, never a guess.
-function readOutcome(parsed: unknown): ParsedOutcome | undefined {
+// The exact table this reader answers from. `valid: true` requires the
+// program's own success line and no failure line for its own id, a
+// matching JSON-RPC id, and a positive slot: a bare `err: null` is never
+// enough on its own. Every `valid: false` reason requires the program's
+// own invoke line. Every row not covered here means undefined: no fact,
+// never a guess.
+function readOutcome(
+  parsed: unknown,
+  programId: string
+): ParsedOutcome | undefined {
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     return undefined;
   }
   const body = parsed as Record<string, unknown>;
   if ("error" in body) {
+    return undefined;
+  }
+  if (body.jsonrpc !== "2.0" || body.id !== JSON_RPC_ID) {
     return undefined;
   }
 
@@ -202,8 +253,21 @@ function readOutcome(parsed: unknown): ParsedOutcome | undefined {
   const err = valueRecord.err;
   const logs = valueRecord.logs;
 
+  const successLine = `Program ${programId} success`;
+  const failedLine = `Program ${programId} failed`;
+  // A real invoke line carries a call-depth suffix ("Program <id> invoke
+  // [1]"), so this is a prefix match; success and failed lines never carry
+  // that suffix, so those stay exact.
+  const invokeLinePrefix = `Program ${programId} invoke`;
+
   if (err === null) {
-    if (!isNonEmptyArray(logs)) {
+    if (slot <= 0) {
+      return undefined;
+    }
+    if (!isStringArray(logs) || logs.length === 0) {
+      return undefined;
+    }
+    if (!logs.includes(successLine) || logs.includes(failedLine)) {
       return undefined;
     }
     return { slot, configDefect: false, valid: true, reason: "ok" };
@@ -216,7 +280,11 @@ function readOutcome(parsed: unknown): ParsedOutcome | undefined {
   if (!instructionError || instructionError.index !== 0) {
     return undefined;
   }
-  if (!isNonEmptyArray(logs)) {
+  if (
+    !isStringArray(logs) ||
+    logs.length === 0 ||
+    !logs.some((line) => line.startsWith(invokeLinePrefix))
+  ) {
     return undefined;
   }
 
@@ -230,8 +298,87 @@ function readOutcome(parsed: unknown): ParsedOutcome | undefined {
   return { slot, configDefect: false, valid: false, reason };
 }
 
-// Enforces deps.deadlineMs regardless of whether the supplied fetch honours
-// AbortSignal: a fetch that settles after the deadline is dropped, not
+// Reads a Fetch API response body bounded by maxBytes, streaming and
+// counting when a stream is available so an endless or oversized body is
+// cut off the moment the cap is passed, never buffered whole first. A
+// response object with no readable stream (an injected test double) falls
+// back to a single bounded read.
+async function readBoundedBody(
+  response: Response,
+  maxBytes: number,
+  controller: AbortController
+): Promise<string | undefined> {
+  const body = (response as { body?: unknown }).body;
+  const stream =
+    body && typeof (body as { getReader?: unknown }).getReader === "function"
+      ? (body as ReadableStream<Uint8Array>)
+      : undefined;
+
+  if (stream) {
+    const reader = stream.getReader();
+    const chunks: Buffer[] = [];
+    let total = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        if (value) {
+          total += value.byteLength;
+          if (total > maxBytes) {
+            controller.abort();
+            try {
+              await reader.cancel();
+            } catch {
+              // Already aborting; nothing more to release.
+            }
+            return undefined;
+          }
+          chunks.push(Buffer.from(value));
+        }
+      }
+    } catch {
+      return undefined;
+    }
+    return Buffer.concat(chunks).toString("utf8");
+  }
+
+  const text = await response.text();
+  if (Buffer.byteLength(text, "utf8") > maxBytes) {
+    return undefined;
+  }
+  return text;
+}
+
+// Fetches and reads the whole response body under one shared
+// AbortController: a caller races this whole function against the
+// deadline, not just the fetch call, so a stall anywhere in the exchange
+// is bounded the same way.
+async function fetchAndReadBody(
+  rpcUrl: string,
+  requestBody: string,
+  fetchFn: typeof globalThis.fetch,
+  controller: AbortController
+): Promise<string | undefined> {
+  const response = await fetchFn(rpcUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: requestBody,
+    redirect: "error",
+    signal: controller.signal,
+  });
+
+  if (response.status !== 200 || response.redirected === true) {
+    return undefined;
+  }
+
+  return readBoundedBody(response, MAX_RESPONSE_BYTES, controller);
+}
+
+// Races promise against deadlineMs, aborting controller on expiry so a
+// well-behaved fetch or stream stops too. A promise that settles after the
+// deadline is dropped: its result, whatever it turns out to be, is never
 // awaited further.
 function raceWithDeadline<T>(
   promise: Promise<T>,
@@ -273,9 +420,47 @@ export async function gatherSolanaRole(
       return undefined;
     }
 
+    const feePayerBytes = decodeBase58PublicKey(deps.feePayer) as Buffer;
+    const roleBytes = decodeBase58PublicKey(required.role) as Buffer;
+    const holderBytes = decodeBase58PublicKey(required.holder) as Buffer;
+    const programIdBytes = decodeBase58PublicKey(required.programId) as Buffer;
+
+    // The member PDA is derived here, never trusted from the policy: a
+    // stale or mistyped policy.role.member would otherwise turn a real
+    // holder into a false MemberMissing deny.
+    const derived = findProgramAddress(
+      [MEMBER_SEED, roleBytes, holderBytes],
+      programIdBytes
+    );
+    if (!derived) {
+      return undefined;
+    }
+    const memberBase58 = encodeBase58PublicKey(derived.address);
+    if (required.member !== undefined && required.member !== memberBase58) {
+      console.error(
+        "hedwig-mcp: the Solana role policy names a member address that does not match the derived one"
+      );
+      return undefined;
+    }
+
+    if (
+      !allDistinct([
+        feePayerBytes,
+        derived.address,
+        roleBytes,
+        holderBytes,
+        programIdBytes,
+      ])
+    ) {
+      console.error(
+        "hedwig-mcp: the Solana role policy names accounts that are not all distinct"
+      );
+      return undefined;
+    }
+
     const transaction = buildCheckRoleTransaction({
       feePayer: deps.feePayer,
-      member: required.member,
+      member: memberBase58,
       role: required.role,
       holder: required.holder,
       programId: required.programId,
@@ -284,17 +469,16 @@ export async function gatherSolanaRole(
       return undefined;
     }
 
-    // Taken before the send: age is measured from when the reader asked,
+    // Taken before the send: age is measured from when the Reader asked,
     // never understated by how long the network took to answer.
     const observedAt = deps.now();
     if (!Number.isSafeInteger(observedAt) || observedAt <= 0) {
       return undefined;
     }
 
-    const controller = new AbortController();
     const requestBody = JSON.stringify({
       jsonrpc: "2.0",
-      id: 1,
+      id: JSON_RPC_ID,
       method: "simulateTransaction",
       params: [
         transaction.toString("base64"),
@@ -307,24 +491,13 @@ export async function gatherSolanaRole(
       ],
     });
 
-    const response = await raceWithDeadline(
-      deps.fetch(deps.rpcUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: requestBody,
-        redirect: "error",
-        signal: controller.signal,
-      }),
+    const controller = new AbortController();
+    const text = await raceWithDeadline(
+      fetchAndReadBody(deps.rpcUrl, requestBody, deps.fetch, controller),
       deps.deadlineMs,
       controller
     );
-
-    if (response.status !== 200) {
-      return undefined;
-    }
-
-    const text = await response.text();
-    if (Buffer.byteLength(text, "utf8") > MAX_RESPONSE_BYTES) {
+    if (text === undefined) {
       return undefined;
     }
 
@@ -335,7 +508,7 @@ export async function gatherSolanaRole(
       return undefined;
     }
 
-    const outcome = readOutcome(parsed);
+    const outcome = readOutcome(parsed, required.programId);
     if (!outcome) {
       return undefined;
     }
