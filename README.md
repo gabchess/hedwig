@@ -32,4 +32,4 @@ npm ci --prefix app
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 ```
 
-[Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Role record](docs/role-record.md) · [SDK](sdk/README.md) · [MCP server](mcp/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)

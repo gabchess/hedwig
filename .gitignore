@@ -8,6 +8,7 @@ node_modules/
 .yarn/
 sdk/dist/
 consult/dist/
+mcp/dist/
 
 # Environment and secrets
 .env
