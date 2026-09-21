@@ -8,9 +8,10 @@ export interface ConditionResult {
   evidence: string;
 }
 
-// Any FAIL denies outright. Otherwise any UNVERIFIED means the request
-// cannot be assessed, so the verdict stays UNKNOWN rather than guessing.
-// Only a clean set of PASS results defers to the Policy.
+// ALLOW is the only verdict that must be earned: it requires a non-empty,
+// all-PASS result set AND a Policy that permits. A FAIL anywhere denies
+// outright, and everything else (no results, a mix, an UNVERIFIED, a Policy
+// that does not permit) resolves to UNKNOWN rather than guessing.
 export function foldVerdict(
   results: ConditionResult[],
   policyPermits: boolean
@@ -18,8 +19,12 @@ export function foldVerdict(
   if (results.some((result) => result.status === "FAIL")) {
     return "DENY";
   }
-  if (results.some((result) => result.status === "UNVERIFIED")) {
-    return "UNKNOWN";
+  if (
+    results.length > 0 &&
+    results.every((result) => result.status === "PASS") &&
+    policyPermits
+  ) {
+    return "ALLOW_UNDER_POLICY";
   }
-  return policyPermits ? "ALLOW_UNDER_POLICY" : "DENY";
+  return "UNKNOWN";
 }

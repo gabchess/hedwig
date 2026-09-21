@@ -1,6 +1,6 @@
 # consult
 
-Checks a payment request against a Policy's mandatory Floor Conditions and folds the results into one Verdict.
+Checks a payment request against the catalog's mandatory Floor Conditions and a Policy, then folds the results into one Verdict.
 
 ```ts
 import { consult, PAY_CATALOG } from "./src";

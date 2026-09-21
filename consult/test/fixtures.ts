@@ -17,8 +17,12 @@ export const ASSET_SYMBOL = CANONICAL_ASSET_SYMBOL;
 export const ASSET_ADDRESS = CANONICAL_ASSET_ADDRESS;
 export const POISONED_RECIPIENT = POISON_FLAGGED_RECIPIENT;
 
-export const APPROVED_RECIPIENT = "0x00000000000000000000000000000000a11ce01";
-export const UNAPPROVED_RECIPIENT = "0x00000000000000000000000000000000BADC0DE";
+// Full 40-hex-digit EVM addresses: consult() validates recipient shape
+// strictly, so a fixture short of that shape resolves to UNVERIFIED rather
+// than PASS or FAIL, which would silently break every test that uses it.
+export const APPROVED_RECIPIENT = "0x00000000000000000000000000000000a11ce001";
+export const UNAPPROVED_RECIPIENT =
+  "0x00000000000000000000000000000000badc0de0";
 
 export function makePolicy(overrides: Partial<Policy> = {}): Policy {
   return {
