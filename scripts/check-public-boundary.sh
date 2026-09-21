@@ -146,9 +146,14 @@ else
   fi
 
   default_private_patterns_file="$git_common_dir/info/public-boundary-private-patterns"
-  if [[ -f "$default_private_patterns_file" ]]; then
-    private_patterns_file="$default_private_patterns_file"
+  if [[ ! -f "$default_private_patterns_file" ]]; then
+    # A clone without its patterns file would otherwise pass with the
+    # private denylist silently skipped.
+    echo "public-boundary: no private patterns file in the git info directory (public-boundary-private-patterns)." >&2
+    echo "public-boundary: create it, or set PUBLIC_BOUNDARY_PRIVATE_PATTERNS_FILE= to run without one." >&2
+    exit 2
   fi
+  private_patterns_file="$default_private_patterns_file"
 fi
 
 if [[ -n "$private_patterns_file" ]]; then
