@@ -1,4 +1,10 @@
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
@@ -100,9 +106,17 @@ describe("handleConsult", () => {
 
     it("unreadable file (a directory in its place)", () => {
       const dirPath = join(dir, "policy-is-a-dir.json");
-      mkdtempSync(dirPath.replace(/\.json$/, ""));
+      mkdirSync(dirPath);
       const result = handleConsult({ request: VALID_REQUEST }, dirPath);
       expect(result.verdict).to.equal("UNKNOWN");
+      expect(result.results[0].id).to.equal("adapter");
+    });
+
+    it("an oversized file (over 256 KB) is refused without being read", () => {
+      const policyPath = writePolicy("x".repeat(300 * 1024));
+      const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+      expect(result.verdict).to.equal("UNKNOWN");
+      expect(result.results[0].id).to.equal("adapter");
     });
 
     it("empty file", () => {
@@ -162,18 +176,66 @@ describe("handleConsult", () => {
       action: { ...VALID_REQUEST.action, memo: "x".repeat(70 * 1024) },
     };
 
+    const startedAt = Date.now();
+    const result = handleConsult({ request: oversizedRequest }, policyPath);
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(result.verdict).to.equal("UNKNOWN");
+    expect(result.results[0].id).to.equal("adapter");
+    expect(elapsedMs).to.be.lessThan(200);
+  });
+
+  it("counts a multi-byte argument by bytes, not by string.length", () => {
+    // "€" (Euro sign) is one UTF-16 code unit but three UTF-8 bytes.
+    // At this count the serialised string.length (65233) is under the 64 KB
+    // (65536) cap, so a length-based cap would let it through, while its
+    // real size on the wire (195233 bytes) is well over.
+    const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
+    const oversizedRequest = {
+      action: { ...VALID_REQUEST.action, memo: "€".repeat(65000) },
+    };
+    const serializedLength = JSON.stringify({
+      request: oversizedRequest,
+    }).length;
+    expect(serializedLength).to.be.lessThan(64 * 1024);
+
     const result = handleConsult({ request: oversizedRequest }, policyPath);
 
     expect(result.verdict).to.equal("UNKNOWN");
     expect(result.results[0].id).to.equal("adapter");
   });
 
-  it("is byte-for-byte the same as calling consult() directly", () => {
+  it("is byte-for-byte the same as calling consult() directly for an ALLOW", () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
 
     const result = handleConsult({ request: VALID_REQUEST }, policyPath);
     const direct = consult(VALID_REQUEST as never, VALID_POLICY as never);
 
+    expect(result.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(JSON.stringify(result)).to.equal(JSON.stringify(direct));
+  });
+
+  it("is byte-for-byte the same as calling consult() directly for a DENY", () => {
+    const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
+    const overCapRequest = {
+      action: { ...VALID_REQUEST.action, amount: "1000001" },
+    };
+
+    const result = handleConsult({ request: overCapRequest }, policyPath);
+    const direct = consult(overCapRequest as never, VALID_POLICY as never);
+
+    expect(result.verdict).to.equal("DENY");
+    expect(JSON.stringify(result)).to.equal(JSON.stringify(direct));
+  });
+
+  it("is byte-for-byte the same as calling consult() directly for an UNKNOWN", () => {
+    const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
+    const malformedRequest = { action: null };
+
+    const result = handleConsult({ request: malformedRequest }, policyPath);
+    const direct = consult(malformedRequest as never, VALID_POLICY as never);
+
+    expect(result.verdict).to.equal("UNKNOWN");
     expect(JSON.stringify(result)).to.equal(JSON.stringify(direct));
   });
 });

@@ -3,15 +3,21 @@ import type { ConsultResponse } from "@hedwig/consult";
 
 import { readPolicyFile } from "./policy";
 
-// The wire's one edge guard: a small request must never buy unbounded
-// processing. Measured the same way consult()'s own size cap is measured -
-// on the serialised value, before anything else runs.
-const MAX_ARGUMENT_CHARS = 64 * 1024;
+// The wire's one edge guard: a small request must never buy a policy read
+// or a consult() run. Measured in bytes, the same unit consult()'s own size
+// cap uses, so a multi-byte character cannot pass a cap meant to bound what
+// it costs to hold and hash the value. This runs before the policy file is
+// read or consult() is called; it cannot bound the SDK's own parse of the
+// incoming JSON-RPC line, which has already happened by the time this
+// function receives its arguments (see server.ts's transport-level cap for
+// that).
+const MAX_ARGUMENT_BYTES = 64 * 1024;
 
-// Every adapter-level failure resolves to this shape, never an MCP error and
-// never DENY: an agent that receives a thrown error may proceed; UNKNOWN
-// tells it to stop. A DENY consult() itself returns is a real answer and is
-// returned unchanged by the caller of this function.
+// A stop signal every failure below shares: an agent that catches a thrown
+// error might retry or proceed past it, but an UNKNOWN verdict is a normal
+// tool result and gets the same handling as any other verdict. A DENY
+// consult() itself returns is an answer, not a failure, and this function's
+// caller returns it unchanged.
 export function unknownAdapterResponse(evidence: string): ConsultResponse {
   return {
     verdict: "UNKNOWN",
@@ -36,7 +42,7 @@ export function handleConsult(
   } catch {
     return unknownAdapterResponse("tool arguments could not be measured");
   }
-  if (serialized.length > MAX_ARGUMENT_CHARS) {
+  if (Buffer.byteLength(serialized, "utf8") > MAX_ARGUMENT_BYTES) {
     return unknownAdapterResponse("tool arguments exceed the size limit");
   }
 

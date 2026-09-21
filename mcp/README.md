@@ -6,6 +6,7 @@ yarn consult:build && yarn mcp:build
 HEDWIG_POLICY_FILE=/path/to/policy.json node mcp/dist/server.js
 ```
 `consult` takes `{ "request": <payment request> }` and returns the same response `@hedwig/consult` returns: `verdict`, `results`, `floorIds`, `advisory: true`.
+The policy file is a regular JSON file of at most 256 KB; when a key appears twice, the last one applies.
 Add it to your MCP client as a stdio server:
 ```json
 {

@@ -73,6 +73,15 @@ async function main() {
     },
   });
 
+  const denyCall = await client.callTool({
+    name: "consult",
+    arguments: {
+      request: {
+        action: { ...validRequest.action, amount: "1000001" },
+      },
+    },
+  });
+
   await client.close();
 
   // Give the piped stderr stream a tick to flush the final write before the
@@ -84,6 +93,7 @@ async function main() {
       tools: tools.tools,
       validCall,
       oversizedCall,
+      denyCall,
       stderr: Buffer.concat(stderrChunks).toString("utf8"),
     })
   );

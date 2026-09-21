@@ -1,30 +1,17 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
 
-const MCP_ROOT = join(__dirname, "..");
-const SERVER_PATH = join(MCP_ROOT, "dist", "server.js");
-const CLIENT_SCRIPT = join(__dirname, "e2e-client.js");
+import { SERVER_PATH, assertServerBuilt, VALID_POLICY } from "./e2e-helpers";
 
-const VALID_POLICY = {
-  permits: true,
-  chainId: "eip155:1",
-  approvedRecipients: ["0x00000000000000000000000000000000a11ce001"],
-  perActionCaps: { pay: "1000000" },
-};
+const CLIENT_SCRIPT = join(__dirname, "e2e-client.js");
 
 describe("the built server, driven over real stdio", function () {
   this.timeout(15000);
 
-  before(function () {
-    if (!existsSync(SERVER_PATH)) {
-      throw new Error(
-        `${SERVER_PATH} is missing; run "yarn mcp:build" before "yarn mcp:test"`
-      );
-    }
-  });
+  before(assertServerBuilt);
 
   let dir: string;
 
@@ -54,7 +41,7 @@ describe("the built server, driven over real stdio", function () {
     ]);
   });
 
-  it("ignores extra keys, answers over-cap requests with DENY, never logs the request or policy content", () => {
+  it("ignores extra keys, answers over-cap arguments with UNKNOWN and an over-cap amount with DENY, never logs the request or policy content", () => {
     const policyPath = join(dir, "policy.json");
     writeFileSync(policyPath, JSON.stringify(VALID_POLICY));
 
@@ -78,6 +65,15 @@ describe("the built server, driven over real stdio", function () {
     expect(output.oversizedCall.structuredContent.results[0].id).to.equal(
       "adapter"
     );
+    expect(JSON.parse(output.oversizedCall.content[0].text)).to.deep.equal(
+      output.oversizedCall.structuredContent
+    );
+
+    expect(output.denyCall.isError).to.equal(false);
+    expect(output.denyCall.structuredContent.verdict).to.equal("DENY");
+    expect(JSON.parse(output.denyCall.content[0].text)).to.deep.equal(
+      output.denyCall.structuredContent
+    );
 
     expect(output.stderr).to.not.include("CANARY-REQUEST-MEMO");
     expect(output.stderr).to.not.include("CANARY-POLICY-RECIPIENT");
@@ -88,6 +84,19 @@ describe("the built server, driven over real stdio", function () {
   it("refuses to start, exiting non-zero with a message on stderr, when the policy variable is unset", () => {
     const env = { ...process.env };
     delete env.HEDWIG_POLICY_FILE;
+
+    const result = spawnSync(process.execPath, [SERVER_PATH], {
+      encoding: "utf8",
+      env,
+      timeout: 5000,
+    });
+
+    expect(result.status).to.not.equal(0);
+    expect(result.stderr).to.include("HEDWIG_POLICY_FILE");
+  });
+
+  it("refuses to start when the policy variable is only whitespace", () => {
+    const env = { ...process.env, HEDWIG_POLICY_FILE: "   " };
 
     const result = spawnSync(process.execPath, [SERVER_PATH], {
       encoding: "utf8",
