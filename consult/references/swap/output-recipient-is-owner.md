@@ -4,7 +4,7 @@ The address receiving the swap's output is checked against the owner's own
 list of addresses and against the recorded poison-transfer registry. The
 check flags a swap that quietly redirects its proceeds to an address the
 owner never held, including one first seen through a poison transfer
-designed to get copied into a future recipient field.
+designed to get copied into the recipient field of a later transaction.
 
 - PASS: the recipient is a well-formed address matching an entry in the
   owner's list, and carries no recorded poison transfer.

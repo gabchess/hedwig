@@ -21,7 +21,8 @@ over it. The derived basis points, rounded down, are what the declared
   exceeds `quotedOut`, the declared `slippageBps` is not an integer in
   0..10000, the declared value does not match the derived one, or the gap
   exceeds the ceiling.
-- UNVERIFIED: the owner has not configured a slippage ceiling.
+- UNVERIFIED: the policy's slippage ceiling is missing or is not an integer
+  in 0..10000.
 
 ## Sources
 

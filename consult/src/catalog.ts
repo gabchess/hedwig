@@ -975,7 +975,7 @@ function checkSlippageWithinCeiling(
       ? `slippage against the stated quote is ${derivedBps.toString()} bps, within the ceiling ${describe(
           maxSlippageBps
         )}`
-      : `slippage against the stated quote is over ${derivedBps.toString()} bps, above the ceiling ${describe(
+      : `slippage against the stated quote is at least ${derivedBps.toString()} bps, above the ceiling ${describe(
           maxSlippageBps
         )}`,
   };
