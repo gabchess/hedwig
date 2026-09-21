@@ -3,7 +3,7 @@
 Checks a payment request against the mandatory Floor Conditions and a Policy, then folds the results into one Verdict.
 
 ```ts
-import { consult } from "./src";
+import { consult } from "@hedwig/consult";
 
 const response = consult(request, policy);
 // response.verdict: "ALLOW_UNDER_POLICY" | "DENY" | "UNKNOWN"
