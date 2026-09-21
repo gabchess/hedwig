@@ -127,4 +127,25 @@ if (
   exit 1
 fi
 
+new_case_repository
+if (
+  cd "$case_repository"
+  env -u PUBLIC_BOUNDARY_PRIVATE_PATTERNS_FILE \
+    bash scripts/check-public-boundary.sh >/dev/null 2>&1
+); then
+  echo "public-boundary-test: expected failure without a private patterns file" >&2
+  exit 1
+fi
+
+new_case_repository
+printf '# none\n' > "$case_repository/.git/info/public-boundary-private-patterns"
+if ! (
+  cd "$case_repository"
+  env -u PUBLIC_BOUNDARY_PRIVATE_PATTERNS_FILE \
+    bash scripts/check-public-boundary.sh >/dev/null
+); then
+  echo "public-boundary-test: expected pass with a default private patterns file" >&2
+  exit 1
+fi
+
 echo "public-boundary-test: passed"
