@@ -22,6 +22,13 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+// A weight outside 0..1, or one that is not a number at all, would carry
+// `support` out of its range or across a band edge, so each is clamped
+// where it is read.
+function clampWeight(weight: unknown): number {
+  return typeof weight === "number" && weight > 0 ? Math.min(weight, 1) : 0;
+}
+
 /**
  * Scores how much of the owner's checklist was proven and how strong the
  * proof was. This score can never decide `verdict`: it is a pure function
@@ -47,7 +54,7 @@ export function supportOf(
 
   const passWeights = results
     .filter((result) => result.status === "PASS")
-    .map((result) => weights[result.evidenceClass]);
+    .map((result) => clampWeight(weights[result.evidenceClass]));
 
   if (verdict === "ALLOW_UNDER_POLICY") {
     const weakest = passWeights.length > 0 ? Math.min(...passWeights) : 0;

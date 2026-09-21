@@ -29,7 +29,7 @@ const CORPUS: CorpusEntry[] = JSON.parse(
   readFileSync(join(__dirname, "fixtures", "wrong-proceed-corpus.json"), "utf8")
 );
 
-// Every hole an earlier review round found, in one place: no entry may
+// Every input that once earned a wrong proceed, in one place: no entry may
 // resolve to proceed:true or support >= 0.80 unless the corpus itself
 // marks it an authorised allow. Adding a new hole to this file, without
 // marking it authorised, is enough to make CI catch a future regression.

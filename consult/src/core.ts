@@ -189,10 +189,14 @@ function runChecker(
       )}" for status "${rawStatus}"`
     );
   }
+  // The catalog, not the checker, says how strong the proof behind a code
+  // is. codeDeclaredForStatus has already shown the code is one of this
+  // Condition's own, so the table has an entry for it.
+  const evidenceClass = definition.codeEvidenceClass[rawCode];
   // A PASS resting on evidence the core has no way to verify is a
   // contradiction: the status claims proof, the evidence class admits
   // there is none.
-  if (rawStatus === "PASS" && rawEvidenceClass === "not-verifiable") {
+  if (rawStatus === "PASS" && evidenceClass === "not-verifiable") {
     return malformedResult(
       definition,
       "RESULT_MALFORMED",
@@ -206,7 +210,7 @@ function runChecker(
     status: rawStatus as ConditionStatus,
     code: rawCode,
     evidence: rawEvidence,
-    evidenceClass: rawEvidenceClass as EvidenceClass,
+    evidenceClass,
     reference: definition.reference,
   };
 }
@@ -309,7 +313,7 @@ function withAbstentionWording(result: ConditionResult): string {
   if (result.status !== "UNVERIFIED") {
     return result.evidence;
   }
-  if (result.evidence.toLowerCase().startsWith(ABSTENTION_PREFIX)) {
+  if (result.evidence.startsWith(ABSTENTION_PREFIX)) {
     return result.evidence;
   }
   return `${ABSTENTION_PREFIX}: ${result.evidence}`;

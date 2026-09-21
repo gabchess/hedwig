@@ -535,7 +535,8 @@ const PAY_FLOOR: ConditionDefinition[] = [
   {
     id: "amount-within-cap",
     isFloor: true,
-    question: "Is the amount within the owner's cap for this action?",
+    question:
+      "Is the amount above zero and within the owner's cap for this action?",
     reference: `${REFERENCE_ROOT}/amount-within-cap.md`,
     codes: {
       pass: "AMOUNT_WITHIN_CAP",
@@ -601,6 +602,18 @@ export const PAY_CATALOG: Catalog = deepFreeze({
 
 const CODE_SHAPE = /^[A-Z][A-Z0-9_]+$/;
 
+// The codes the core puts on its own rows. A Condition that declared one
+// of these would give it a second meaning.
+const CORE_CODES: readonly string[] = [
+  "ACTION_TYPE_UNKNOWN",
+  "CHECKER_THREW",
+  "CONDITION_UNKNOWN",
+  "FLOOR_MISSING",
+  "INPUT_SHAPE_INVALID",
+  "INPUT_TOO_LARGE",
+  "RESULT_MALFORMED",
+];
+
 // Returns the first defect found, or undefined for a sound catalog. A
 // caller who can choose the catalog controls the verdict, so a catalog
 // missing its mandatory Floor, or carrying a duplicate or empty id, a
@@ -610,7 +623,7 @@ export function validateCatalog(catalog: unknown): string | undefined {
   if (catalog === null || typeof catalog !== "object") {
     return "catalog must be an object";
   }
-  const seenCodes = new Set<string>();
+  const seenCodes = new Set<string>(CORE_CODES);
   for (const [actionType, conditions] of Object.entries(
     catalog as Record<string, unknown>
   )) {
@@ -699,7 +712,7 @@ function validateConditionCodes(
       )}"`;
     }
     if (seenCodes.has(code)) {
-      return `catalog Condition "${conditionId}" reuses code "${code}" already declared elsewhere in the catalog`;
+      return `catalog Condition "${conditionId}" reuses code "${code}", which the core or another Condition already declares`;
     }
     seenCodes.add(code);
     const evidenceClass = classTable[code];
