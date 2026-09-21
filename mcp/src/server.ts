@@ -13,7 +13,7 @@ import { handleConsult, unknownAdapterResponse } from "./handler";
 const POLICY_PATH_ENV = "HEDWIG_POLICY_FILE";
 const TOOL_NAME = "consult";
 const TOOL_DESCRIPTION =
-  "Checks a payment request against the owner's policy and returns an advisory verdict of ALLOW_UNDER_POLICY, DENY, or UNKNOWN with the result of each check.";
+  "Checks a payment request against the owner's policy and returns whether to proceed, with a verdict, a support score from 0 to 1, a band, and the result of each check. Act on proceed only.";
 
 // Bounds one incoming message before the transport finishes buffering it
 // into a JSON-RPC line, so a message far larger than any real call never
@@ -54,7 +54,9 @@ function readToolCall(params: unknown): { name: unknown; args: unknown } {
 // each with its status. A caller can name arbitrary ids of its own in
 // request.conditions, and those become part of the same results array, so
 // counting them instead of printing them keeps a caller-chosen string out
-// of the log stream.
+// of the log stream. proceed and band are fixed-vocabulary fields consult()
+// itself computes, never a caller string and never evidence, so they are
+// safe to print alongside the verdict.
 function logVerdict(result: ConsultResponse): void {
   const floorIds = new Set(result.floorIds);
   const named = result.results.filter((entry) => floorIds.has(entry.id));
@@ -64,7 +66,9 @@ function logVerdict(result: ConsultResponse): void {
     parts.push(`extra:${extraCount}`);
   }
   console.error(
-    `consult: verdict=${result.verdict} results=${parts.join(",")}`
+    `consult: verdict=${result.verdict} proceed=${result.proceed} band=${
+      result.band
+    } results=${parts.join(",")}`
   );
 }
 
@@ -103,7 +107,10 @@ function main(): void {
     try {
       result = handleConsult(args, policyPath);
     } catch {
-      result = unknownAdapterResponse("adapter failed to process the request");
+      result = unknownAdapterResponse(
+        "ADAPTER_FAILED",
+        "adapter failed to process the request"
+      );
     }
 
     logVerdict(result);

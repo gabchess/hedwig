@@ -39,14 +39,16 @@ describe("caller-chosen condition ids on stderr, driven over real stdio", functi
     expect(output.denyCall.structuredContent.verdict).to.equal("DENY");
 
     const lines = output.stderr.split("\n").filter(Boolean);
-    // Every logged line still names only the verdict and floor ids: the
-    // hostile ids never produced a stderr line of their own, forged or
-    // otherwise.
+    // Every logged line still names only the verdict, proceed, band, and
+    // floor ids: the hostile ids never produced a stderr line of their own,
+    // forged or otherwise.
     lines.forEach((line: string) => {
-      expect(line).to.match(/^consult: verdict=\w+ results=/);
+      expect(line).to.match(
+        /^consult: verdict=\w+ proceed=\w+ band=\w+ results=/
+      );
     });
     expect(output.stderr).to.not.include(
-      "verdict=ALLOW_UNDER_POLICY results=all:PASS"
+      "verdict=ALLOW_UNDER_POLICY proceed=true band=green results=all:PASS"
     );
     expect(output.stderr).to.not.include("\u001b");
     expect(output.stderr).to.not.include("secret");

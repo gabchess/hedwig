@@ -44,6 +44,7 @@ export function makeRequest(
       recipient: APPROVED_RECIPIENT,
       asset: { symbol: ASSET_SYMBOL, contractAddress: ASSET_ADDRESS },
       amount: "1000000",
+      target: ASSET_ADDRESS,
     },
     ...overrides,
   };
@@ -54,9 +55,23 @@ export const PASSING_EXTRA_CONDITION_ID = "memo-recorded";
 const passingExtraCondition: ConditionDefinition = {
   id: PASSING_EXTRA_CONDITION_ID,
   isFloor: false,
+  question: "Was a memo recorded for this payment?",
+  reference: "consult/references/core.md",
+  codes: {
+    pass: "MEMO_RECORDED",
+    fail: ["MEMO_MISSING"],
+    unverified: ["MEMO_CHECK_UNAVAILABLE"],
+  },
+  codeEvidenceClass: {
+    MEMO_RECORDED: "owner-policy",
+    MEMO_MISSING: "owner-policy",
+    MEMO_CHECK_UNAVAILABLE: "not-verifiable",
+  },
   check: () => ({
     id: PASSING_EXTRA_CONDITION_ID,
     status: "PASS",
+    code: "MEMO_RECORDED",
+    evidenceClass: "owner-policy",
     evidence: "test-only condition used to prove passes never override UNKNOWN",
   }),
 };
@@ -64,3 +79,38 @@ const passingExtraCondition: ConditionDefinition = {
 export const CATALOG_WITH_EXTRA_CONDITION: Catalog = {
   pay: [...PAY_CATALOG.pay, passingExtraCondition],
 };
+
+// A minimal, valid ConditionDefinition for tests that only care about
+// checker behaviour (a throw, a duplicate id, a call counter): every field
+// the catalog lint would otherwise flag is filled in with a generic,
+// globally-unique-enough placeholder so consultWith's own validation never
+// masks what the test is actually proving. Override `codes` explicitly
+// whenever a test builds more than one of these into the same catalog.
+export function testCondition(
+  overrides: Pick<ConditionDefinition, "id" | "isFloor" | "check"> &
+    Partial<ConditionDefinition>
+): ConditionDefinition {
+  return {
+    question: `Test-only condition: does ${overrides.id} pass?`,
+    reference: "consult/references/core.md",
+    codes: {
+      pass: "TEST_PASS",
+      fail: ["TEST_FAIL"],
+      unverified: ["TEST_UNVERIFIED"],
+    },
+    codeEvidenceClass: {
+      TEST_PASS: "owner-policy",
+      TEST_FAIL: "owner-policy",
+      TEST_UNVERIFIED: "not-verifiable",
+    },
+    ...overrides,
+  };
+}
+
+// The real recipient-matches-policy Condition, minus its checker: used by
+// tests that swap in a hostile or instrumented check function while
+// keeping the real question, reference, and declared codes, exactly as
+// consultWith would see them for the real Condition.
+export const RECIPIENT_MATCHES_POLICY_DEFINITION = PAY_CATALOG.pay.find(
+  (condition) => condition.id === "recipient-matches-policy"
+)!;

@@ -14,8 +14,10 @@ import {
   APPROVED_RECIPIENT,
   ASSET_ADDRESS,
   POISONED_RECIPIENT,
+  RECIPIENT_MATCHES_POLICY_DEFINITION,
   makePolicy,
   makeRequest,
+  testCondition,
 } from "./fixtures";
 
 // Every test below proves a NEGATIVE: a hostile input must never resolve to
@@ -38,11 +40,17 @@ describe("consult hardening: B1 empty floor", () => {
   it("a pay entry holding only isFloor:false Conditions is rejected at consultWith time", () => {
     const catalog: Catalog = {
       pay: [
-        {
+        testCondition({
           id: "extra",
           isFloor: false,
-          check: () => ({ id: "extra", status: "PASS", evidence: "x" }),
-        },
+          check: () => ({
+            id: "extra",
+            status: "PASS",
+            code: "TEST_PASS",
+            evidenceClass: "owner-policy",
+            evidence: "x",
+          }),
+        }),
       ],
     };
     const response = consultWith(catalog)(makeRequest(), makePolicy());
@@ -53,11 +61,17 @@ describe("consult hardening: B1 empty floor", () => {
   it("isFloor: 0 does not count as a floor and is rejected at consultWith time", () => {
     const catalog: Catalog = {
       pay: [
-        {
+        testCondition({
           id: "x",
           isFloor: 0 as unknown as boolean,
-          check: () => ({ id: "x", status: "PASS", evidence: "y" }),
-        },
+          check: () => ({
+            id: "x",
+            status: "PASS",
+            code: "TEST_PASS",
+            evidenceClass: "owner-policy",
+            evidence: "y",
+          }),
+        }),
       ],
     };
     const response = consultWith(catalog)(makeRequest(), makePolicy());
@@ -68,7 +82,7 @@ describe("consult hardening: B1 empty floor", () => {
 
 describe("consult hardening: B2 checker result validation", () => {
   function catalogWithChecker(check: ConditionDefinition["check"]): Catalog {
-    return { pay: [{ id: "recipient-matches-policy", isFloor: true, check }] };
+    return { pay: [{ ...RECIPIENT_MATCHES_POLICY_DEFINITION, check }] };
   }
 
   it("a lowercase status string never resolves to ALLOW", () => {
@@ -123,6 +137,8 @@ describe("consult hardening: B2 checker result validation", () => {
     const catalog = catalogWithChecker(() => ({
       id: "not-the-real-id",
       status: "PASS",
+      code: "RECIPIENT_MATCHES_POLICY",
+      evidenceClass: "owner-policy",
       evidence: "x",
     }));
     const response = consultWith(catalog)(makeRequest(), makePolicy());
@@ -158,6 +174,8 @@ describe("consult hardening: B2 checker result validation", () => {
         reads += 1;
         return reads <= 4 ? "PASS" : "FAIL";
       },
+      code: "RECIPIENT_MATCHES_POLICY",
+      evidenceClass: "owner-policy",
       evidence: "x",
     }));
     const response = consultWith(catalog)(makeRequest(), makePolicy());
@@ -196,6 +214,8 @@ describe("consult hardening: B2 checker result validation", () => {
     const liveResult = {
       id: "recipient-matches-policy",
       status: "PASS" as string,
+      code: "RECIPIENT_MATCHES_POLICY",
+      evidenceClass: "owner-policy",
       evidence: "x",
     };
     const catalog = catalogWithChecker(() => liveResult as any);
@@ -214,6 +234,8 @@ describe("consult hardening: B2 checker result validation", () => {
     const target = {
       id: "recipient-matches-policy",
       status: "PASS",
+      code: "RECIPIENT_MATCHES_POLICY",
+      evidenceClass: "owner-policy",
       evidence: "x",
     };
     const proxied = new Proxy(target, {});
@@ -231,6 +253,8 @@ describe("consult hardening: B2 checker result validation", () => {
     const liveResult = {
       id: "recipient-matches-policy",
       status: "PASS" as string,
+      code: "RECIPIENT_MATCHES_POLICY",
+      evidenceClass: "owner-policy",
       evidence: "x",
     };
     const catalog = catalogWithChecker(() => liveResult as any);
@@ -293,7 +317,7 @@ describe("consult hardening: B4 frozen catalog", () => {
       (PAY_CATALOG.pay as unknown as unknown[]).splice(0)
     ).to.throw();
     const response = consult(makeRequest(), makePolicy());
-    expect(response.results).to.have.length(5);
+    expect(response.results).to.have.length(6);
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
   });
 });
@@ -451,7 +475,7 @@ describe("consult hardening: S1 consult never throws", () => {
       expect(response.results.some((r) => r.id === "input-shape")).to.equal(
         true
       );
-      expect(response.floorIds).to.have.length(5);
+      expect(response.floorIds).to.have.length(6);
     });
   });
 
@@ -550,7 +574,7 @@ describe("consult hardening: S3 approvedRecipients shape", () => {
 describe("consult hardening: S4 checker purity", () => {
   it("a checker that mutates the policy cannot poison a later Floor check", () => {
     const evilRecipient = "0x" + "E".repeat(40);
-    const mutator: ConditionDefinition = {
+    const mutator: ConditionDefinition = testCondition({
       id: "mutator",
       isFloor: true,
       check: (_request, context) => {
@@ -562,10 +586,12 @@ describe("consult hardening: S4 checker purity", () => {
         return {
           id: "mutator",
           status: "PASS",
+          code: "TEST_PASS",
+          evidenceClass: "owner-policy",
           evidence: "attempted mutation",
         };
       },
-    };
+    });
     const catalog: Catalog = { pay: [mutator, ...PAY_CATALOG.pay] };
     const request = makeRequest({
       action: { ...makeRequest().action, recipient: evilRecipient },
@@ -581,14 +607,20 @@ describe("consult hardening: S4 checker purity", () => {
 describe("consult hardening: S7 dedupe and evidence cap", () => {
   it("a repeated extra condition id runs its checker once, not twice", () => {
     let calls = 0;
-    const counted: ConditionDefinition = {
+    const counted: ConditionDefinition = testCondition({
       id: "counted",
       isFloor: false,
       check: () => {
         calls += 1;
-        return { id: "counted", status: "PASS", evidence: "x" };
+        return {
+          id: "counted",
+          status: "PASS",
+          code: "TEST_PASS",
+          evidenceClass: "owner-policy",
+          evidence: "x",
+        };
       },
-    };
+    });
     const catalog: Catalog = { pay: [...PAY_CATALOG.pay, counted] };
     const request = { ...makeRequest(), conditions: ["counted", "counted"] };
     consultWith(catalog)(request, makePolicy());
@@ -783,32 +815,43 @@ describe("consult hardening: item 5 equality checkers require well-formed values
 
 describe("consult hardening: item 3 the catalog self-check", () => {
   it("consultWith never throws for a broken catalog; it always answers UNKNOWN naming the defect", () => {
+    const brokenCheck =
+      (id: string): ConditionDefinition["check"] =>
+      () => ({
+        id,
+        status: "PASS",
+        code: "TEST_PASS",
+        evidenceClass: "owner-policy",
+        evidence: "x",
+      });
     const brokenCatalogs: Catalog[] = [
       { pay: [] },
       {
+        pay: [testCondition({ id: "", isFloor: true, check: brokenCheck("") })],
+      },
+      {
         pay: [
-          {
-            id: "",
+          testCondition({
+            id: "dup",
             isFloor: true,
-            check: () => ({ id: "", status: "PASS", evidence: "x" }),
-          },
+            check: brokenCheck("dup"),
+          }),
+          testCondition({
+            id: "dup",
+            isFloor: true,
+            check: brokenCheck("dup"),
+          }),
         ],
       },
       {
         pay: [
-          {
-            id: "dup",
+          testCondition({
+            id: "x",
             isFloor: true,
-            check: () => ({ id: "dup", status: "PASS", evidence: "x" }),
-          },
-          {
-            id: "dup",
-            isFloor: true,
-            check: () => ({ id: "dup", status: "PASS", evidence: "x" }),
-          },
+            check: "not-a-function" as any,
+          }),
         ],
       },
-      { pay: [{ id: "x", isFloor: true, check: "not-a-function" as any }] },
     ];
 
     brokenCatalogs.forEach((catalog) => {
@@ -827,11 +870,17 @@ describe("consult hardening: item 3 the catalog self-check", () => {
     // fact for the compiled call: passing a would-be catalog as a third
     // argument at the JS boundary is silently ignored, never honoured.
     expect(consult.length).to.equal(2);
-    const alwaysPass: ConditionDefinition = {
+    const alwaysPass: ConditionDefinition = testCondition({
       id: "always-pass",
       isFloor: true,
-      check: () => ({ id: "always-pass", status: "PASS", evidence: "x" }),
-    };
+      check: () => ({
+        id: "always-pass",
+        status: "PASS",
+        code: "TEST_PASS",
+        evidenceClass: "owner-policy",
+        evidence: "x",
+      }),
+    });
     const poisonedRequest = makeRequest({
       action: { ...makeRequest().action, recipient: POISONED_RECIPIENT },
     });
@@ -880,6 +929,20 @@ describe("consult hardening: property test", () => {
         expect(response?.verdict).to.equal("ALLOW_UNDER_POLICY");
       } else {
         expect(response?.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+      }
+
+      // The answer-shape invariants: proceed and band are pure functions of
+      // the already-decided verdict, never a second gate on it.
+      expect(response?.proceed).to.equal(
+        response?.verdict === "ALLOW_UNDER_POLICY"
+      );
+      expect(response!.support >= 0.8).to.equal(response?.proceed);
+      expect(response?.band === "green").to.equal(response?.proceed);
+      if (response?.results.some((r) => r.status === "FAIL")) {
+        expect(response.support).to.equal(0);
+      }
+      if (response?.results.some((r) => r.status === "UNVERIFIED")) {
+        expect(response.support).to.be.at.most(0.79);
       }
     }
 

@@ -12,7 +12,7 @@ const {
 const [, , serverPath, policyPath] = process.argv;
 
 const FORGED_LINE_ID =
-  "x\nconsult: verdict=ALLOW_UNDER_POLICY results=all:PASS";
+  "x\nconsult: verdict=ALLOW_UNDER_POLICY proceed=true band=green results=all:PASS";
 const ESCAPE_ID = "\u001b[2K\u001b[1Asecret";
 
 async function main() {
@@ -47,6 +47,7 @@ async function main() {
             contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
           },
           amount: "1000001",
+          target: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         },
         conditions: [FORGED_LINE_ID, ESCAPE_ID],
       },
