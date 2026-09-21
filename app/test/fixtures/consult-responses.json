@@ -1,0 +1,193 @@
+{
+  "_source": "Captured by spawning the built mcp/dist/server.js over stdio against a local fake RPC, using the request from mcp/test/fixtures/request.json, the role policy shape from mcp/test/solana-role.e2e.test.ts, and the golden subject from mcp/test/fixtures/solana-role/check-role-golden.json. The two simulateTransaction response bodies (OK_BODY / REVOKED_BODY) are copied verbatim from mcp/test/solana-role.e2e.test.ts. Not devnet traffic; no network call was made to capture these.",
+  "allowUnderPolicy": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"question\":\"Should this agent proceed with this payment under the owner's policy?\",\"proceed\":true,\"verdict\":\"ALLOW_UNDER_POLICY\",\"support\":0.92,\"band\":\"green\",\"results\":[{\"id\":\"recipient-matches-policy\",\"question\":\"Does the recipient match an entry the owner approved?\",\"status\":\"PASS\",\"code\":\"RECIPIENT_MATCHES_POLICY\",\"evidence\":\"recipient matches an approved policy entry\",\"evidenceClass\":\"owner-policy\",\"reference\":\"consult/references/pay/recipient-matches-policy.md\"},{\"id\":\"recipient-not-poison-derived\",\"question\":\"Is the recipient free of any recorded poison transfer?\",\"status\":\"PASS\",\"code\":\"RECIPIENT_NOT_POISON_DERIVED\",\"evidence\":\"recipient 0x00000000000000000000000000000000a11ce001 has no recorded poison transfer\",\"evidenceClass\":\"static-registry\",\"reference\":\"consult/references/pay/recipient-not-poison-derived.md\"},{\"id\":\"asset-is-canonical\",\"question\":\"Does the asset contract match the canonical entry?\",\"status\":\"PASS\",\"code\":\"ASSET_IS_CANONICAL\",\"evidence\":\"asset contract matches the canonical entry\",\"evidenceClass\":\"static-registry\",\"reference\":\"consult/references/pay/asset-is-canonical.md\"},{\"id\":\"amount-within-cap\",\"question\":\"Is the amount above zero and within the owner's cap for this action?\",\"status\":\"PASS\",\"code\":\"AMOUNT_WITHIN_CAP\",\"evidence\":\"amount 1000000 is within the cap 1000000\",\"evidenceClass\":\"owner-policy\",\"reference\":\"consult/references/pay/amount-within-cap.md\"},{\"id\":\"chain-matches-intent\",\"question\":\"Does the request's chain match the owner's named chain?\",\"status\":\"PASS\",\"code\":\"CHAIN_MATCHES_INTENT\",\"evidence\":\"chain eip155:1 matches the owner's named chain\",\"evidenceClass\":\"owner-policy\",\"reference\":\"consult/references/pay/chain-matches-intent.md\"},{\"id\":\"target-is-canonical\",\"question\":\"Does the transaction call the canonical asset contract?\",\"status\":\"PASS\",\"code\":\"TARGET_IS_CANONICAL\",\"evidence\":\"target contract matches the canonical entry\",\"evidenceClass\":\"static-registry\",\"reference\":\"consult/references/pay/target-is-canonical.md\"},{\"id\":\"role-requirement-met\",\"question\":\"Is the owner's role requirement met?\",\"status\":\"PASS\",\"code\":\"ROLE_HELD\",\"evidence\":\"holder 7qRbhaP7fhnhnmK1Y5VhEHBoksS3panaz45UB3gWN5Js holds role Eu2tSc43ddJHxuqmtZZPVnPWduke4JdjqmbfPjhUcBM4\",\"evidenceClass\":\"onchain-read\",\"reference\":\"consult/references/pay/role-requirement-met.md\"}],\"floorIds\":[\"recipient-matches-policy\",\"recipient-not-poison-derived\",\"asset-is-canonical\",\"amount-within-cap\",\"chain-matches-intent\",\"target-is-canonical\",\"role-requirement-met\"],\"advisory\":true}"
+        }
+      ],
+      "structuredContent": {
+        "question": "Should this agent proceed with this payment under the owner's policy?",
+        "proceed": true,
+        "verdict": "ALLOW_UNDER_POLICY",
+        "support": 0.92,
+        "band": "green",
+        "results": [
+          {
+            "id": "recipient-matches-policy",
+            "question": "Does the recipient match an entry the owner approved?",
+            "status": "PASS",
+            "code": "RECIPIENT_MATCHES_POLICY",
+            "evidence": "recipient matches an approved policy entry",
+            "evidenceClass": "owner-policy",
+            "reference": "consult/references/pay/recipient-matches-policy.md"
+          },
+          {
+            "id": "recipient-not-poison-derived",
+            "question": "Is the recipient free of any recorded poison transfer?",
+            "status": "PASS",
+            "code": "RECIPIENT_NOT_POISON_DERIVED",
+            "evidence": "recipient 0x00000000000000000000000000000000a11ce001 has no recorded poison transfer",
+            "evidenceClass": "static-registry",
+            "reference": "consult/references/pay/recipient-not-poison-derived.md"
+          },
+          {
+            "id": "asset-is-canonical",
+            "question": "Does the asset contract match the canonical entry?",
+            "status": "PASS",
+            "code": "ASSET_IS_CANONICAL",
+            "evidence": "asset contract matches the canonical entry",
+            "evidenceClass": "static-registry",
+            "reference": "consult/references/pay/asset-is-canonical.md"
+          },
+          {
+            "id": "amount-within-cap",
+            "question": "Is the amount above zero and within the owner's cap for this action?",
+            "status": "PASS",
+            "code": "AMOUNT_WITHIN_CAP",
+            "evidence": "amount 1000000 is within the cap 1000000",
+            "evidenceClass": "owner-policy",
+            "reference": "consult/references/pay/amount-within-cap.md"
+          },
+          {
+            "id": "chain-matches-intent",
+            "question": "Does the request's chain match the owner's named chain?",
+            "status": "PASS",
+            "code": "CHAIN_MATCHES_INTENT",
+            "evidence": "chain eip155:1 matches the owner's named chain",
+            "evidenceClass": "owner-policy",
+            "reference": "consult/references/pay/chain-matches-intent.md"
+          },
+          {
+            "id": "target-is-canonical",
+            "question": "Does the transaction call the canonical asset contract?",
+            "status": "PASS",
+            "code": "TARGET_IS_CANONICAL",
+            "evidence": "target contract matches the canonical entry",
+            "evidenceClass": "static-registry",
+            "reference": "consult/references/pay/target-is-canonical.md"
+          },
+          {
+            "id": "role-requirement-met",
+            "question": "Is the owner's role requirement met?",
+            "status": "PASS",
+            "code": "ROLE_HELD",
+            "evidence": "holder 7qRbhaP7fhnhnmK1Y5VhEHBoksS3panaz45UB3gWN5Js holds role Eu2tSc43ddJHxuqmtZZPVnPWduke4JdjqmbfPjhUcBM4",
+            "evidenceClass": "onchain-read",
+            "reference": "consult/references/pay/role-requirement-met.md"
+          }
+        ],
+        "floorIds": [
+          "recipient-matches-policy",
+          "recipient-not-poison-derived",
+          "asset-is-canonical",
+          "amount-within-cap",
+          "chain-matches-intent",
+          "target-is-canonical",
+          "role-requirement-met"
+        ],
+        "advisory": true
+      },
+      "isError": false
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  "deny": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"question\":\"Should this agent proceed with this payment under the owner's policy?\",\"proceed\":false,\"verdict\":\"DENY\",\"support\":0,\"band\":\"red\",\"results\":[{\"id\":\"role-requirement-met\",\"question\":\"Is the owner's role requirement met?\",\"status\":\"FAIL\",\"code\":\"ROLE_MEMBER_MISSING\",\"evidence\":\"holder 7qRbhaP7fhnhnmK1Y5VhEHBoksS3panaz45UB3gWN5Js does not hold role Eu2tSc43ddJHxuqmtZZPVnPWduke4JdjqmbfPjhUcBM4: Mem...\",\"evidenceClass\":\"onchain-read\",\"reference\":\"consult/references/pay/role-requirement-met.md\"},{\"id\":\"recipient-matches-policy\",\"question\":\"Does the recipient match an entry the owner approved?\",\"status\":\"PASS\",\"code\":\"RECIPIENT_MATCHES_POLICY\",\"evidence\":\"recipient matches an approved policy entry\",\"evidenceClass\":\"owner-policy\",\"reference\":\"consult/references/pay/recipient-matches-policy.md\"},{\"id\":\"recipient-not-poison-derived\",\"question\":\"Is the recipient free of any recorded poison transfer?\",\"status\":\"PASS\",\"code\":\"RECIPIENT_NOT_POISON_DERIVED\",\"evidence\":\"recipient 0x00000000000000000000000000000000a11ce001 has no recorded poison transfer\",\"evidenceClass\":\"static-registry\",\"reference\":\"consult/references/pay/recipient-not-poison-derived.md\"},{\"id\":\"asset-is-canonical\",\"question\":\"Does the asset contract match the canonical entry?\",\"status\":\"PASS\",\"code\":\"ASSET_IS_CANONICAL\",\"evidence\":\"asset contract matches the canonical entry\",\"evidenceClass\":\"static-registry\",\"reference\":\"consult/references/pay/asset-is-canonical.md\"},{\"id\":\"amount-within-cap\",\"question\":\"Is the amount above zero and within the owner's cap for this action?\",\"status\":\"PASS\",\"code\":\"AMOUNT_WITHIN_CAP\",\"evidence\":\"amount 1000000 is within the cap 1000000\",\"evidenceClass\":\"owner-policy\",\"reference\":\"consult/references/pay/amount-within-cap.md\"},{\"id\":\"chain-matches-intent\",\"question\":\"Does the request's chain match the owner's named chain?\",\"status\":\"PASS\",\"code\":\"CHAIN_MATCHES_INTENT\",\"evidence\":\"chain eip155:1 matches the owner's named chain\",\"evidenceClass\":\"owner-policy\",\"reference\":\"consult/references/pay/chain-matches-intent.md\"},{\"id\":\"target-is-canonical\",\"question\":\"Does the transaction call the canonical asset contract?\",\"status\":\"PASS\",\"code\":\"TARGET_IS_CANONICAL\",\"evidence\":\"target contract matches the canonical entry\",\"evidenceClass\":\"static-registry\",\"reference\":\"consult/references/pay/target-is-canonical.md\"}],\"floorIds\":[\"recipient-matches-policy\",\"recipient-not-poison-derived\",\"asset-is-canonical\",\"amount-within-cap\",\"chain-matches-intent\",\"target-is-canonical\",\"role-requirement-met\"],\"advisory\":true}"
+        }
+      ],
+      "structuredContent": {
+        "question": "Should this agent proceed with this payment under the owner's policy?",
+        "proceed": false,
+        "verdict": "DENY",
+        "support": 0,
+        "band": "red",
+        "results": [
+          {
+            "id": "role-requirement-met",
+            "question": "Is the owner's role requirement met?",
+            "status": "FAIL",
+            "code": "ROLE_MEMBER_MISSING",
+            "evidence": "holder 7qRbhaP7fhnhnmK1Y5VhEHBoksS3panaz45UB3gWN5Js does not hold role Eu2tSc43ddJHxuqmtZZPVnPWduke4JdjqmbfPjhUcBM4: Mem...",
+            "evidenceClass": "onchain-read",
+            "reference": "consult/references/pay/role-requirement-met.md"
+          },
+          {
+            "id": "recipient-matches-policy",
+            "question": "Does the recipient match an entry the owner approved?",
+            "status": "PASS",
+            "code": "RECIPIENT_MATCHES_POLICY",
+            "evidence": "recipient matches an approved policy entry",
+            "evidenceClass": "owner-policy",
+            "reference": "consult/references/pay/recipient-matches-policy.md"
+          },
+          {
+            "id": "recipient-not-poison-derived",
+            "question": "Is the recipient free of any recorded poison transfer?",
+            "status": "PASS",
+            "code": "RECIPIENT_NOT_POISON_DERIVED",
+            "evidence": "recipient 0x00000000000000000000000000000000a11ce001 has no recorded poison transfer",
+            "evidenceClass": "static-registry",
+            "reference": "consult/references/pay/recipient-not-poison-derived.md"
+          },
+          {
+            "id": "asset-is-canonical",
+            "question": "Does the asset contract match the canonical entry?",
+            "status": "PASS",
+            "code": "ASSET_IS_CANONICAL",
+            "evidence": "asset contract matches the canonical entry",
+            "evidenceClass": "static-registry",
+            "reference": "consult/references/pay/asset-is-canonical.md"
+          },
+          {
+            "id": "amount-within-cap",
+            "question": "Is the amount above zero and within the owner's cap for this action?",
+            "status": "PASS",
+            "code": "AMOUNT_WITHIN_CAP",
+            "evidence": "amount 1000000 is within the cap 1000000",
+            "evidenceClass": "owner-policy",
+            "reference": "consult/references/pay/amount-within-cap.md"
+          },
+          {
+            "id": "chain-matches-intent",
+            "question": "Does the request's chain match the owner's named chain?",
+            "status": "PASS",
+            "code": "CHAIN_MATCHES_INTENT",
+            "evidence": "chain eip155:1 matches the owner's named chain",
+            "evidenceClass": "owner-policy",
+            "reference": "consult/references/pay/chain-matches-intent.md"
+          },
+          {
+            "id": "target-is-canonical",
+            "question": "Does the transaction call the canonical asset contract?",
+            "status": "PASS",
+            "code": "TARGET_IS_CANONICAL",
+            "evidence": "target contract matches the canonical entry",
+            "evidenceClass": "static-registry",
+            "reference": "consult/references/pay/target-is-canonical.md"
+          }
+        ],
+        "floorIds": [
+          "recipient-matches-policy",
+          "recipient-not-poison-derived",
+          "asset-is-canonical",
+          "amount-within-cap",
+          "chain-matches-intent",
+          "target-is-canonical",
+          "role-requirement-met"
+        ],
+        "advisory": true
+      },
+      "isError": false
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  }
+}

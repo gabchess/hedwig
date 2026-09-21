@@ -3,7 +3,9 @@
  * two "consult" calls either side of a real on-chain revoke_role.
  *
  * Uses a throwaway keypair this script generates and funds itself; it never
- * reads the caller's own Solana wallet. Usage: see app/README.md.
+ * reads the caller's own Solana wallet. Thin wiring only: every decision
+ * with a security or correctness consequence lives in revoke-demo-lib.ts,
+ * where it is unit tested. Usage: see app/README.md.
  */
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
 import * as fs from "fs";
@@ -19,51 +21,36 @@ import {
   sendCreateRole,
   sendRevokeRole,
 } from "@hedwig-sol/sdk";
-import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, Keypair } from "@solana/web3.js";
 
 import {
   assertAsk1,
   assertAsk2,
   assertDevnetGenesisHash,
-  assertKeypairPathAllowed,
-  assertSameServerProcess,
+  assertServerBuilt,
+  assertServerProcessAlive,
+  airdropAmountLamports,
+  buildConnectionOptions,
+  buildMachineRecord,
   buildPolicyFile,
+  buildServerEnv,
   DEFAULT_KEYPAIR_PATH,
   extractAskSummary,
   formatTranscript,
   isAsk2Valid,
+  loadOrGenerateKeypair,
   parseOutPath,
   PAY_REQUEST,
+  shouldRequestAirdrop,
   type AskSummary,
 } from "./revoke-demo-lib";
 
 const SERVER_PATH = path.join(__dirname, "..", "mcp", "dist", "server.js");
-const MIN_BALANCE_LAMPORTS = Math.floor(0.05 * LAMPORTS_PER_SOL);
-const AIRDROP_LAMPORTS = LAMPORTS_PER_SOL;
 const RESPONSE_TIMEOUT_MS = 15_000;
 const RETRY_WAIT_MS = 2_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function loadOrGenerateKeypair(candidatePath: string): Keypair {
-  assertKeypairPathAllowed(candidatePath);
-  if (fs.existsSync(candidatePath)) {
-    const raw = fs.readFileSync(candidatePath, "utf-8");
-    return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
-  }
-  const keypair = Keypair.generate();
-  const dir = path.dirname(candidatePath);
-  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  fs.chmodSync(dir, 0o700);
-  fs.writeFileSync(
-    candidatePath,
-    JSON.stringify(Array.from(keypair.secretKey)),
-    { mode: 0o600 }
-  );
-  fs.chmodSync(candidatePath, 0o600);
-  return keypair;
 }
 
 // Raw JSON-RPC-over-stdio, hand-rolled: app/ imports no MCP client library.
@@ -167,25 +154,26 @@ function waitForExit(
 }
 
 async function main(): Promise<void> {
+  // B2: the cheapest possible failure, before any network call.
+  assertServerBuilt(SERVER_PATH);
+
   const rpcUrl = (
     process.env.HEDWIG_DEMO_RPC_URL || "https://api.devnet.solana.com"
   ).trim();
-  const connection = new Connection(rpcUrl, "confirmed");
+  const connection = new Connection(rpcUrl, buildConnectionOptions());
 
   const genesisHash = await connection.getGenesisHash();
   assertDevnetGenesisHash(genesisHash);
 
   const keypairPath = process.env.HEDWIG_DEMO_KEYPAIR || DEFAULT_KEYPAIR_PATH;
   const admin = loadOrGenerateKeypair(keypairPath);
-  console.log(`cluster: devnet (${new URL(rpcUrl).host})`);
-  console.log(`admin: ${admin.publicKey.toBase58()}`);
 
   const balance = await connection.getBalance(admin.publicKey);
-  if (balance < MIN_BALANCE_LAMPORTS) {
+  if (shouldRequestAirdrop(balance)) {
     try {
       const airdropSig = await connection.requestAirdrop(
         admin.publicKey,
-        AIRDROP_LAMPORTS
+        airdropAmountLamports()
       );
       await connection.confirmTransaction(airdropSig, "confirmed");
     } catch (error) {
@@ -213,60 +201,80 @@ async function main(): Promise<void> {
   const roleName = `revoke-${Math.random().toString(36).slice(2, 10)}`;
   const [rolePda] = deriveRolePda(orgPda, roleName);
 
-  // The org PDA is derived from the admin key alone, so a reused throwaway
-  // admin key can only create it once, ever. A fresh role name each run
-  // avoids colliding with a role from an earlier run under the same org.
-  const existingOrg = await connection.getAccountInfo(orgPda);
-  let createOrgSig: string | undefined;
-  if (!existingOrg) {
-    createOrgSig = await sendCreateOrg(
-      provider,
-      { authority: admin.publicKey, name: `revoke-demo-${Date.now()}` },
-      { signers: [] }
-    );
-  }
-
-  const createRoleSig = await sendCreateRole(
-    provider,
-    { org: orgPda, authority: admin.publicKey, name: roleName },
-    { signers: [] }
-  );
-  const assignRoleSig = await sendAssignRole(
-    provider,
-    {
-      role: rolePda,
-      holder: holder.publicKey,
-      admin: admin.publicKey,
-      expiresAt: null,
-    },
-    { signers: [] }
-  );
-
+  // B2: the policy is written before any transaction is sent. It needs no
+  // chain state: the role PDA is a pure derivation from org + role name,
+  // and the holder is generated in memory.
   const policy = buildPolicyFile({
     programId: HEDWIG_PROGRAM_ID.toBase58(),
     role: rolePda.toBase58(),
     holder: holder.publicKey.toBase58(),
   });
-  const policyPath = path.join(
-    os.tmpdir(),
-    `hedwig-revoke-demo-policy-${process.pid}.json`
-  );
-  fs.writeFileSync(policyPath, JSON.stringify(policy));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hedwig-demo-"));
+  const policyPath = path.join(tmpDir, "policy.json");
+  fs.writeFileSync(policyPath, JSON.stringify(policy), { mode: 0o600 });
 
   let child: ChildProcessWithoutNullStreams | undefined;
+  let cleanedUp = false;
+  const cleanup = (): void => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    if (child && child.exitCode === null && !child.killed) {
+      child.kill();
+    }
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  };
+  // B3: SIGINT/SIGTERM must not leave the temp policy directory behind.
+  const onSignal = (): void => {
+    cleanup();
+    process.exit(130);
+  };
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+
   try {
-    child = spawn(process.execPath, [SERVER_PATH], {
-      env: {
-        ...process.env,
-        HEDWIG_POLICY_FILE: policyPath,
-        HEDWIG_SOLANA_RPC_URL_DEVNET: rpcUrl,
-        HEDWIG_SOLANA_FEE_PAYER_DEVNET: admin.publicKey.toBase58(),
+    // The org PDA is derived from the admin key alone, so a reused
+    // throwaway admin key can only create it once, ever. A fresh role
+    // name each run avoids colliding with a role from an earlier run
+    // under the same org.
+    const existingOrg = await connection.getAccountInfo(orgPda);
+    let createOrgSig: string | undefined;
+    if (!existingOrg) {
+      createOrgSig = await sendCreateOrg(
+        provider,
+        { authority: admin.publicKey, name: `revoke-demo-${Date.now()}` },
+        { signers: [] }
+      );
+    }
+
+    const createRoleSig = await sendCreateRole(
+      provider,
+      { org: orgPda, authority: admin.publicKey, name: roleName },
+      { signers: [] }
+    );
+    const assignRoleSig = await sendAssignRole(
+      provider,
+      {
+        role: rolePda,
+        holder: holder.publicKey,
+        admin: admin.publicKey,
+        expiresAt: null,
       },
+      { signers: [] }
+    );
+
+    child = spawn(process.execPath, [SERVER_PATH], {
+      env: buildServerEnv(
+        process.env,
+        policyPath,
+        rpcUrl,
+        admin.publicKey.toBase58()
+      ),
     });
     const serverPid = child.pid;
 
     await initializeServer(child);
 
+    assertServerProcessAlive(child, serverPid);
     const ask1Message = await callConsult(child);
     const ask1 = assertAsk1(extractAskSummary(ask1Message));
 
@@ -276,18 +284,20 @@ async function main(): Promise<void> {
       { signers: [] }
     );
 
+    assertServerProcessAlive(child, serverPid);
     let ask2Message = await callConsult(child);
     let ask2Summary = extractAskSummary(ask2Message);
-    let ask2RetryUsed = false;
+    let ask2FirstAttemptMessage: unknown;
+    let ask2FirstAttemptSummary: AskSummary | undefined;
     if (!isAsk2Valid(ask2Summary)) {
-      ask2RetryUsed = true;
+      ask2FirstAttemptMessage = ask2Message;
+      ask2FirstAttemptSummary = ask2Summary;
       await sleep(RETRY_WAIT_MS);
+      assertServerProcessAlive(child, serverPid);
       ask2Message = await callConsult(child);
       ask2Summary = extractAskSummary(ask2Message);
     }
     const ask2: AskSummary = assertAsk2(ask2Summary);
-
-    assertSameServerProcess(serverPid, child.pid);
 
     const transcript = formatTranscript({
       rpcUrl,
@@ -301,35 +311,31 @@ async function main(): Promise<void> {
       revokeRoleSig,
       ask1,
       ask2,
-      ask2RetryUsed,
+      ask2FirstAttempt: ask2FirstAttemptSummary,
     });
     console.log(transcript);
 
     const outPath = parseOutPath(process.argv);
     if (outPath) {
-      fs.writeFileSync(
-        outPath,
-        JSON.stringify(
-          {
-            serverPid,
-            policyPath,
-            org: orgPda.toBase58(),
-            role: rolePda.toBase58(),
-            holder: holder.publicKey.toBase58(),
-            signatures: {
-              createOrg: createOrgSig,
-              createRole: createRoleSig,
-              assignRole: assignRoleSig,
-              revokeRole: revokeRoleSig,
-            },
-            ask1: ask1Message,
-            ask2: ask2Message,
-            ask2RetryUsed,
-          },
-          null,
-          2
-        )
-      );
+      const record = buildMachineRecord({
+        rpcUrl,
+        serverPid: serverPid as number,
+        org: orgPda.toBase58(),
+        role: rolePda.toBase58(),
+        holder: holder.publicKey.toBase58(),
+        signatures: {
+          createOrg: createOrgSig,
+          createRole: createRoleSig,
+          assignRole: assignRoleSig,
+          revokeRole: revokeRoleSig,
+        },
+        ask1: { pid: serverPid as number, message: ask1Message },
+        ask2: { pid: serverPid as number, message: ask2Message },
+        ask2FirstAttempt: ask2FirstAttemptMessage
+          ? { pid: serverPid as number, message: ask2FirstAttemptMessage }
+          : undefined,
+      });
+      fs.writeFileSync(outPath, JSON.stringify(record, null, 2));
     }
   } finally {
     if (child && child.exitCode === null && !child.killed) {
@@ -340,7 +346,9 @@ async function main(): Promise<void> {
         child.kill();
       }
     }
-    fs.rmSync(policyPath, { force: true });
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
+    cleanup();
   }
 }
 
