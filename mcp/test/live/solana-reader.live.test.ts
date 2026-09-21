@@ -90,5 +90,29 @@ function liveDeps() {
       expect(fact?.valid).to.equal(false);
       expect(fact?.reason).to.equal("MemberMissing");
     });
+
+    it("the live role and holder, but a wrong member in the policy: no fact, zero outbound calls", async () => {
+      let calls = 0;
+      const countingFetch = ((...args: Parameters<typeof fetch>) => {
+        calls++;
+        return fetch(...args);
+      }) as typeof globalThis.fetch;
+
+      const fact = await gatherSolanaRole(
+        {
+          mode: "required",
+          cluster: "devnet",
+          programId: PROGRAM_ID,
+          role: LIVE_ROLE,
+          holder: LIVE_HOLDER,
+          member: FUNDED_FEE_PAYER, // wrong on purpose: not the derived address
+          maxAgeSeconds: 60,
+        },
+        { ...liveDeps(), fetch: countingFetch }
+      );
+
+      expect(fact).to.equal(undefined);
+      expect(calls).to.equal(0);
+    });
   }
 );

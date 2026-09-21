@@ -46,9 +46,27 @@ async function main() {
     arguments: { request },
   });
 
+  // Not part of the SDK's public API, but the simplest way for this
+  // throwaway test driver to confirm the server process actually exits
+  // once stdin closes, rather than trusting that closing the transport
+  // implies it.
+  const serverProcess = transport._process;
+
   await client.close();
 
-  process.stdout.write(JSON.stringify(result));
+  const serverExited = await new Promise((resolve) => {
+    if (!serverProcess || serverProcess.exitCode !== null) {
+      resolve(true);
+      return;
+    }
+    const timer = setTimeout(() => resolve(false), 3000);
+    serverProcess.once("exit", () => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+
+  process.stdout.write(JSON.stringify({ ...result, serverExited }));
 }
 
 main().catch((error) => {

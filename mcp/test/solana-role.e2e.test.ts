@@ -30,7 +30,6 @@ const REQUIRED_ROLE_POLICY = {
     programId: GOLDEN.programId,
     role: GOLDEN.role,
     holder: GOLDEN.holder,
-    member: GOLDEN.member,
     maxAgeSeconds: 60,
   },
 };
@@ -43,9 +42,13 @@ function rpcResult(err: unknown, logs: string[]): string {
   });
 }
 
-const OK_BODY = rpcResult(null, ["Program log: ok"]);
+const OK_BODY = rpcResult(null, [
+  `Program ${GOLDEN.programId} invoke [1]`,
+  `Program ${GOLDEN.programId} success`,
+]);
 const REVOKED_BODY = rpcResult({ InstructionError: [0, { Custom: 3012 }] }, [
-  "AnchorError: AccountNotInitialized",
+  `Program ${GOLDEN.programId} invoke [1]`,
+  "Program log: AnchorError, Custom(3012)",
 ]);
 
 function startLocalRpc(
@@ -55,6 +58,29 @@ function startLocalRpc(
     const server: Server = createServer((_req, res) => {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(body);
+    });
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      const port = typeof address === "object" && address ? address.port : 0;
+      resolve({
+        url: `http://127.0.0.1:${port}/`,
+        close: () => new Promise((done) => server.close(() => done())),
+      });
+    });
+  });
+}
+
+// Writes headers and one small chunk, then never calls res.end(): the
+// deadline must cover this or the tool call hangs forever.
+function startStallingRpc(): Promise<{
+  url: string;
+  close: () => Promise<void>;
+}> {
+  return new Promise((resolve) => {
+    const server: Server = createServer((_req, res) => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.write("{");
+      // Never call res.end(): the body never completes.
     });
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
@@ -122,4 +148,26 @@ describe("the Solana role Reader, driven over real stdio against a local RPC", f
       await rpc.close();
     }
   });
+
+  it("headers then a stall: answers UNKNOWN within about a second, and the process exits when stdin closes (B1)", async () => {
+    const rpc = await startStallingRpc();
+    try {
+      const startedAt = Date.now();
+      const { stdout } = await execFileAsync(process.execPath, [
+        CLIENT_SCRIPT,
+        SERVER_PATH,
+        policyPath,
+        rpc.url,
+        GOLDEN.feePayer,
+      ]);
+      const elapsedMs = Date.now() - startedAt;
+      const output = JSON.parse(stdout);
+
+      expect(output.structuredContent.verdict).to.equal("UNKNOWN");
+      expect(elapsedMs).to.be.lessThan(3000);
+      expect(output.serverExited).to.equal(true);
+    } finally {
+      await rpc.close();
+    }
+  }).timeout(10000);
 });
