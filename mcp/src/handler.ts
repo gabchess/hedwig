@@ -2,6 +2,12 @@ import { consult } from "@hedwig/consult";
 import type { ConsultResponse } from "@hedwig/consult";
 
 import { readPolicyFile } from "./policy";
+import { getSolanaClusterConfig } from "./readers/config";
+import {
+  clusterForRoleRequirement,
+  gatherSolanaRole,
+  SIMULATE_DEADLINE_MS,
+} from "./readers/solana-role";
 
 // The wire's one edge guard: a small request must never buy a policy read
 // or a consult() run. Measured in bytes, so a multi-byte character cannot pass a
@@ -50,15 +56,27 @@ export function unknownAdapterResponse(
   };
 }
 
+// The policy file's own "role" field, read the same defensive way
+// readPolicyFile reads the rest of it: as unknown JSON, never assumed to
+// have any particular shape. consult() re-validates this on its own later;
+// this reading exists only so the reader knows which cluster's config to
+// use, never to decide anything about the verdict.
+function readPolicyRole(policy: unknown): unknown {
+  if (policy === null || typeof policy !== "object" || Array.isArray(policy)) {
+    return undefined;
+  }
+  return (policy as Record<string, unknown>).role;
+}
+
 // The plain handler behind the one MCP tool. Takes the raw tool call
 // arguments exactly as the transport delivered them and the policy file
 // path (never taken from the arguments), and returns exactly what
-// consult(request, policy) returns. Imports nothing from the MCP SDK, so it
-// can be tested directly without a live protocol handshake.
-export function handleConsult(
+// consult(request, policy, facts) returns. Imports nothing from the MCP
+// SDK, so it can be tested directly without a live protocol handshake.
+export async function handleConsult(
   rawArgs: unknown,
   policyPath: string
-): ConsultResponse {
+): Promise<ConsultResponse> {
   let serialized: string;
   try {
     serialized = JSON.stringify(rawArgs) ?? "";
@@ -92,13 +110,42 @@ export function handleConsult(
       ? (rawArgs as Record<string, unknown>).request
       : undefined;
 
+  // The Solana role Reader reads only the owner's policy file (read above)
+  // and its own env-configured cluster settings: the request is never
+  // consulted here, so nothing a caller sends can steer which cluster is
+  // read, the outbound call, or the resulting fact (pinned by a test: a
+  // request stuffing its own "cluster" field changes nothing).
+  // clusterForRoleRequirement applies the same mode/cluster/programId
+  // checks gatherSolanaRole itself uses, so a "not-required" policy, or a
+  // required one naming an unrecognised cluster or the wrong programId,
+  // never reaches config.ts and never triggers its startup lines.
+  // gatherSolanaRole itself never throws or rejects, so a config defect or
+  // a network failure surfaces as an absent fact, not as an adapter
+  // failure.
+  const policyRole = readPolicyRole(policyResult.policy);
+  const cluster = clusterForRoleRequirement(policyRole);
+  const clusterConfig = cluster ? getSolanaClusterConfig(cluster) : undefined;
+  const solanaRole = await gatherSolanaRole(policyRole, {
+    fetch: globalThis.fetch,
+    // observedAt: read inside the Reader, right before it sends.
+    now: () => Math.floor(Date.now() / 1000),
+    feePayer: clusterConfig?.feePayer,
+    rpcUrl: clusterConfig?.rpcUrl,
+    deadlineMs: SIMULATE_DEADLINE_MS,
+  });
+  // consult()'s own clock: read only after the Reader has returned, so the
+  // gap between it and the fact's observedAt reflects how long the actual
+  // round trip took, and a stale fact can be detected at all.
+  const now = Math.floor(Date.now() / 1000);
+
   try {
-    // The adapter is the only clock consult() ever sees: it supplies
-    // `now` as data on every call. Only `rawArgs.request` is read above and
-    // this third argument is built here, so nothing a caller sends can
-    // become a fact.
+    // The adapter is the only clock and the only Solana reader consult()
+    // ever sees: it supplies `now` and `solanaRole` as data on every call.
+    // Only `rawArgs.request` is read above and these facts are built here,
+    // so nothing a caller sends can become a fact.
     return consult(request as never, policyResult.policy as never, {
-      now: Math.floor(Date.now() / 1000),
+      now,
+      ...(solanaRole !== undefined ? { solanaRole } : {}),
     });
   } catch {
     return unknownAdapterResponse(

@@ -37,31 +37,31 @@ describe("handleConsult", () => {
     return path;
   }
 
-  it("returns the same verdict consult() returns for a valid request and the fixture policy", () => {
+  it("returns the same verdict consult() returns for a valid request and the fixture policy", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
 
-    const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+    const result = await handleConsult({ request: VALID_REQUEST }, policyPath);
     const direct = consult(VALID_REQUEST as never, VALID_POLICY as never);
 
     expect(result).to.deep.equal(direct);
     expect(result.verdict).to.equal("ALLOW_UNDER_POLICY");
   });
 
-  it("returns DENY as a normal result for an over-cap amount", () => {
+  it("returns DENY as a normal result for an over-cap amount", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
     const overCapRequest = {
       action: { ...VALID_REQUEST.action, amount: "1000001" },
     };
 
-    const result = handleConsult({ request: overCapRequest }, policyPath);
+    const result = await handleConsult({ request: overCapRequest }, policyPath);
 
     expect(result.verdict).to.equal("DENY");
   });
 
-  it("ignores extra keys alongside request; the caller cannot choose the policy", () => {
+  it("ignores extra keys alongside request; the caller cannot choose the policy", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
 
-    const withExtras = handleConsult(
+    const withExtras = await handleConsult(
       {
         request: VALID_REQUEST,
         policy: {
@@ -77,20 +77,23 @@ describe("handleConsult", () => {
       },
       policyPath
     );
-    const withoutExtras = handleConsult({ request: VALID_REQUEST }, policyPath);
+    const withoutExtras = await handleConsult(
+      { request: VALID_REQUEST },
+      policyPath
+    );
 
     expect(withExtras).to.deep.equal(withoutExtras);
     expect(withExtras.verdict).to.equal("ALLOW_UNDER_POLICY");
   });
 
-  it("reflects a policy file edit on the very next call, with no restart", () => {
+  it("reflects a policy file edit on the very next call, with no restart", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
 
-    const first = handleConsult({ request: VALID_REQUEST }, policyPath);
+    const first = await handleConsult({ request: VALID_REQUEST }, policyPath);
     expect(first.verdict).to.equal("ALLOW_UNDER_POLICY");
 
     writePolicy(JSON.stringify({ ...VALID_POLICY, permits: false }));
-    const second = handleConsult({ request: VALID_REQUEST }, policyPath);
+    const second = await handleConsult({ request: VALID_REQUEST }, policyPath);
     expect(second.verdict).to.equal("UNKNOWN");
   });
 
@@ -123,16 +126,16 @@ describe("handleConsult", () => {
       },
     };
 
-    it("answers UNKNOWN with ROLE_FACT_MISSING: the adapter never forwards a fact the caller supplied", () => {
+    it("answers UNKNOWN with ROLE_FACT_MISSING: the adapter never forwards a fact the caller supplied", async () => {
       const policyPath = writePolicy(JSON.stringify(REQUIRED_ROLE_POLICY));
 
-      const plain = handleConsult({ request: VALID_REQUEST }, policyPath);
+      const plain = await handleConsult({ request: VALID_REQUEST }, policyPath);
       expect(plain.verdict).to.equal("UNKNOWN");
       expect(
         plain.results.find((r) => r.id === "role-requirement-met")?.code
       ).to.equal("ROLE_FACT_MISSING");
 
-      const withRoleEverywhere = handleConsult(
+      const withRoleEverywhere = await handleConsult(
         {
           request: {
             ...VALID_REQUEST,
@@ -163,9 +166,12 @@ describe("handleConsult", () => {
   });
 
   describe("a broken policy file never yields an MCP error or an ALLOW", () => {
-    it("missing file", () => {
+    it("missing file", async () => {
       const missingPath = join(dir, "does-not-exist.json");
-      const result = handleConsult({ request: VALID_REQUEST }, missingPath);
+      const result = await handleConsult(
+        { request: VALID_REQUEST },
+        missingPath
+      );
       expect(result.verdict).to.equal("UNKNOWN");
       expect(result.results).to.have.length(1);
       expect(result.results[0].id).to.equal("adapter");
@@ -181,44 +187,59 @@ describe("handleConsult", () => {
       expect(result.results[0].reference).to.be.a("string").that.is.not.empty;
     });
 
-    it("unreadable file (a directory in its place)", () => {
+    it("unreadable file (a directory in its place)", async () => {
       const dirPath = join(dir, "policy-is-a-dir.json");
       mkdirSync(dirPath);
-      const result = handleConsult({ request: VALID_REQUEST }, dirPath);
+      const result = await handleConsult({ request: VALID_REQUEST }, dirPath);
       expect(result.verdict).to.equal("UNKNOWN");
       expect(result.results[0].id).to.equal("adapter");
     });
 
-    it("an oversized file (over 256 KB) is refused without being read", () => {
+    it("an oversized file (over 256 KB) is refused without being read", async () => {
       const policyPath = writePolicy("x".repeat(300 * 1024));
-      const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+      const result = await handleConsult(
+        { request: VALID_REQUEST },
+        policyPath
+      );
       expect(result.verdict).to.equal("UNKNOWN");
       expect(result.results[0].id).to.equal("adapter");
     });
 
-    it("empty file", () => {
+    it("empty file", async () => {
       const policyPath = writePolicy("");
-      const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+      const result = await handleConsult(
+        { request: VALID_REQUEST },
+        policyPath
+      );
       expect(result.verdict).to.equal("UNKNOWN");
       expect(result.results[0].id).to.equal("adapter");
     });
 
-    it("not JSON", () => {
+    it("not JSON", async () => {
       const policyPath = writePolicy("not json at all");
-      const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+      const result = await handleConsult(
+        { request: VALID_REQUEST },
+        policyPath
+      );
       expect(result.verdict).to.equal("UNKNOWN");
       expect(result.results[0].id).to.equal("adapter");
     });
 
-    it("a JSON array (valid JSON, wrong shape: consult's own UNKNOWN, never ALLOW)", () => {
+    it("a JSON array (valid JSON, wrong shape: consult's own UNKNOWN, never ALLOW)", async () => {
       const policyPath = writePolicy("[]");
-      const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+      const result = await handleConsult(
+        { request: VALID_REQUEST },
+        policyPath
+      );
       expect(result.verdict).to.equal("UNKNOWN");
     });
 
-    it("null (valid JSON, wrong shape: consult's own UNKNOWN, never ALLOW)", () => {
+    it("null (valid JSON, wrong shape: consult's own UNKNOWN, never ALLOW)", async () => {
       const policyPath = writePolicy("null");
-      const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+      const result = await handleConsult(
+        { request: VALID_REQUEST },
+        policyPath
+      );
       expect(result.verdict).to.equal("UNKNOWN");
     });
   });
@@ -238,23 +259,26 @@ describe("handleConsult", () => {
     ];
 
     malformedRequests.forEach(([label, request]) => {
-      it(`${label}`, () => {
+      it(`${label}`, async () => {
         const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
         const args = request === undefined ? {} : { request };
-        const result = handleConsult(args, policyPath);
+        const result = await handleConsult(args, policyPath);
         expect(result.verdict).to.equal("UNKNOWN");
       });
     });
   });
 
-  it("answers UNKNOWN quickly for arguments over 64 KB", () => {
+  it("answers UNKNOWN quickly for arguments over 64 KB", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
     const oversizedRequest = {
       action: { ...VALID_REQUEST.action, memo: "x".repeat(70 * 1024) },
     };
 
     const startedAt = Date.now();
-    const result = handleConsult({ request: oversizedRequest }, policyPath);
+    const result = await handleConsult(
+      { request: oversizedRequest },
+      policyPath
+    );
     const elapsedMs = Date.now() - startedAt;
 
     expect(result.verdict).to.equal("UNKNOWN");
@@ -263,7 +287,7 @@ describe("handleConsult", () => {
     expect(elapsedMs).to.be.lessThan(200);
   });
 
-  it("counts a multi-byte argument by bytes, not by string.length", () => {
+  it("counts a multi-byte argument by bytes, not by string.length", async () => {
     // "€" (Euro sign) is one UTF-16 code unit but three UTF-8 bytes.
     // At this count the serialised string.length (65233) is under the 64 KB
     // (65536) cap, so a length-based cap would let it through, while its
@@ -277,40 +301,46 @@ describe("handleConsult", () => {
     }).length;
     expect(serializedLength).to.be.lessThan(64 * 1024);
 
-    const result = handleConsult({ request: oversizedRequest }, policyPath);
+    const result = await handleConsult(
+      { request: oversizedRequest },
+      policyPath
+    );
 
     expect(result.verdict).to.equal("UNKNOWN");
     expect(result.results[0].id).to.equal("adapter");
   });
 
-  it("is byte-for-byte the same as calling consult() directly for an ALLOW", () => {
+  it("is byte-for-byte the same as calling consult() directly for an ALLOW", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
 
-    const result = handleConsult({ request: VALID_REQUEST }, policyPath);
+    const result = await handleConsult({ request: VALID_REQUEST }, policyPath);
     const direct = consult(VALID_REQUEST as never, VALID_POLICY as never);
 
     expect(result.verdict).to.equal("ALLOW_UNDER_POLICY");
     expect(JSON.stringify(result)).to.equal(JSON.stringify(direct));
   });
 
-  it("is byte-for-byte the same as calling consult() directly for a DENY", () => {
+  it("is byte-for-byte the same as calling consult() directly for a DENY", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
     const overCapRequest = {
       action: { ...VALID_REQUEST.action, amount: "1000001" },
     };
 
-    const result = handleConsult({ request: overCapRequest }, policyPath);
+    const result = await handleConsult({ request: overCapRequest }, policyPath);
     const direct = consult(overCapRequest as never, VALID_POLICY as never);
 
     expect(result.verdict).to.equal("DENY");
     expect(JSON.stringify(result)).to.equal(JSON.stringify(direct));
   });
 
-  it("is byte-for-byte the same as calling consult() directly for an UNKNOWN", () => {
+  it("is byte-for-byte the same as calling consult() directly for an UNKNOWN", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
     const malformedRequest = { action: null };
 
-    const result = handleConsult({ request: malformedRequest }, policyPath);
+    const result = await handleConsult(
+      { request: malformedRequest },
+      policyPath
+    );
     const direct = consult(malformedRequest as never, VALID_POLICY as never);
 
     expect(result.verdict).to.equal("UNKNOWN");

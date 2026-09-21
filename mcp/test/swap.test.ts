@@ -56,8 +56,8 @@ describe("handleConsult: swap", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("supplies the time itself, in seconds: a clean swap proceeds", () => {
-    const response = handleConsult(
+  it("supplies the time itself, in seconds: a clean swap proceeds", async () => {
+    const response = await handleConsult(
       { request: swapRequest(nowSeconds() + 300) },
       policyPath
     );
@@ -65,11 +65,11 @@ describe("handleConsult: swap", () => {
     expect(response.proceed).to.equal(true);
   });
 
-  it("ignores a time the caller supplies, wherever the caller puts it", () => {
+  it("ignores a time the caller supplies, wherever the caller puts it", async () => {
     const past = nowSeconds() - 3600;
     const callerFacts = { now: past - 60 };
     const request = { ...swapRequest(past), facts: callerFacts };
-    const response = handleConsult(
+    const response = await handleConsult(
       { request, facts: callerFacts, _meta: { facts: callerFacts } },
       policyPath
     );
