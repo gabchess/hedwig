@@ -2,8 +2,7 @@
 
 The router the transaction calls is checked against a fixed registry of
 canonical router deployments, keyed by chain. The check flags a swap that
-routes through a lookalike or unaudited contract instead of the chain's
-real router, even when every other field looks correct.
+calls any contract other than the chain's registered router, even when every other field looks correct.
 
 - PASS: the target contract matches the registry's canonical router for
   the request's chain.

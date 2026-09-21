@@ -1,7 +1,7 @@
 # approval-scoped-to-this-swap
 
 The token approval the swap will spend is checked against the swap's own
-input amount, string-compared as an exact integer. The check flags an
+input amount, compared as exact integers. The check flags an
 approval that leaves a standing allowance behind after this swap executes,
 including the unlimited-allowance pattern of approving the maximum
 uint256 value.

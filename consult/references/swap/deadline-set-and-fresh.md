@@ -17,5 +17,5 @@ from goes stale.
 
 ## Sources
 
-- Uniswap Universal Router repository, whose swap commands accept a
-  transaction deadline as one of their parameters: https://github.com/Uniswap/universal-router
+- Uniswap Universal Router repository, whose `execute` entry point takes
+  a transaction deadline: https://github.com/Uniswap/universal-router
