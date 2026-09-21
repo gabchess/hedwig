@@ -39,6 +39,7 @@ describe("results ordering", () => {
       "amount-within-cap",
       "chain-matches-intent",
       "target-is-canonical",
+      "role-requirement-met",
     ]);
   });
 

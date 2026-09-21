@@ -23,6 +23,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -50,6 +53,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -77,6 +83,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -104,6 +113,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -131,6 +143,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -158,6 +173,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -185,6 +203,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -212,6 +233,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -239,6 +263,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -266,6 +293,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -293,6 +323,9 @@
       ],
       "perActionCaps": {
         "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
       }
     }
   },
@@ -335,7 +368,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -380,7 +416,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -425,7 +464,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -470,7 +512,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -515,7 +560,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -560,7 +608,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -605,7 +656,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -650,7 +704,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x0000000000000000000000000000000000BAD001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -695,7 +752,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -740,7 +800,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -785,7 +848,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -830,7 +896,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -875,7 +944,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -920,7 +992,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -965,7 +1040,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1010,7 +1088,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1055,7 +1136,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1100,7 +1184,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1145,7 +1232,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1190,7 +1280,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1235,7 +1328,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1280,7 +1376,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1325,7 +1424,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1370,7 +1472,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1415,7 +1520,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     }
   },
   {
@@ -1457,7 +1565,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": null
   },
@@ -1500,7 +1611,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": []
   },
@@ -1543,7 +1657,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": "2000000000"
@@ -1588,7 +1705,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 0
@@ -1633,7 +1753,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1678,7 +1801,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1723,7 +1849,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1768,7 +1897,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1813,7 +1945,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1858,7 +1993,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1903,7 +2041,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1948,7 +2089,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -1993,7 +2137,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -2038,7 +2185,10 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
@@ -2083,10 +2233,716 @@
       "maxDeadlineSeconds": 600,
       "ownerAddresses": [
         "0x00000000000000000000000000000000a11ce001"
-      ]
+      ],
+      "role": {
+        "mode": "not-required"
+      }
     },
     "facts": {
       "now": 2000000000
+    }
+  },
+  {
+    "id": "pay-role-required-is-an-authorised-allow",
+    "authorizedAllow": true,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": true,
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
+    }
+  },
+  {
+    "id": "swap-role-required-is-an-authorised-allow",
+    "authorizedAllow": true,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": true,
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
+    }
+  },
+  {
+    "id": "pay-role-fact-subject-mismatch",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwAtHderSeed9ABJKmnpqHwAtHderSee"
+        },
+        "valid": true,
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
+    }
+  },
+  {
+    "id": "swap-role-fact-subject-mismatch",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwAtHderSeed9ABJKmnpqHwAtHderSee"
+        },
+        "valid": true,
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
+    }
+  },
+  {
+    "id": "pay-role-fact-stale",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": true,
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 1999999000
+        }
+      }
+    }
+  },
+  {
+    "id": "swap-role-fact-stale",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": true,
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 1999999000
+        }
+      }
+    }
+  },
+  {
+    "id": "pay-role-policy-mode-case-variant",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "REQUIRED",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    }
+  },
+  {
+    "id": "swap-role-policy-mode-case-variant",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "role": {
+        "mode": "REQUIRED",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000
+    }
+  },
+  {
+    "id": "pay-role-fact-valid-not-boolean",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": "true",
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
+    }
+  },
+  {
+    "id": "swap-role-fact-valid-not-boolean",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": "true",
+        "reason": "ok",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
+    }
+  },
+  {
+    "id": "pay-role-disabled",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": false,
+        "reason": "RoleDisabled",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
+    }
+  },
+  {
+    "id": "swap-role-disabled",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "role": {
+        "mode": "required",
+        "cluster": "mainnet-beta",
+        "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+        "maxAgeSeconds": 60
+      }
+    },
+    "facts": {
+      "now": 2000000000,
+      "solanaRole": {
+        "subject": {
+          "cluster": "mainnet-beta",
+          "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+          "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+          "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+        },
+        "valid": false,
+        "reason": "RoleDisabled",
+        "provenance": {
+          "source": "test-fixture",
+          "slot": 1,
+          "commitment": "confirmed",
+          "observedAt": 2000000000
+        }
+      }
     }
   }
 ]

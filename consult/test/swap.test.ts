@@ -23,6 +23,7 @@ const SWAP_FLOOR_IDS = [
   "approval-scoped-to-this-swap",
   "amount-within-cap",
   "chain-matches-intent",
+  "role-requirement-met",
 ];
 
 // `arguments.length`, not a JS default parameter, decides whether `facts`
