@@ -156,7 +156,7 @@ describe("consult", () => {
 
   it("returns UNKNOWN with a named reason for an unknown action type, inventing zero passes", () => {
     const request = makeRequest({
-      action: { ...makeRequest().action, type: "swap" },
+      action: { ...makeRequest().action, type: "teleport" },
     });
     const response = consult(request, makePolicy());
 
@@ -166,7 +166,7 @@ describe("consult", () => {
       response.results.some((result) => result.status === "PASS")
     ).to.equal(false);
     expect(
-      response.results.some((result) => result.evidence.includes("swap"))
+      response.results.some((result) => result.evidence.includes("teleport"))
     ).to.equal(true);
   });
 

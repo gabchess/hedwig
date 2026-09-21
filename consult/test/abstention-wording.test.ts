@@ -32,7 +32,7 @@ describe("abstention wording", () => {
 
   it("a core-level UNVERIFIED (unknown action type) abstains with the fixed words", () => {
     const response = consult(
-      makeRequest({ action: { ...makeRequest().action, type: "swap" } }),
+      makeRequest({ action: { ...makeRequest().action, type: "teleport" } }),
       makePolicy()
     );
     expectEveryUnverifiedAbstains(response);

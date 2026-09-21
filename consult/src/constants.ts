@@ -26,6 +26,7 @@ export const EVIDENCE_CLASS_WEIGHTS: Readonly<Record<EvidenceClass, number>> =
     "onchain-read": 1.0,
     "owner-policy": 0.9,
     "static-registry": 0.6,
+    "caller-stated": 0.5,
     "not-verifiable": 0,
   });
 

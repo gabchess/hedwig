@@ -13,7 +13,7 @@ import { handleConsult, unknownAdapterResponse } from "./handler";
 const POLICY_PATH_ENV = "HEDWIG_POLICY_FILE";
 const TOOL_NAME = "consult";
 const TOOL_DESCRIPTION =
-  "Checks a payment request against the owner's policy and returns whether to proceed, with a verdict, a support score from 0 to 1, a band, and the result of each check. Act on proceed only.";
+  "Checks a payment or swap request against the owner's policy and returns whether to proceed, with a verdict, a support score from 0 to 1, a band, and the result of each check. Act on proceed only.";
 
 // Bounds one incoming message before the transport finishes buffering it
 // into a JSON-RPC line, so a message far larger than any real call never

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "chai";
 
-import { PAY_CATALOG } from "../src/catalog";
+import { CATALOG } from "../src/catalog";
 import type { ConditionDefinition } from "../src/catalog";
 
 const REPO_ROOT = join(__dirname, "..", "..");
@@ -11,14 +11,22 @@ const VALID_EVIDENCE_CLASSES = new Set([
   "onchain-read",
   "owner-policy",
   "static-registry",
+  "caller-stated",
   "not-verifiable",
 ]);
 
+// Every action type the real catalog knows, pay and swap alike: no special
+// case for either.
 function allConditions(): ConditionDefinition[] {
-  return Object.values(PAY_CATALOG).flat();
+  return Object.values(CATALOG).flat();
 }
 
 describe("catalog lint", () => {
+  it("covers both pay and swap, not just one action type", () => {
+    expect(Object.keys(CATALOG)).to.have.members(["pay", "swap"]);
+    expect(allConditions().length).to.be.greaterThan(6);
+  });
+
   it("every Condition has a non-empty question ending in a question mark", () => {
     allConditions().forEach((condition) => {
       expect(condition.question, condition.id).to.be.a("string").that.is.not

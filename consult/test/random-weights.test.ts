@@ -28,6 +28,7 @@ const EVIDENCE_CLASSES: EvidenceClass[] = [
   "onchain-read",
   "owner-policy",
   "static-registry",
+  "caller-stated",
   "not-verifiable",
 ];
 
@@ -88,6 +89,7 @@ describe("evidence-class weights cannot move the verdict", () => {
       "onchain-read": 0.5,
       "owner-policy": 0.5,
       "static-registry": 0.5,
+      "caller-stated": 0.5,
       "not-verifiable": 0.5,
     };
     const response = consultWith(PAY_CATALOG, weights)(

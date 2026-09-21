@@ -2,6 +2,9 @@ import {
   CANONICAL_ASSET_ADDRESS,
   CANONICAL_ASSET_SYMBOL,
   CANONICAL_CHAIN_ID,
+  CANONICAL_ROUTERS,
+  CANONICAL_WETH_ADDRESS,
+  CANONICAL_WETH_SYMBOL,
   PAY_CATALOG,
   POISON_FLAGGED_RECIPIENT,
 } from "../src/catalog";
@@ -16,6 +19,10 @@ export const CHAIN_ID = CANONICAL_CHAIN_ID;
 export const ASSET_SYMBOL = CANONICAL_ASSET_SYMBOL;
 export const ASSET_ADDRESS = CANONICAL_ASSET_ADDRESS;
 export const POISONED_RECIPIENT = POISON_FLAGGED_RECIPIENT;
+export const ROUTER_ADDRESS = CANONICAL_ROUTERS[CANONICAL_CHAIN_ID];
+export const WETH_SYMBOL = CANONICAL_WETH_SYMBOL;
+export const WETH_ADDRESS = CANONICAL_WETH_ADDRESS;
+export const SWAP_NOW = 2_000_000_000;
 
 // Full 40-hex-digit EVM addresses: consult() validates recipient shape
 // strictly, so a fixture short of that shape resolves to UNVERIFIED rather
@@ -45,6 +52,47 @@ export function makeRequest(
       asset: { symbol: ASSET_SYMBOL, contractAddress: ASSET_ADDRESS },
       amount: "1000000",
       target: ASSET_ADDRESS,
+    },
+    ...overrides,
+  };
+}
+
+export function makeSwapPolicy(overrides: Partial<Policy> = {}): Policy {
+  return {
+    permits: true,
+    chainId: CHAIN_ID,
+    approvedRecipients: [APPROVED_RECIPIENT],
+    perActionCaps: { pay: "1000000", swap: "1000000" },
+    maxSlippageBps: 100,
+    maxDeadlineSeconds: 600,
+    ownerAddresses: [APPROVED_RECIPIENT],
+    ...overrides,
+  };
+}
+
+export function makeSwapFacts(overrides: Partial<{ now: number }> = {}): {
+  now: number;
+} {
+  return { now: SWAP_NOW, ...overrides };
+}
+
+export function makeSwapRequest(
+  overrides: Partial<ConsultRequest> = {}
+): ConsultRequest {
+  return {
+    action: {
+      type: "swap",
+      chainId: CHAIN_ID,
+      target: ROUTER_ADDRESS,
+      tokenIn: { symbol: ASSET_SYMBOL, contractAddress: ASSET_ADDRESS },
+      tokenOut: { symbol: WETH_SYMBOL, contractAddress: WETH_ADDRESS },
+      amountIn: "1000000",
+      quotedOut: "1000000",
+      minOut: "995000",
+      slippageBps: 50,
+      deadline: SWAP_NOW + 300,
+      recipient: APPROVED_RECIPIENT,
+      approvalAmount: "1000000",
     },
     ...overrides,
   };

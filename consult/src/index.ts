@@ -1,5 +1,5 @@
 import { makeConsult } from "./core";
-import { PAY_CATALOG } from "./catalog";
+import { CATALOG } from "./catalog";
 import type { ConsultRequest, Policy } from "./catalog";
 import type { ConsultResponse } from "./core";
 
@@ -29,8 +29,15 @@ export type { ConsultAction, ConsultRequest, Policy } from "./catalog";
  * The catalog is the module's own frozen catalog, not a caller argument: a
  * caller who could choose the catalog would control the verdict, so the
  * money path never takes one.
+ *
+ * `facts` is the optional third argument and carries time as data: `now`,
+ * a unix-seconds timestamp. consult() never reads a clock itself. Facts
+ * that are missing, malformed, uncloneable or over the size limit count as
+ * no facts: the Condition that needs them answers UNVERIFIED. `pay` reads
+ * no fact at all.
  */
 export const consult: (
   request: ConsultRequest,
-  policy: Policy
-) => ConsultResponse = makeConsult(PAY_CATALOG);
+  policy: Policy,
+  facts?: unknown
+) => ConsultResponse = makeConsult(CATALOG);

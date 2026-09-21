@@ -17,7 +17,7 @@ describe("results ordering", () => {
         recipient: "0x00000000000000000000000000000000badc0de0",
         asset: {
           symbol: "USDT",
-          contractAddress: makeRequest().action.asset.contractAddress,
+          contractAddress: makeRequest().action.asset!.contractAddress,
         },
       },
     });
