@@ -48,8 +48,8 @@ install policy is resolved.
 ## Public repository boundary
 
 Keep this repository useful to an external reader. Product behavior,
-integration guidance, security and deployment evidence, current roadmap status,
-and grant delivery records belong here.
+integration guidance, security and deployment evidence, and grant delivery
+records belong here.
 
 Keep private operating instructions, assistant configuration, planning
 workflows, approval records, prospect work, and unpublished review provenance
