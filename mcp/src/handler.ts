@@ -4,9 +4,8 @@ import type { ConsultResponse } from "@hedwig/consult";
 import { readPolicyFile } from "./policy";
 
 // The wire's one edge guard: a small request must never buy a policy read
-// or a consult() run. Measured in bytes, the same unit consult()'s own size
-// cap uses, so a multi-byte character cannot pass a cap meant to bound what
-// it costs to hold and hash the value. This runs before the policy file is
+// or a consult() run. Measured in bytes, so a multi-byte character cannot pass a
+// cap meant to bound what it costs to hold the value. This runs before the policy file is
 // read or consult() is called; it cannot bound the SDK's own parse of the
 // incoming JSON-RPC line, which has already happened by the time this
 // function receives its arguments (see server.ts's transport-level cap for

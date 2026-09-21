@@ -1,8 +1,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { Protocol } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import {
+  ErrorCode,
+  ListToolsRequestSchema,
+  McpError,
+} from "@modelcontextprotocol/sdk/types.js";
 
 import type { ConsultResponse } from "@hedwig/consult";
 
@@ -35,23 +37,18 @@ function requirePolicyPath(): string {
   return path;
 }
 
-// The MCP SDK's own tools/call handling requires `arguments` to already be
-// an object before any tool-specific code runs: Server.setRequestHandler
-// re-validates every "tools/call" request against its own fixed schema, no
-// matter what schema is registered for that method, so a looser schema
-// registered the ordinary way still cannot let a non-object `arguments`
-// through to handleConsult. Registering directly on Protocol, the class
-// Server extends, carries no such re-validation, so that is the level at
-// which a non-object, or missing, `arguments` can reach handleConsult
-// instead of becoming a JSON-RPC error. handleConsult is what decides what
-// a bad shape means, not this schema.
-const AnyArgumentsToolCallSchema = z.object({
-  method: z.literal("tools/call"),
-  params: z.object({
-    name: z.string(),
-    arguments: z.unknown().optional(),
-  }),
-});
+// The SDK validates every registered "tools/call" against its own fixed
+// schema before tool code runs, which turns a missing or non-object
+// `arguments` into a JSON-RPC error. No tools/call handler is registered, so
+// those calls reach the SDK's fallback handler below, and handleConsult is
+// what decides what a bad shape means.
+function readToolCall(params: unknown): { name: unknown; args: unknown } {
+  if (params === null || typeof params !== "object" || Array.isArray(params)) {
+    return { name: undefined, args: undefined };
+  }
+  const record = params as Record<string, unknown>;
+  return { name: record.name, args: record.arguments };
+}
 
 // Only ids consult() itself names as floorIds are ever printed on stderr,
 // each with its status. A caller can name arbitrary ids of its own in
@@ -88,59 +85,55 @@ function main(): void {
     ],
   }));
 
-  // Bypasses Server's built-in tools/call re-validation; see the schema's
-  // own comment above for why that bypass is necessary here.
-  Protocol.prototype.setRequestHandler.call(
-    server,
-    AnyArgumentsToolCallSchema,
-    async (request: z.infer<typeof AnyArgumentsToolCallSchema>) => {
-      if (request.params.name !== TOOL_NAME) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Tool ${request.params.name} not found`,
-            },
-          ],
-          isError: true,
-        };
-      }
-
-      // handleConsult already catches its own errors; this catch exists for
-      // the case that assumption turns out to be wrong, so a bug in
-      // handleConsult still answers UNKNOWN instead of throwing back
-      // through the tools/call handler.
-      let result: ConsultResponse;
-      try {
-        result = handleConsult(request.params.arguments, policyPath);
-      } catch {
-        result = unknownAdapterResponse(
-          "adapter failed to process the request"
-        );
-      }
-
-      logVerdict(result);
+  server.fallbackRequestHandler = async (request) => {
+    if (request.method !== "tools/call") {
+      throw new McpError(ErrorCode.MethodNotFound, "Method not found");
+    }
+    const { name, args } = readToolCall(request.params);
+    if (name !== TOOL_NAME) {
       return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-        structuredContent: result as unknown as Record<string, unknown>,
-        isError: false,
+        content: [{ type: "text" as const, text: "Tool not found" }],
+        isError: true,
       };
     }
-  );
+
+    // handleConsult catches its own errors; this catch keeps a bug in it
+    // from becoming anything other than an UNKNOWN answer.
+    let result: ConsultResponse;
+    try {
+      result = handleConsult(args, policyPath);
+    } catch {
+      result = unknownAdapterResponse("adapter failed to process the request");
+    }
+
+    logVerdict(result);
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(result) }],
+      structuredContent: result as unknown as Record<string, unknown>,
+      isError: false,
+    };
+  };
 
   const transport = new StdioServerTransport(undefined, undefined, {
     maxBufferSize: MAX_TRANSPORT_BYTES,
   });
-  // A message over MAX_TRANSPORT_BYTES, or any other transport-level
-  // failure, closes the connection below us; there is no request left to
-  // answer UNKNOWN on, so the only honest response is to exit non-zero and
-  // let a supervisor see it.
+  // A line that is not valid JSON-RPC is the caller's problem, not a reason
+  // to stop serving, and its error message quotes the caller's bytes, so
+  // nothing from it is logged. A message over MAX_TRANSPORT_BYTES is
+  // different: the SDK closes the transport, no request is left to answer,
+  // and exiting non-zero lets a supervisor see it.
+  let overflowed = false;
   transport.onerror = (error: Error) => {
-    console.error("hedwig-mcp: stdio transport failed:", error.message);
-    process.exit(1);
+    if (error.message.startsWith("ReadBuffer exceeded maximum size")) {
+      overflowed = true;
+      console.error("hedwig-mcp: input exceeded the transport limit");
+    }
   };
-  server.connect(transport).catch((error: unknown) => {
-    console.error("hedwig-mcp: failed to connect to stdio transport", error);
+  transport.onclose = () => {
+    process.exit(overflowed ? 1 : 0);
+  };
+  server.connect(transport).catch(() => {
+    console.error("hedwig-mcp: failed to connect to stdio transport");
     process.exit(1);
   });
 }
