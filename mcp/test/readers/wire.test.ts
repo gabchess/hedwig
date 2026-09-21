@@ -5,6 +5,7 @@ import { expect } from "chai";
 import {
   buildCheckRoleTransaction,
   decodeBase58PublicKey,
+  encodeBase58PublicKey,
   encodeCompactU16,
 } from "../../src/readers/wire";
 
@@ -46,6 +47,29 @@ describe("readers/wire: decodeBase58PublicKey", () => {
 
   it("rejects a decoded length of 33 bytes", () => {
     expect(decodeBase58PublicKey("1".repeat(33))).to.equal(undefined);
+  });
+
+  it("rejects a string over 44 characters before doing the BigInt work", () => {
+    // A 32-byte value never needs more than 44 base58 characters; a much
+    // longer string must be rejected fast, not walked digit by digit.
+    const hostile = "z".repeat(60_000);
+    const startedAt = Date.now();
+    const result = decodeBase58PublicKey(hostile);
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(result).to.equal(undefined);
+    expect(elapsedMs).to.be.lessThan(20);
+  });
+
+  it("round-trips through encodeBase58PublicKey", () => {
+    const original = decodeBase58PublicKey(GOLDEN.programId) as Buffer;
+    expect(
+      decodeBase58PublicKey(encodeBase58PublicKey(original))
+    ).to.deep.equal(original);
+  });
+
+  it("encodes 32 zero bytes as 32 leading-zero characters", () => {
+    expect(encodeBase58PublicKey(Buffer.alloc(32))).to.equal("1".repeat(32));
   });
 });
 

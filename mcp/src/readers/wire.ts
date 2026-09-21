@@ -17,8 +17,17 @@ const PUBLIC_KEY_BYTES = 32;
 // alphabet, an empty string, or a decoded length other than 32 bytes
 // returns undefined; every caller in this reader treats an invalid key as
 // "no fact", never a crash.
+// A 32-byte value never needs more than 44 base58 characters (58^44 is
+// comfortably above 256^32); rejecting anything longer before the BigInt
+// accumulation loop bounds the cost of a hostile multi-kilobyte string.
+const MAX_BASE58_LENGTH = 44;
+
 export function decodeBase58PublicKey(value: string): Buffer | undefined {
-  if (typeof value !== "string" || value.length === 0) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > MAX_BASE58_LENGTH
+  ) {
     return undefined;
   }
 
@@ -44,6 +53,31 @@ export function decodeBase58PublicKey(value: string): Buffer | undefined {
   const result = Buffer.concat([Buffer.alloc(leadingZeros), magnitude]);
 
   return result.length === PUBLIC_KEY_BYTES ? result : undefined;
+}
+
+// The base58 counterpart to decodeBase58PublicKey: a leading zero byte
+// becomes a leading "1" character, one for one, matching the alphabet's
+// own convention. Used to turn a derived (never caller-supplied) address
+// back into the canonical string form the sort and the outbound call need.
+export function encodeBase58PublicKey(bytes: Buffer): string {
+  let leadingZeros = 0;
+  while (leadingZeros < bytes.length && bytes[leadingZeros] === 0) {
+    leadingZeros++;
+  }
+
+  let value = 0n;
+  for (const byte of bytes) {
+    value = (value << 8n) | BigInt(byte);
+  }
+
+  let digits = "";
+  while (value > 0n) {
+    const remainder = value % 58n;
+    value /= 58n;
+    digits = BASE58_ALPHABET[Number(remainder)] + digits;
+  }
+
+  return "1".repeat(leadingZeros) + digits;
 }
 
 // Solana's "compact-u16" (shortvec) length prefix: 7 data bits per byte,
@@ -87,7 +121,8 @@ export interface CheckRoleAddresses {
 // and programId all land in the same tier here (none are signers or
 // writable), so this is the only thing that decides their order.
 // @solana/web3.js's Transaction.compileMessage applies the identical
-// comparator; the dev-only golden script in mcp/test/tools proves it.
+// comparator; the dev-only golden script in mcp/test/tools confirms it for
+// one set of four distinct account keys, not every possible ordering.
 const ACCOUNT_SORT_OPTIONS: Intl.CollatorOptions = {
   localeMatcher: "best fit",
   usage: "sort",
