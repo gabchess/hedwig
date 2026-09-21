@@ -4,7 +4,7 @@ import {
   type EvidenceClass,
   type Verdict,
 } from "./fold";
-import { deepFreeze, describe, truncate } from "./catalog";
+import { deepFreeze, describe, passCodesOf, truncate } from "./catalog";
 import type {
   Catalog,
   ConditionDefinition,
@@ -99,7 +99,7 @@ function codeDeclaredForStatus(
   status: string,
   code: string
 ): boolean {
-  if (status === "PASS") return code === definition.codes.pass;
+  if (status === "PASS") return passCodesOf(definition.codes).includes(code);
   if (status === "FAIL") return definition.codes.fail.includes(code);
   if (status === "UNVERIFIED")
     return definition.codes.unverified.includes(code);

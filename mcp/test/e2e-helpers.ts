@@ -20,4 +20,5 @@ export const VALID_POLICY = {
   chainId: "eip155:1",
   approvedRecipients: ["0x00000000000000000000000000000000a11ce001"],
   perActionCaps: { pay: "1000000" },
+  role: { mode: "not-required" },
 };

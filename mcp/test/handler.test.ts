@@ -94,6 +94,74 @@ describe("handleConsult", () => {
     expect(second.verdict).to.equal("UNKNOWN");
   });
 
+  describe("a policy requiring a Solana role", () => {
+    const REQUIRED_ROLE_POLICY = {
+      ...VALID_POLICY,
+      role: {
+        mode: "required",
+        cluster: "mainnet-beta",
+        programId: "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        role: "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        holder: "HwHderSeedYZabcdefgh9jkHwHderSee",
+        maxAgeSeconds: 60,
+      },
+    };
+    const GOOD_FACT = {
+      subject: {
+        cluster: "mainnet-beta",
+        programId: "HwPrgram9RankSeedABCDEFGHHwPrgra",
+        role: "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+        holder: "HwHderSeedYZabcdefgh9jkHwHderSee",
+      },
+      valid: true,
+      reason: "ok",
+      provenance: {
+        source: "attacker-supplied",
+        slot: 1,
+        commitment: "confirmed",
+        observedAt: 1,
+      },
+    };
+
+    it("answers UNKNOWN with ROLE_FACT_MISSING: the adapter never forwards a fact the caller supplied", () => {
+      const policyPath = writePolicy(JSON.stringify(REQUIRED_ROLE_POLICY));
+
+      const plain = handleConsult({ request: VALID_REQUEST }, policyPath);
+      expect(plain.verdict).to.equal("UNKNOWN");
+      expect(
+        plain.results.find((r) => r.id === "role-requirement-met")?.code
+      ).to.equal("ROLE_FACT_MISSING");
+
+      const withRoleEverywhere = handleConsult(
+        {
+          request: {
+            ...VALID_REQUEST,
+            solanaRole: GOOD_FACT,
+            facts: {
+              now: Math.floor(Date.now() / 1000),
+              solanaRole: {
+                ...GOOD_FACT,
+                provenance: {
+                  ...GOOD_FACT.provenance,
+                  observedAt: Math.floor(Date.now() / 1000),
+                },
+              },
+            },
+          },
+          solanaRole: GOOD_FACT,
+          facts: { solanaRole: GOOD_FACT },
+          _meta: { facts: { solanaRole: GOOD_FACT } },
+        },
+        policyPath
+      );
+      expect(withRoleEverywhere.verdict).to.equal("UNKNOWN");
+      expect(
+        withRoleEverywhere.results.find((r) => r.id === "role-requirement-met")
+          ?.code
+      ).to.equal("ROLE_FACT_MISSING");
+    });
+  });
+
   describe("a broken policy file never yields an MCP error or an ALLOW", () => {
     it("missing file", () => {
       const missingPath = join(dir, "does-not-exist.json");

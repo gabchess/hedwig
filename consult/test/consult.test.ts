@@ -25,6 +25,7 @@ const FLOOR_IDS = [
   "amount-within-cap",
   "chain-matches-intent",
   "target-is-canonical",
+  "role-requirement-met",
 ];
 
 function deepFreeze<T>(value: T): T {
@@ -46,14 +47,16 @@ describe("consult", () => {
     expect(response.question).to.equal(
       "Should this agent proceed with this payment under the owner's policy?"
     );
-    // Pinned worked value: three owner-policy (0.9) and three
-    // static-registry (0.6) PASS rows, so the weakest is 0.6 and
-    // support = 0.80 + 0.20 * 0.6 = 0.92.
+    // Pinned worked value: four owner-policy (0.9) and three
+    // static-registry (0.6) PASS rows, so the weakest is still 0.6 and
+    // support = 0.80 + 0.20 * 0.6 = 0.92. role-requirement-met adds one
+    // more owner-policy row (ROLE_NOT_REQUIRED), which does not move the
+    // weakest weight.
     expect(response.support).to.equal(0.92);
     expect(response.band).to.equal("green");
     expect(response.advisory).to.equal(true);
     expect(response.floorIds).to.have.members(FLOOR_IDS);
-    expect(response.results).to.have.length(6);
+    expect(response.results).to.have.length(7);
     response.results.forEach((result) => {
       expect(result.status).to.equal("PASS");
       expect(result.evidence).to.be.a("string").that.is.not.empty;

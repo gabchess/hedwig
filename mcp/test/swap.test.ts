@@ -13,6 +13,7 @@ const POLICY = {
   maxSlippageBps: 100,
   maxDeadlineSeconds: 600,
   ownerAddresses: [OWNER],
+  role: { mode: "not-required" },
 };
 
 function swapRequest(deadline: number): Record<string, unknown> {

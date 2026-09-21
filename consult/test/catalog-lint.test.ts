@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "chai";
 
-import { CATALOG } from "../src/catalog";
+import { CATALOG, passCodesOf } from "../src/catalog";
 import type { ConditionDefinition } from "../src/catalog";
 
 const REPO_ROOT = join(__dirname, "..", "..");
@@ -39,8 +39,11 @@ describe("catalog lint", () => {
 
   it("every Condition declares at least one PASS, one FAIL, and one UNVERIFIED code", () => {
     allConditions().forEach((condition) => {
-      expect(condition.codes.pass, condition.id).to.be.a("string").that.is.not
-        .empty;
+      const passList = passCodesOf(condition.codes);
+      expect(passList, condition.id).to.be.an("array").that.is.not.empty;
+      passList.forEach((code) => {
+        expect(code, condition.id).to.be.a("string").that.is.not.empty;
+      });
       expect(condition.codes.fail, condition.id).to.be.an("array").that.is.not
         .empty;
       expect(condition.codes.unverified, condition.id).to.be.an("array").that.is
@@ -52,7 +55,7 @@ describe("catalog lint", () => {
     const seen = new Set<string>();
     allConditions().forEach((condition) => {
       const codes = [
-        condition.codes.pass,
+        ...passCodesOf(condition.codes),
         ...condition.codes.fail,
         ...condition.codes.unverified,
       ];
@@ -76,8 +79,9 @@ describe("catalog lint", () => {
 
   it("declares exactly one evidence class per declared outcome, and it is a valid class", () => {
     allConditions().forEach((condition) => {
+      const passList = passCodesOf(condition.codes);
       const codes = [
-        condition.codes.pass,
+        ...passList,
         ...condition.codes.fail,
         ...condition.codes.unverified,
       ];
@@ -88,10 +92,12 @@ describe("catalog lint", () => {
       });
       // A PASS documented as resting on unverifiable evidence would be a
       // contradiction the catalog itself should never ship.
-      expect(
-        condition.codeEvidenceClass[condition.codes.pass],
-        condition.id
-      ).to.not.equal("not-verifiable");
+      passList.forEach((code) => {
+        expect(
+          condition.codeEvidenceClass[code],
+          `${condition.id}: ${code}`
+        ).to.not.equal("not-verifiable");
+      });
     });
   });
 });

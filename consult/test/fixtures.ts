@@ -37,6 +37,7 @@ export function makePolicy(overrides: Partial<Policy> = {}): Policy {
     chainId: CHAIN_ID,
     approvedRecipients: [APPROVED_RECIPIENT],
     perActionCaps: { pay: "1000000" },
+    role: { mode: "not-required" },
     ...overrides,
   };
 }
@@ -66,6 +67,7 @@ export function makeSwapPolicy(overrides: Partial<Policy> = {}): Policy {
     maxSlippageBps: 100,
     maxDeadlineSeconds: 600,
     ownerAddresses: [APPROVED_RECIPIENT],
+    role: { mode: "not-required" },
     ...overrides,
   };
 }
@@ -162,3 +164,55 @@ export function testCondition(
 export const RECIPIENT_MATCHES_POLICY_DEFINITION = PAY_CATALOG.pay.find(
   (condition) => condition.id === "recipient-matches-policy"
 )!;
+
+// -- role-requirement-met fixtures ---------------------------------------
+//
+// Base58 (the Bitcoin alphabet) ids, 32 characters, built from letters and
+// digits that keep the same shape under toUpperCase(): a case flip is a
+// genuinely different key, never a match, the same way a lowercase or
+// uppercase EVM address is not.
+export const ROLE_CLUSTER = "mainnet-beta";
+export const ROLE_PROGRAM_ID = "HwPrgram9RankSeedABCDEFGHHwPrgra";
+export const ROLE_NAME = "HwReNameSeedJKMNPQRSTUVWXHwReNam";
+export const ROLE_HOLDER = "HwHderSeedYZabcdefgh9jkHwHderSee";
+export const ROLE_MEMBER = "HwMemberSeedmnpqrstuvwxyz9HwMemb";
+export const ROLE_MAX_AGE_SECONDS = 60;
+export const ROLE_FACT_OBSERVED_AT = SWAP_NOW;
+
+export function makeRequiredRolePolicy(
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    mode: "required",
+    cluster: ROLE_CLUSTER,
+    programId: ROLE_PROGRAM_ID,
+    role: ROLE_NAME,
+    holder: ROLE_HOLDER,
+    maxAgeSeconds: ROLE_MAX_AGE_SECONDS,
+    ...overrides,
+  };
+}
+
+export function makeGoodRoleFact(
+  overrides: Record<string, unknown> = {},
+  subjectOverrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    subject: {
+      cluster: ROLE_CLUSTER,
+      programId: ROLE_PROGRAM_ID,
+      role: ROLE_NAME,
+      holder: ROLE_HOLDER,
+      ...subjectOverrides,
+    },
+    valid: true,
+    reason: "ok",
+    provenance: {
+      source: "rpc.example",
+      slot: 123456789,
+      commitment: "confirmed",
+      observedAt: ROLE_FACT_OBSERVED_AT,
+    },
+    ...overrides,
+  };
+}

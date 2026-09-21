@@ -1,5 +1,26 @@
-import { EVIDENCE_CLASS_WEIGHTS, EVIDENCE_ECHO_LIMIT } from "./constants";
+import {
+  EVIDENCE_CLASS_WEIGHTS,
+  EVIDENCE_ECHO_LIMIT,
+  MAX_ROLE_FACT_AGE_SECONDS,
+} from "./constants";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
+
+export type SolanaCluster = "devnet" | "testnet" | "mainnet-beta";
+
+// The owner's Solana role requirement, stated by the owner and never by the
+// request. `member` is optional; the Floor Condition checks its shape and
+// never compares it.
+export interface RequiredRolePolicy {
+  mode: "required";
+  cluster: SolanaCluster;
+  programId: string;
+  role: string;
+  holder: string;
+  member?: string;
+  maxAgeSeconds: number;
+}
+
+export type RolePolicy = { mode: "not-required" } | RequiredRolePolicy;
 
 export interface Policy {
   permits: boolean;
@@ -12,6 +33,42 @@ export interface Policy {
   maxSlippageBps?: number;
   maxDeadlineSeconds?: number;
   ownerAddresses?: string[];
+  // Shared by pay and swap: whether the agent must currently hold a named
+  // Solana role. Optional so an untouched fixture predates this field the
+  // same way a swap-only field predates a pay-only policy; a role
+  // Condition that finds it missing answers UNVERIFIED rather than
+  // guessing a default.
+  role?: RolePolicy;
+}
+
+// The shape of a Solana role fact `role-requirement-met` reads, and the
+// shape of `context.facts` this repository ever produces. Exported for a
+// caller's own typing; consult() itself still treats `context.facts` as
+// unread, untrusted `unknown` data (see ConditionContext below): only a
+// Condition's own checker narrows it, and only after proving each field's
+// shape for itself.
+export interface RoleFactSubject {
+  cluster: string;
+  programId: string;
+  role: string;
+  holder: string;
+}
+
+export interface RoleFact {
+  subject: RoleFactSubject;
+  valid: boolean;
+  reason: "ok" | "RoleDisabled" | "MembershipExpired" | "MemberMissing";
+  provenance: {
+    source: string;
+    slot: number;
+    commitment: "confirmed" | "finalized";
+    observedAt: number;
+  };
+}
+
+export interface Facts {
+  now?: number;
+  solanaRole?: RoleFact;
 }
 
 // One flat shape covering every action type this catalog knows: pay's
@@ -68,9 +125,24 @@ export type ConditionChecker = (
 // well-formed, and so runChecker can reject a code the checker never
 // declared.
 export interface ConditionCodes {
-  readonly pass: string;
+  // Almost every Condition earns PASS one way; role-requirement-met earns
+  // it two distinct ways (no role required, or a role held), each with its
+  // own evidence class, so this accepts either a single code or a short
+  // list of them. `passCodesOf` below is the one place that normalises it.
+  readonly pass: string | readonly string[];
   readonly fail: readonly string[];
   readonly unverified: readonly string[];
+}
+
+// The catalog's own PASS codes for a Condition, always as a list: a single
+// code becomes a one-element list, so every caller (the core's
+// codeDeclaredForStatus, the catalog's own validation, consultWith's
+// rebinding, and the catalog lint) reads this one function instead of
+// re-deriving the string-or-array split for itself.
+export function passCodesOf(
+  codes: Pick<ConditionCodes, "pass">
+): readonly string[] {
+  return Array.isArray(codes.pass) ? codes.pass : [codes.pass as string];
 }
 
 export interface ConditionDefinition {
@@ -558,6 +630,250 @@ function makeChainMatchesIntentChecker(
   };
 }
 
+// Base58, the Bitcoin alphabet: digits and letters minus the four an eye can
+// mistake for one another (0, O, I, l). A Solana pubkey, base58-encoded, is
+// 32 to 44 characters.
+const BASE58_ID_SHAPE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+function isBase58RoleId(value: unknown): value is string {
+  return typeof value === "string" && BASE58_ID_SHAPE.test(value);
+}
+
+const SOLANA_CLUSTERS: readonly string[] = [
+  "devnet",
+  "testnet",
+  "mainnet-beta",
+];
+
+function isSolanaCluster(value: unknown): boolean {
+  return typeof value === "string" && SOLANA_CLUSTERS.includes(value);
+}
+
+const ROLE_FACT_REASONS: readonly string[] = [
+  "ok",
+  "RoleDisabled",
+  "MembershipExpired",
+  "MemberMissing",
+];
+
+interface RoleRequirementMetCodes {
+  readonly notRequired: string;
+  readonly held: string;
+  readonly disabled: string;
+  readonly membershipExpired: string;
+  readonly memberMissing: string;
+  readonly policyMissing: string;
+  readonly policyMalformed: string;
+  readonly factMissing: string;
+  readonly factMalformed: string;
+  readonly subjectMismatch: string;
+  readonly ageUnknown: string;
+  readonly stale: string;
+}
+
+// Shared by pay and swap: the owner may require the agent to currently hold
+// a named Solana role, proven by a `RoleFact` the caller of consult()
+// supplies as data (never fetched here; this Condition makes no network or
+// RPC call of its own). The request is never read: only the owner's policy
+// and the supplied facts decide this row. Each caller supplies its own id
+// and codes, since a code is never reused across two Conditions.
+function makeRoleRequirementMetChecker(
+  id: string,
+  codes: RoleRequirementMetCodes
+): ConditionChecker {
+  return function checkRoleRequirementMet(
+    _request: ConsultRequest,
+    context: ConditionContext
+  ): CheckerOutcome {
+    const unverified = (code: string, evidence: string): CheckerOutcome => ({
+      id,
+      status: "UNVERIFIED",
+      code,
+      evidenceClass: "not-verifiable",
+      evidence,
+    });
+
+    const role = (context.policy as unknown as { role?: unknown }).role;
+    if (role === null || typeof role !== "object" || Array.isArray(role)) {
+      return unverified(
+        codes.policyMissing,
+        "policy role requirement is missing or not an object"
+      );
+    }
+    const mode = (role as Record<string, unknown>).mode;
+    if (mode !== "required" && mode !== "not-required") {
+      return unverified(
+        codes.policyMissing,
+        `policy role mode "${describe(
+          mode
+        )}" is neither "required" nor "not-required"`
+      );
+    }
+    if (mode === "not-required") {
+      return {
+        id,
+        status: "PASS",
+        code: codes.notRequired,
+        evidenceClass: "owner-policy",
+        evidence: "owner policy requires no role",
+      };
+    }
+
+    const required = role as Record<string, unknown>;
+    const cluster = required.cluster;
+    const programId = required.programId;
+    const requiredRole = required.role;
+    const holder = required.holder;
+    const member = required.member;
+    const maxAgeSeconds = required.maxAgeSeconds;
+
+    if (
+      !isSolanaCluster(cluster) ||
+      !isBase58RoleId(programId) ||
+      !isBase58RoleId(requiredRole) ||
+      !isBase58RoleId(holder) ||
+      (member !== undefined && !isBase58RoleId(member)) ||
+      typeof maxAgeSeconds !== "number" ||
+      !Number.isInteger(maxAgeSeconds) ||
+      maxAgeSeconds < 1 ||
+      maxAgeSeconds > MAX_ROLE_FACT_AGE_SECONDS
+    ) {
+      return unverified(
+        codes.policyMalformed,
+        "policy role requirement is not a well-formed required-role policy"
+      );
+    }
+
+    const facts = context.facts;
+    const fact =
+      facts !== null && typeof facts === "object" && !Array.isArray(facts)
+        ? (facts as Record<string, unknown>).solanaRole
+        : undefined;
+    if (fact === null || typeof fact !== "object" || Array.isArray(fact)) {
+      return unverified(codes.factMissing, "no solanaRole fact was supplied");
+    }
+
+    const factRecord = fact as Record<string, unknown>;
+    const subject = factRecord.subject;
+    const subjectRecord =
+      subject !== null && typeof subject === "object" && !Array.isArray(subject)
+        ? (subject as Record<string, unknown>)
+        : undefined;
+    const factCluster = subjectRecord?.cluster;
+    const factProgramId = subjectRecord?.programId;
+    const factRole = subjectRecord?.role;
+    const factHolder = subjectRecord?.holder;
+    const valid = factRecord.valid;
+    const reason = factRecord.reason;
+    const provenance = factRecord.provenance;
+    const provenanceRecord =
+      provenance !== null &&
+      typeof provenance === "object" &&
+      !Array.isArray(provenance)
+        ? (provenance as Record<string, unknown>)
+        : undefined;
+    const source = provenanceRecord?.source;
+    const slot = provenanceRecord?.slot;
+    const commitment = provenanceRecord?.commitment;
+    const observedAt = provenanceRecord?.observedAt;
+
+    if (
+      subjectRecord === undefined ||
+      typeof factCluster !== "string" ||
+      typeof factProgramId !== "string" ||
+      typeof factRole !== "string" ||
+      typeof factHolder !== "string" ||
+      typeof valid !== "boolean" ||
+      typeof reason !== "string" ||
+      !ROLE_FACT_REASONS.includes(reason) ||
+      (valid === true && reason !== "ok") ||
+      (valid === false && reason === "ok") ||
+      provenanceRecord === undefined ||
+      typeof source !== "string" ||
+      source.length === 0 ||
+      source.length > 200 ||
+      typeof slot !== "number" ||
+      !Number.isSafeInteger(slot) ||
+      slot < 0 ||
+      (commitment !== "confirmed" && commitment !== "finalized") ||
+      typeof observedAt !== "number" ||
+      !Number.isSafeInteger(observedAt) ||
+      observedAt <= 0
+    ) {
+      return unverified(
+        codes.factMalformed,
+        "the solanaRole fact is not a well-formed role record"
+      );
+    }
+
+    if (
+      factCluster !== cluster ||
+      factProgramId !== programId ||
+      factRole !== requiredRole ||
+      factHolder !== holder
+    ) {
+      return unverified(
+        codes.subjectMismatch,
+        `role fact names ${describe(factRole)} for holder ${describe(
+          factHolder
+        )}, not the policy's role ${describe(
+          requiredRole
+        )} for holder ${describe(holder)}`
+      );
+    }
+
+    const now = readFactNow(context.facts);
+    if (now === undefined) {
+      return unverified(
+        codes.ageUnknown,
+        "the current time was not supplied to compare against the role fact's age"
+      );
+    }
+
+    const age = now - observedAt;
+    if (age < 0) {
+      return unverified(
+        codes.stale,
+        `the role fact's observedAt is ${-age} seconds in the future`
+      );
+    }
+    if (age > maxAgeSeconds) {
+      return unverified(
+        codes.stale,
+        `the role fact is ${age} seconds old, past the owner's ${maxAgeSeconds}-second window`
+      );
+    }
+
+    if (valid === false) {
+      const failCode =
+        reason === "RoleDisabled"
+          ? codes.disabled
+          : reason === "MembershipExpired"
+          ? codes.membershipExpired
+          : codes.memberMissing;
+      return {
+        id,
+        status: "FAIL",
+        code: failCode,
+        evidenceClass: "onchain-read",
+        evidence: `holder ${describe(holder)} does not hold role ${describe(
+          requiredRole
+        )}: ${reason}`,
+      };
+    }
+
+    return {
+      id,
+      status: "PASS",
+      code: codes.held,
+      evidenceClass: "onchain-read",
+      evidence: `holder ${describe(holder)} holds role ${describe(
+        requiredRole
+      )}`,
+    };
+  };
+}
+
 // Freeze-before-recurse skips a node already frozen, so a circular reference
 // cannot loop forever.
 export function deepFreeze<T>(value: T): T {
@@ -702,6 +1018,53 @@ const PAY_FLOOR: ConditionDefinition[] = [
       TARGET_REGISTRY_ENTRY_MISSING: "not-verifiable",
     },
     check: checkTargetIsCanonical,
+  },
+  {
+    id: "role-requirement-met",
+    isFloor: true,
+    question: "Is the owner's role requirement met?",
+    reference: `${REFERENCE_ROOT}/role-requirement-met.md`,
+    codes: {
+      pass: ["ROLE_NOT_REQUIRED", "ROLE_HELD"],
+      fail: ["ROLE_DISABLED", "ROLE_MEMBERSHIP_EXPIRED", "ROLE_MEMBER_MISSING"],
+      unverified: [
+        "ROLE_POLICY_MISSING",
+        "ROLE_POLICY_MALFORMED",
+        "ROLE_FACT_MISSING",
+        "ROLE_FACT_MALFORMED",
+        "ROLE_FACT_SUBJECT_MISMATCH",
+        "ROLE_FACT_AGE_UNKNOWN",
+        "ROLE_FACT_STALE",
+      ],
+    },
+    codeEvidenceClass: {
+      ROLE_NOT_REQUIRED: "owner-policy",
+      ROLE_HELD: "onchain-read",
+      ROLE_DISABLED: "onchain-read",
+      ROLE_MEMBERSHIP_EXPIRED: "onchain-read",
+      ROLE_MEMBER_MISSING: "onchain-read",
+      ROLE_POLICY_MISSING: "not-verifiable",
+      ROLE_POLICY_MALFORMED: "not-verifiable",
+      ROLE_FACT_MISSING: "not-verifiable",
+      ROLE_FACT_MALFORMED: "not-verifiable",
+      ROLE_FACT_SUBJECT_MISMATCH: "not-verifiable",
+      ROLE_FACT_AGE_UNKNOWN: "not-verifiable",
+      ROLE_FACT_STALE: "not-verifiable",
+    },
+    check: makeRoleRequirementMetChecker("role-requirement-met", {
+      notRequired: "ROLE_NOT_REQUIRED",
+      held: "ROLE_HELD",
+      disabled: "ROLE_DISABLED",
+      membershipExpired: "ROLE_MEMBERSHIP_EXPIRED",
+      memberMissing: "ROLE_MEMBER_MISSING",
+      policyMissing: "ROLE_POLICY_MISSING",
+      policyMalformed: "ROLE_POLICY_MALFORMED",
+      factMissing: "ROLE_FACT_MISSING",
+      factMalformed: "ROLE_FACT_MALFORMED",
+      subjectMismatch: "ROLE_FACT_SUBJECT_MISMATCH",
+      ageUnknown: "ROLE_FACT_AGE_UNKNOWN",
+      stale: "ROLE_FACT_STALE",
+    }),
   },
 ];
 
@@ -981,8 +1344,8 @@ function checkSlippageWithinCeiling(
   };
 }
 
-// facts.now is the only clock consult() ever sees, and only this Condition
-// reads it; every other swap Condition ignores facts entirely.
+// facts.now is the only clock consult() ever sees. This Condition and
+// role-requirement-met are the only ones that read it.
 function checkDeadlineSetAndFresh(
   request: ConsultRequest,
   context: ConditionContext
@@ -1408,6 +1771,57 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       malformed: "SWAP_CHAIN_ID_MALFORMED",
     }),
   },
+  {
+    id: "role-requirement-met",
+    isFloor: true,
+    question: "Is the owner's role requirement met?",
+    reference: `${SWAP_REFERENCE_ROOT}/role-requirement-met.md`,
+    codes: {
+      pass: ["SWAP_ROLE_NOT_REQUIRED", "SWAP_ROLE_HELD"],
+      fail: [
+        "SWAP_ROLE_DISABLED",
+        "SWAP_ROLE_MEMBERSHIP_EXPIRED",
+        "SWAP_ROLE_MEMBER_MISSING",
+      ],
+      unverified: [
+        "SWAP_ROLE_POLICY_MISSING",
+        "SWAP_ROLE_POLICY_MALFORMED",
+        "SWAP_ROLE_FACT_MISSING",
+        "SWAP_ROLE_FACT_MALFORMED",
+        "SWAP_ROLE_FACT_SUBJECT_MISMATCH",
+        "SWAP_ROLE_FACT_AGE_UNKNOWN",
+        "SWAP_ROLE_FACT_STALE",
+      ],
+    },
+    codeEvidenceClass: {
+      SWAP_ROLE_NOT_REQUIRED: "owner-policy",
+      SWAP_ROLE_HELD: "onchain-read",
+      SWAP_ROLE_DISABLED: "onchain-read",
+      SWAP_ROLE_MEMBERSHIP_EXPIRED: "onchain-read",
+      SWAP_ROLE_MEMBER_MISSING: "onchain-read",
+      SWAP_ROLE_POLICY_MISSING: "not-verifiable",
+      SWAP_ROLE_POLICY_MALFORMED: "not-verifiable",
+      SWAP_ROLE_FACT_MISSING: "not-verifiable",
+      SWAP_ROLE_FACT_MALFORMED: "not-verifiable",
+      SWAP_ROLE_FACT_SUBJECT_MISMATCH: "not-verifiable",
+      SWAP_ROLE_FACT_AGE_UNKNOWN: "not-verifiable",
+      SWAP_ROLE_FACT_STALE: "not-verifiable",
+    },
+    check: makeRoleRequirementMetChecker("role-requirement-met", {
+      notRequired: "SWAP_ROLE_NOT_REQUIRED",
+      held: "SWAP_ROLE_HELD",
+      disabled: "SWAP_ROLE_DISABLED",
+      membershipExpired: "SWAP_ROLE_MEMBERSHIP_EXPIRED",
+      memberMissing: "SWAP_ROLE_MEMBER_MISSING",
+      policyMissing: "SWAP_ROLE_POLICY_MISSING",
+      policyMalformed: "SWAP_ROLE_POLICY_MALFORMED",
+      factMissing: "SWAP_ROLE_FACT_MISSING",
+      factMalformed: "SWAP_ROLE_FACT_MALFORMED",
+      subjectMismatch: "SWAP_ROLE_FACT_SUBJECT_MISMATCH",
+      ageUnknown: "SWAP_ROLE_FACT_AGE_UNKNOWN",
+      stale: "SWAP_ROLE_FACT_STALE",
+    }),
+  },
 ];
 
 // The catalog consult() actually binds to: every action type this repo
@@ -1509,9 +1923,13 @@ function validateConditionCodes(
     return `catalog Condition "${conditionId}" has no codes declared`;
   }
   const { pass, fail, unverified } = codes as Record<string, unknown>;
-  if (typeof pass !== "string") {
-    return `catalog Condition "${conditionId}" must declare exactly one PASS code`;
+  if (
+    (typeof pass !== "string" && !Array.isArray(pass)) ||
+    (Array.isArray(pass) && pass.length === 0)
+  ) {
+    return `catalog Condition "${conditionId}" must declare at least one PASS code`;
   }
+  const passList = passCodesOf({ pass } as Pick<ConditionCodes, "pass">);
   if (!Array.isArray(fail) || fail.length === 0) {
     return `catalog Condition "${conditionId}" must declare at least one FAIL code`;
   }
@@ -1522,7 +1940,7 @@ function validateConditionCodes(
     return `catalog Condition "${conditionId}" has no codeEvidenceClass table`;
   }
   const classTable = codeEvidenceClass as Record<string, unknown>;
-  const allCodes = [pass, ...fail, ...unverified];
+  const allCodes = [...passList, ...fail, ...unverified];
   for (const code of allCodes) {
     if (typeof code !== "string" || !CODE_SHAPE.test(code)) {
       return `catalog Condition "${conditionId}" has a malformed code "${String(
@@ -1542,7 +1960,7 @@ function validateConditionCodes(
     ) {
       return `catalog Condition "${conditionId}" has no valid evidence class for code "${code}"`;
     }
-    if (code === pass && evidenceClass === "not-verifiable") {
+    if (passList.includes(code) && evidenceClass === "not-verifiable") {
       return `catalog Condition "${conditionId}" declares its PASS code "${code}" as not-verifiable evidence`;
     }
   }

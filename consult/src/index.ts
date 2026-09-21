@@ -30,11 +30,12 @@ export type { ConsultAction, ConsultRequest, Policy } from "./catalog";
  * caller who could choose the catalog would control the verdict, so the
  * money path never takes one.
  *
- * `facts` is the optional third argument and carries time as data: `now`,
- * a unix-seconds timestamp. consult() never reads a clock itself. Facts
- * that are missing, malformed, uncloneable or over the size limit count as
- * no facts: the Condition that needs them answers UNVERIFIED. `pay` reads
- * no fact at all.
+ * `facts` is the optional third argument and carries observations as data:
+ * `now`, a unix-seconds timestamp, and `solanaRole`, a role fact. consult()
+ * never reads a clock or a chain itself. Facts that are missing, malformed,
+ * uncloneable or over the size limit count as no facts: the Condition that
+ * needs them answers UNVERIFIED. A `pay` under a policy that requires no
+ * role reads no fact at all.
  */
 export const consult: (
   request: ConsultRequest,

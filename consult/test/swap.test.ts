@@ -23,6 +23,7 @@ const SWAP_FLOOR_IDS = [
   "approval-scoped-to-this-swap",
   "amount-within-cap",
   "chain-matches-intent",
+  "role-requirement-met",
 ];
 
 // `arguments.length`, not a JS default parameter, decides whether `facts`
@@ -246,7 +247,7 @@ describe("consult: swap", () => {
       expect(row?.code).to.equal("DEADLINE_CEILING_MISSING");
     });
 
-    it("pay ignores facts entirely: every existing pay test passes unchanged with or without a third argument", () => {
+    it("pay under a policy that requires no role ignores facts entirely: every existing pay test passes unchanged with or without a third argument", () => {
       // Covered structurally: consult(request, policy) with no third
       // argument is exercised by every pay test in consult.test.ts and
       // hardening.test.ts, none of which were touched by this ticket.

@@ -35,7 +35,9 @@ export function consultWith(
         Object.freeze({
           ...condition,
           codes: Object.freeze({
-            pass: condition.codes.pass,
+            pass: Array.isArray(condition.codes.pass)
+              ? Object.freeze([...condition.codes.pass])
+              : condition.codes.pass,
             fail: Object.freeze([...condition.codes.fail]),
             unverified: Object.freeze([...condition.codes.unverified]),
           }),

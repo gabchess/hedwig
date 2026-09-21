@@ -317,7 +317,7 @@ describe("consult hardening: B4 frozen catalog", () => {
       (PAY_CATALOG.pay as unknown as unknown[]).splice(0)
     ).to.throw();
     const response = consult(makeRequest(), makePolicy());
-    expect(response.results).to.have.length(6);
+    expect(response.results).to.have.length(7);
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
   });
 });
@@ -475,7 +475,7 @@ describe("consult hardening: S1 consult never throws", () => {
       expect(response.results.some((r) => r.id === "input-shape")).to.equal(
         true
       );
-      expect(response.floorIds).to.have.length(6);
+      expect(response.floorIds).to.have.length(7);
     });
   });
 
