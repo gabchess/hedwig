@@ -144,6 +144,9 @@ function requireObject(value: unknown, field: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+const MAX_EXTRA_CONDITIONS = 32;
+const MAX_CONDITION_ID_LENGTH = 64;
+
 function readConditionIds(request: Record<string, unknown>): {
   ids: string[];
   extraResult?: ConditionResult;
@@ -152,9 +155,14 @@ function readConditionIds(request: Record<string, unknown>): {
   if (conditions === undefined) {
     return { ids: [] };
   }
+  // Each named id becomes a result, so the list and every id are bounded:
+  // a small request must never buy a large response.
   if (
     Array.isArray(conditions) &&
-    conditions.every((id) => typeof id === "string")
+    conditions.length <= MAX_EXTRA_CONDITIONS &&
+    conditions.every(
+      (id) => typeof id === "string" && id.length <= MAX_CONDITION_ID_LENGTH
+    )
   ) {
     // Dedupe: a repeated id must not run its checker twice.
     return { ids: [...new Set(conditions)] };
@@ -164,7 +172,7 @@ function readConditionIds(request: Record<string, unknown>): {
     extraResult: {
       id: "input-shape",
       status: "UNVERIFIED",
-      evidence: "conditions must be an array of strings",
+      evidence: `conditions must be an array of at most ${MAX_EXTRA_CONDITIONS} strings, each at most ${MAX_CONDITION_ID_LENGTH} characters`,
     },
   };
 }
@@ -221,9 +229,8 @@ function isOversized(value: unknown): boolean {
     const json = JSON.stringify(value);
     return typeof json === "string" && json.length > MAX_INPUT_JSON_LENGTH;
   } catch {
-    // Not serialisable: rejected downstream instead, by requireObject or by
-    // structuredClone itself. Size is not the defect here.
-    return false;
+    // A value that cannot be serialised cannot be measured, so it is refused.
+    return true;
   }
 }
 
