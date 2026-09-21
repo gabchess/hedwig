@@ -23,6 +23,10 @@ interface CorpusEntry {
   authorizedAllow: boolean;
   request: unknown;
   policy: unknown;
+  // Optional: only the swap entries that legitimately need a clock
+  // (deadline-set-and-fresh) carry this. Absent for every pay entry, which
+  // ignores facts entirely.
+  facts?: unknown;
 }
 
 const CORPUS: CorpusEntry[] = JSON.parse(
@@ -36,8 +40,16 @@ const CORPUS: CorpusEntry[] = JSON.parse(
 describe("wrong-proceed corpus", () => {
   it("plain-JSON adversarial requests never earn an unauthorised allow", () => {
     expect(CORPUS.length).to.be.greaterThan(5);
+    // One authorised allow per action type this corpus covers (pay, swap):
+    // a corpus entry earning proceed:true without being marked here is
+    // exactly the regression this file exists to catch.
+    expect(CORPUS.filter((entry) => entry.authorizedAllow).length).to.equal(2);
     CORPUS.forEach((entry) => {
-      const response = consult(entry.request as never, entry.policy as never);
+      const response = consult(
+        entry.request as never,
+        entry.policy as never,
+        entry.facts as never
+      );
       if (entry.authorizedAllow) {
         expect(response.proceed, entry.id).to.equal(true);
         expect(response.support, entry.id).to.be.at.least(0.8);
