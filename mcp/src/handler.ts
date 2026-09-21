@@ -2,6 +2,8 @@ import { consult } from "@hedwig/consult";
 import type { ConsultResponse } from "@hedwig/consult";
 
 import { readPolicyFile } from "./policy";
+import { getSolanaClusterConfig } from "./readers/config";
+import { gatherSolanaRole, SIMULATE_DEADLINE_MS } from "./readers/solana-role";
 
 // The wire's one edge guard: a small request must never buy a policy read
 // or a consult() run. Measured in bytes, so a multi-byte character cannot pass a
@@ -50,15 +52,39 @@ export function unknownAdapterResponse(
   };
 }
 
+// The policy file's own "role" field, read the same defensive way
+// readPolicyFile reads the rest of it: as unknown JSON, never assumed to
+// have any particular shape. consult() re-validates this on its own later;
+// this reading exists only so the reader knows which cluster's config to
+// use, never to decide anything about the verdict.
+function readPolicyRole(policy: unknown): unknown {
+  if (policy === null || typeof policy !== "object" || Array.isArray(policy)) {
+    return undefined;
+  }
+  return (policy as Record<string, unknown>).role;
+}
+
+function readPolicyRoleCluster(policyRole: unknown): string | undefined {
+  if (
+    policyRole === null ||
+    typeof policyRole !== "object" ||
+    Array.isArray(policyRole)
+  ) {
+    return undefined;
+  }
+  const cluster = (policyRole as Record<string, unknown>).cluster;
+  return typeof cluster === "string" ? cluster : undefined;
+}
+
 // The plain handler behind the one MCP tool. Takes the raw tool call
 // arguments exactly as the transport delivered them and the policy file
 // path (never taken from the arguments), and returns exactly what
-// consult(request, policy) returns. Imports nothing from the MCP SDK, so it
-// can be tested directly without a live protocol handshake.
-export function handleConsult(
+// consult(request, policy, facts) returns. Imports nothing from the MCP
+// SDK, so it can be tested directly without a live protocol handshake.
+export async function handleConsult(
   rawArgs: unknown,
   policyPath: string
-): ConsultResponse {
+): Promise<ConsultResponse> {
   let serialized: string;
   try {
     serialized = JSON.stringify(rawArgs) ?? "";
@@ -92,13 +118,37 @@ export function handleConsult(
       ? (rawArgs as Record<string, unknown>).request
       : undefined;
 
+  // The Solana role Reader reads only the owner's policy file (read above)
+  // and its own env-configured cluster settings: the request is never
+  // consulted here, so nothing a caller sends can steer the outbound call
+  // or the resulting fact. gatherSolanaRole itself never throws or
+  // rejects, so a config defect or a network failure surfaces as an
+  // absent fact, not as an adapter failure.
+  const policyRole = readPolicyRole(policyResult.policy);
+  const clusterConfig = getSolanaClusterConfig(
+    readPolicyRoleCluster(policyRole) ?? ""
+  );
+  // One clock reading shared by both consult()'s `now` and the Reader's
+  // `observedAt`: reading Date.now() twice, moments apart, could otherwise
+  // straddle a second boundary and manufacture a fact that looks stale
+  // before consult() ever sees it.
+  const now = Math.floor(Date.now() / 1000);
+  const solanaRole = await gatherSolanaRole(policyRole, {
+    fetch: globalThis.fetch,
+    now: () => now,
+    feePayer: clusterConfig?.feePayer,
+    rpcUrl: clusterConfig?.rpcUrl,
+    deadlineMs: SIMULATE_DEADLINE_MS,
+  });
+
   try {
-    // The adapter is the only clock consult() ever sees: it supplies
-    // `now` as data on every call. Only `rawArgs.request` is read above and
-    // this third argument is built here, so nothing a caller sends can
-    // become a fact.
+    // The adapter is the only clock and the only Solana reader consult()
+    // ever sees: it supplies `now` and `solanaRole` as data on every call.
+    // Only `rawArgs.request` is read above and these facts are built here,
+    // so nothing a caller sends can become a fact.
     return consult(request as never, policyResult.policy as never, {
-      now: Math.floor(Date.now() / 1000),
+      now,
+      ...(solanaRole !== undefined ? { solanaRole } : {}),
     });
   } catch {
     return unknownAdapterResponse(

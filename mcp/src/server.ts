@@ -105,7 +105,7 @@ function main(): void {
     // from becoming anything other than an UNKNOWN answer.
     let result: ConsultResponse;
     try {
-      result = handleConsult(args, policyPath);
+      result = await handleConsult(args, policyPath);
     } catch {
       result = unknownAdapterResponse(
         "ADAPTER_FAILED",
