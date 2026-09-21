@@ -2,13 +2,13 @@
 // child process's stdio, speaking the real protocol (initialize, tools/list,
 // tools/call). Run with plain `node`, using the SDK's own Client rather than
 // hand-rolled JSON-RPC framing, so the test exercises the same wire format a
-// real caller uses. Not run by ts-mocha: the SDK's ESM build is imported
-// directly here, and the parent test shells out to this script.
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import {
+// real caller uses. Not run by ts-mocha: this file is plain CommonJS, loaded
+// directly by the parent test through a child process.
+const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
+const {
   StdioClientTransport,
   getDefaultEnvironment,
-} from "@modelcontextprotocol/sdk/client/stdio.js";
+} = require("@modelcontextprotocol/sdk/client/stdio.js");
 
 const [, , serverPath, policyPath] = process.argv;
 

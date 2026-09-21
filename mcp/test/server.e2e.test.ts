@@ -6,7 +6,7 @@ import { expect } from "chai";
 
 const MCP_ROOT = join(__dirname, "..");
 const SERVER_PATH = join(MCP_ROOT, "dist", "server.js");
-const CLIENT_SCRIPT = join(__dirname, "e2e-client.mjs");
+const CLIENT_SCRIPT = join(__dirname, "e2e-client.js");
 
 const VALID_POLICY = {
   permits: true,
