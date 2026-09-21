@@ -90,7 +90,6 @@ domain layer or evidence of independent adoption.
 | `docs/grants/progress.md`                | Public shipped-work and claim-evidence ledger                   |
 | `docs/deployment/operations.md`                    | Devnet upgrade, verification, rollback, and incident steps      |
 | `THREAT-MODEL.md`                       | Trust boundaries and security posture                           |
-| `ROADMAP.md`                            | Evidence-gated delivery sequence                                |
 
 Integration risks, especially holder authentication and upgrade authority,
 belong in [THREAT-MODEL.md](../../THREAT-MODEL.md), not in this code map.

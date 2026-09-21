@@ -1,6 +1,6 @@
 # Contributing to Hedwig
 
-Hedwig is a small Solana-native roles primitive. Keep changes narrow, auditable, and honest about what is built versus planned.
+Hedwig is the onchain role program in this repository. Keep changes narrow, auditable, and honest about what is built versus planned.
 
 ## Local checks
 
@@ -34,7 +34,6 @@ install policy is resolved.
 - Integration guide: `docs/access-control/integration-guide.md`
 - Architecture map: `docs/access-control/architecture.md`
 - Threat model and known risks: `THREAT-MODEL.md`
-- Roadmap: `ROADMAP.md`
 
 ## Contribution rules
 
@@ -44,7 +43,7 @@ install policy is resolved.
 - Preserve the conventional Anchor shell, but name domain code after Hedwig concepts and actions. Avoid generic `utils`, `manager`, or `service` layers.
 - Add an abstraction only after a concrete integration demonstrates repeated need. Prefer deletion and direct code when both are equally safe.
 - Keep unfinished work in docs or issues, not as TODO/FIXME stubs in source.
-- Update README, roadmap, and threat-model claims together when a change affects shipped status, risks, or public guarantees.
+- Update README and threat-model claims together when a change affects shipped status, risks, or public guarantees.
 
 ## Public repository boundary
 

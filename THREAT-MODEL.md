@@ -102,7 +102,7 @@ The current address scheme and instruction set deliberately impose these constra
 
 Supporting multiple orgs per authority or authority rotation would change the state model or instruction surface. It requires a new reviewed decision and migration plan, not a silent change to the deployed program.
 
-Admin and authority rotation is scheduled, not ignored: see [ROADMAP.md](ROADMAP.md#next-build-role-admin-and-org-authority-rotation).
+No admin or authority rotation instruction exists in the deployed program.
 
 ## Deployment and upgrade authority
 
