@@ -1,0 +1,14 @@
+{
+  "name": "@hedwig/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@hedwig/consult": "file:../consult",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "4.6.5"
+  }
+}
