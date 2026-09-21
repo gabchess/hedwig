@@ -1953,5 +1953,140 @@
     "facts": {
       "now": 2000000000
     }
+  },
+  {
+    "id": "swap-slippage-fraction-over-ceiling",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "989901",
+        "slippageBps": 100,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ]
+    },
+    "facts": {
+      "now": 2000000000
+    }
+  },
+  {
+    "id": "swap-deadline-beyond-owner-window",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000000",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000601,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000000"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ]
+    },
+    "facts": {
+      "now": 2000000000
+    }
+  },
+  {
+    "id": "swap-amount-over-cap",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "swap",
+        "chainId": "eip155:1",
+        "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+        "tokenIn": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "tokenOut": {
+          "symbol": "WETH",
+          "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "amountIn": "1000001",
+        "quotedOut": "1000000",
+        "minOut": "995000",
+        "slippageBps": 50,
+        "deadline": 2000000300,
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "approvalAmount": "1000001"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000",
+        "swap": "1000000"
+      },
+      "maxSlippageBps": 100,
+      "maxDeadlineSeconds": 600,
+      "ownerAddresses": [
+        "0x00000000000000000000000000000000a11ce001"
+      ]
+    },
+    "facts": {
+      "now": 2000000000
+    }
   }
 ]

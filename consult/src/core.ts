@@ -12,6 +12,7 @@ import type {
   Policy,
 } from "./catalog";
 import {
+  EVIDENCE_CLASS_WEIGHTS,
   MAX_CONDITION_ID_LENGTH,
   MAX_EXTRA_CONDITIONS,
   MAX_INPUT_JSON_LENGTH,
@@ -49,12 +50,9 @@ export interface ConsultResponse {
 }
 
 const VALID_STATUSES: ConditionStatus[] = ["PASS", "FAIL", "UNVERIFIED"];
-const VALID_EVIDENCE_CLASSES: EvidenceClass[] = [
-  "onchain-read",
-  "owner-policy",
-  "static-registry",
-  "not-verifiable",
-];
+const VALID_EVIDENCE_CLASSES = Object.keys(
+  EVIDENCE_CLASS_WEIGHTS
+) as EvidenceClass[];
 
 const CORE_REFERENCE = "consult/references/core.md";
 
@@ -420,6 +418,15 @@ function isOversized(value: unknown): boolean {
   }
 }
 
+function cloneFacts(factsInput: unknown): unknown {
+  try {
+    const cloned = structuredClone(factsInput);
+    return isOversized(cloned) ? undefined : cloned;
+  } catch {
+    return undefined;
+  }
+}
+
 function runConsult(
   catalog: Catalog,
   requestInput: unknown,
@@ -432,23 +439,18 @@ function runConsult(
   // checker (or consult itself) can never see one value while deciding and
   // a different value while acting on the same request. Size is measured
   // on the clone rather than the raw input for the same reason: measuring
-  // the raw input would read a hostile getter a second time. `facts` gets
-  // the same treatment (cloned, size-capped), but never the `requireObject`
-  // a malformed request or policy gets: a missing or malformed `facts` is
-  // never a reason to refuse the whole request, only for whichever
-  // Condition reads it to answer UNVERIFIED.
+  // the raw input would read a hostile getter a second time. `facts` is
+  // cloned once and frozen the same way, but it can never refuse a request:
+  // facts that cannot be cloned, or that exceed the size limit, count as no
+  // facts, and whichever Condition reads them answers UNVERIFIED.
   const clonedRequest = structuredClone(requestInput);
   const clonedPolicy = structuredClone(policyInput);
-  const clonedFacts = structuredClone(factsInput);
+  const clonedFacts = cloneFacts(factsInput);
 
-  if (
-    isOversized(clonedRequest) ||
-    isOversized(clonedPolicy) ||
-    isOversized(clonedFacts)
-  ) {
+  if (isOversized(clonedRequest) || isOversized(clonedPolicy)) {
     return unknownResponse(
       "INPUT_TOO_LARGE",
-      "request, policy, or facts JSON exceeds the size limit"
+      "request or policy JSON exceeds the size limit"
     );
   }
 

@@ -30,10 +30,11 @@ export type { ConsultAction, ConsultRequest, Policy } from "./catalog";
  * caller who could choose the catalog would control the verdict, so the
  * money path never takes one.
  *
- * `facts` is optional, third-argument time-as-data (currently just
- * `now`, a unix-seconds timestamp): consult() never reads a clock itself,
- * and a missing or malformed `facts` never throws, it only leaves whatever
- * Condition needs it UNVERIFIED. `pay` reads no fact at all.
+ * `facts` is the optional third argument and carries time as data: `now`,
+ * a unix-seconds timestamp. consult() never reads a clock itself. Facts
+ * that are missing, malformed, uncloneable or over the size limit count as
+ * no facts: the Condition that needs them answers UNVERIFIED. `pay` reads
+ * no fact at all.
  */
 export const consult: (
   request: ConsultRequest,

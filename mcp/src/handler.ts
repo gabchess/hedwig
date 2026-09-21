@@ -94,8 +94,9 @@ export function handleConsult(
 
   try {
     // The adapter is the only clock consult() ever sees: it supplies
-    // `now` as data on every call, and the tool's own input schema has no
-    // `facts` field, so a caller can never substitute a different one.
+    // `now` as data on every call. Only `rawArgs.request` is read above and
+    // this third argument is built here, so nothing a caller sends can
+    // become a fact.
     return consult(request as never, policyResult.policy as never, {
       now: Math.floor(Date.now() / 1000),
     });

@@ -11,6 +11,7 @@ const VALID_EVIDENCE_CLASSES = new Set([
   "onchain-read",
   "owner-policy",
   "static-registry",
+  "caller-stated",
   "not-verifiable",
 ]);
 

@@ -3,12 +3,14 @@ export type ConditionStatus = "PASS" | "FAIL" | "UNVERIFIED";
 export type Verdict = "ALLOW_UNDER_POLICY" | "DENY" | "UNKNOWN";
 
 // How strong the proof behind a status is, strongest to weakest.
-// "not-verifiable" is what a Condition that could not run at all reports; it
-// is never a legitimate reason a PASS stands on.
+// "caller-stated" is a figure only the request itself vouches for, such as
+// a swap's quoted output. "not-verifiable" is what a Condition that could
+// not run at all reports; it is never a legitimate reason a PASS stands on.
 export type EvidenceClass =
   | "onchain-read"
   | "owner-policy"
   | "static-registry"
+  | "caller-stated"
   | "not-verifiable";
 
 // What a Condition's checker returns, and the only shape foldVerdict reads

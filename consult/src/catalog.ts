@@ -1,4 +1,4 @@
-import { EVIDENCE_ECHO_LIMIT } from "./constants";
+import { EVIDENCE_CLASS_WEIGHTS, EVIDENCE_ECHO_LIMIT } from "./constants";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
 
 export interface Policy {
@@ -716,7 +716,7 @@ export const PAY_CATALOG: Catalog = deepFreeze({
 const SWAP_REFERENCE_ROOT = "consult/references/swap";
 
 // The router a swap calls must be a canonical Universal Router deployment
-// for the request's own chain, never a lookalike or an unaudited contract.
+// for the request's own chain.
 function checkSwapTargetIsCanonical(
   request: ConsultRequest,
   _context: ConditionContext
@@ -961,17 +961,21 @@ function checkSlippageWithinCeiling(
     };
   }
 
-  const within = derivedBps <= BigInt(maxSlippageBps);
+  // Cross-multiplied, so nothing is rounded: derivedBps rounds down, and a
+  // swap a fraction of a basis point over the ceiling is still over it.
+  const within =
+    (quotedOutValue - minOutValue) * 10000n <=
+    BigInt(maxSlippageBps) * quotedOutValue;
   return {
     id,
     status: within ? "PASS" : "FAIL",
     code: within ? "SLIPPAGE_WITHIN_CEILING" : "SLIPPAGE_EXCEEDS_CEILING",
-    evidenceClass: "owner-policy",
+    evidenceClass: within ? "caller-stated" : "owner-policy",
     evidence: within
-      ? `slippage ${derivedBps.toString()} bps is within the ceiling ${describe(
+      ? `slippage against the stated quote is ${derivedBps.toString()} bps, within the ceiling ${describe(
           maxSlippageBps
         )}`
-      : `slippage ${derivedBps.toString()} bps exceeds the ceiling ${describe(
+      : `slippage against the stated quote is over ${derivedBps.toString()} bps, above the ceiling ${describe(
           maxSlippageBps
         )}`,
   };
@@ -1275,7 +1279,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       unverified: ["SLIPPAGE_CEILING_MISSING"],
     },
     codeEvidenceClass: {
-      SLIPPAGE_WITHIN_CEILING: "owner-policy",
+      SLIPPAGE_WITHIN_CEILING: "caller-stated",
       SLIPPAGE_AMOUNTS_MALFORMED: "owner-policy",
       SLIPPAGE_QUOTED_OUT_ZERO: "owner-policy",
       SLIPPAGE_MIN_OUT_ZERO: "owner-policy",
@@ -1529,12 +1533,12 @@ function validateConditionCodes(
       return `catalog Condition "${conditionId}" reuses code "${code}", which the core or another Condition already declares`;
     }
     seenCodes.add(code);
-    const evidenceClass = classTable[code];
+    const evidenceClass = Object.hasOwn(classTable, code)
+      ? classTable[code]
+      : undefined;
     if (
-      evidenceClass !== "onchain-read" &&
-      evidenceClass !== "owner-policy" &&
-      evidenceClass !== "static-registry" &&
-      evidenceClass !== "not-verifiable"
+      typeof evidenceClass !== "string" ||
+      !Object.hasOwn(EVIDENCE_CLASS_WEIGHTS, evidenceClass)
     ) {
       return `catalog Condition "${conditionId}" has no valid evidence class for code "${code}"`;
     }
