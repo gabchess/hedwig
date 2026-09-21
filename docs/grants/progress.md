@@ -14,17 +14,6 @@ exists.
 Public delivery review:
 [`#3: Ship secure consumer integration and grant evidence`](https://github.com/gabchess/hedwig/pull/3)
 
-## Preparation work started on 2026-07-29
-
-| Delivery | Public evidence | State |
-| --- | --- | --- |
-| Seven-day pilot offer | [pilot program](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/docs/history/2026-07-shared-authorization-pilot.md) | Published |
-| Public preparation and claim record | [pilot preparation record](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/docs/history/2026-07-29-pilot-preparation.md), [roadmap](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/ROADMAP.md) | Published |
-| Signed pilot | External signed scope | Open |
-
-No signed pilot, design partner, customer, revenue, production use, or external
-adoption was created by this preparation work.
-
 ## Shipped on 2026-07-24
 
 | Delivery                                             | Public evidence                                                                                                                  | State                                |
@@ -34,9 +23,9 @@ adoption was created by this preparation work.
 | Six-instruction TypeScript SDK alpha                 | [`sdk`](../../sdk)                                                                                                                  | Repository-local package; 27 tests   |
 | SDK-driven six-instruction lifecycle                 | [`app/demo.ts`](../../app/demo.ts), [core promotion record](../deployment/evidence/2026-07-24-devnet-promotion.md)                                  | Verified on devnet                   |
 | Hedwig-gated state change in a separate program      | [`app/consumer-demo.ts`](../../app/consumer-demo.ts), [consumer promotion record](../deployment/evidence/2026-07-24-consumer-devnet-integration.md) | Verified on devnet                   |
-| Commit-pinned AI-assisted security and code review   | [full audit](../security/reviews/2026-07-24-full-audit.md)                                                                                    | Published with open risks            |
+| Commit-pinned AI-assisted security and code review   | [full audit](../security/reviews/2026-07-24-full-audit.md)                                                                                    | Published                            |
 | Reproducible release checks and CI hardening         | [workflow](../../.github/workflows/ci.yml), [operations runbook](../deployment/operations.md)                                                     | Shipped                              |
-| Public architecture and evidence-gated roadmap       | [architecture](../access-control/architecture.md), [roadmap](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/ROADMAP.md)                                                                        | Shipped                              |
+| Public architecture                                  | [architecture](../access-control/architecture.md)                                                                                | Shipped                              |
 
 ## Verification totals
 
@@ -56,26 +45,3 @@ Hedwig now has a small live role registry, a tested SDK, and a builder-owned
 reference integration that authenticates the actor before checking its role.
 The integration boundary is implemented, AI-reviewed, deployed, and
 reproducible.
-
-Hedwig still has no verified independent design partner, customer, revenue,
-production use, independent external audit, or mainnet release.
-
-## Next claim gate
-
-The July seven-day pilot above is historical. When work resumes, the next
-product exercise is [one agent and one protected action](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/docs/agent-access/integration-proof.md).
-It must show authenticated success, confirmed revocation or elapsed expiry, and
-a denied retry with unchanged protected state. An independent team's decision
-to retain the integration is separate demand evidence.
-
-This change in product focus does not claim a new grant milestone, accepted
-completion, additional payment, or customer adoption. The grant facts above
-remain recorded history until the issuer supplies new evidence.
-
-## Later security work
-
-- Move upgrade authority to a rehearsed 2-of-3 Squads multisig before mainnet.
-- Obtain an external security review of a stable candidate.
-
-The roadmap is canonical for delivery order:
-[`ROADMAP.md`](https://github.com/gabchess/hedwig/blob/hedwig-sol-v1/ROADMAP.md).
