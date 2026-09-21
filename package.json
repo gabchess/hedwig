@@ -13,7 +13,8 @@
     "sdk:test": "ts-mocha -p sdk/tsconfig.test.json \"sdk/test/**/*.test.ts\"",
     "sdk:build": "tsc -p sdk/tsconfig.json",
     "consult:typecheck": "tsc -p consult/tsconfig.json --noEmit && tsc -p consult/tsconfig.test.json --noEmit",
-    "consult:test": "ts-mocha -p consult/tsconfig.test.json \"consult/test/**/*.test.ts\""
+    "consult:test": "ts-mocha -p consult/tsconfig.test.json \"consult/test/**/*.test.ts\"",
+    "consult:build": "tsc -p consult/tsconfig.json"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2"

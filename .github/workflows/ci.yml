@@ -50,6 +50,9 @@ jobs:
       - name: Build the SDK
         run: yarn sdk:build
 
+      - name: Build consult
+        run: yarn consult:build
+
       - name: Install demo app dependencies
         run: npm ci --prefix app
 
