@@ -195,6 +195,7 @@ describe("consult", () => {
     expect(
       atCap.results.find((r) => r.id === "amount-within-cap")?.status
     ).to.equal("PASS");
+    expect(atCap.verdict).to.equal("ALLOW_UNDER_POLICY");
 
     const overCap = consult(
       makeRequest({ action: { ...makeRequest().action, amount: "1000001" } }),
@@ -204,6 +205,7 @@ describe("consult", () => {
     expect(
       overCap.results.find((r) => r.id === "amount-within-cap")?.status
     ).to.equal("FAIL");
+    expect(overCap.verdict).to.equal("DENY");
 
     const bigCap = "9007199254740993"; // Number.MAX_SAFE_INTEGER + 2
     const atBigCap = consult(
@@ -214,6 +216,7 @@ describe("consult", () => {
     expect(
       atBigCap.results.find((r) => r.id === "amount-within-cap")?.status
     ).to.equal("PASS");
+    expect(atBigCap.verdict).to.equal("ALLOW_UNDER_POLICY");
 
     const overBigCap = consult(
       makeRequest({
@@ -225,37 +228,53 @@ describe("consult", () => {
     expect(
       overBigCap.results.find((r) => r.id === "amount-within-cap")?.status
     ).to.equal("FAIL");
+    expect(overBigCap.verdict).to.equal("DENY");
   });
 
-  it("compares the recipient byte-exact, not case-folded or fuzzy", () => {
-    // recipient-matches-policy uses strict string equality (Array#includes),
-    // so no case-folding or address checksum normalisation is applied: the
-    // Floor requires an exact match against an owner-approved entry.
+  it("compares the recipient by value, folding hex-digit case but never a lookalike", () => {
+    // An EVM address is its 20 raw bytes; hex-digit case only carries an
+    // optional checksum encoding, so a case variant of an approved address
+    // is the same recipient and must pass. A lookalike differs in its
+    // actual hex digits (only the first and last four characters match)
+    // and must still fail.
     const caseVariant = "0x" + APPROVED_RECIPIENT.slice(2).toUpperCase();
     const lookalike =
       APPROVED_RECIPIENT.slice(0, 6) +
       "9".repeat(APPROVED_RECIPIENT.length - 10) +
       APPROVED_RECIPIENT.slice(-4);
 
-    [caseVariant, lookalike].forEach((recipient) => {
-      const response = consult(
-        makeRequest({ action: { ...makeRequest().action, recipient } }),
-        PAY_CATALOG,
-        makePolicy()
-      );
-      expect(
-        response.results.find((r) => r.id === "recipient-matches-policy")
-          ?.status
-      ).to.equal("FAIL");
-    });
+    const caseResponse = consult(
+      makeRequest({
+        action: { ...makeRequest().action, recipient: caseVariant },
+      }),
+      PAY_CATALOG,
+      makePolicy()
+    );
+    expect(
+      caseResponse.results.find((r) => r.id === "recipient-matches-policy")
+        ?.status
+    ).to.equal("PASS");
+
+    const lookalikeResponse = consult(
+      makeRequest({
+        action: { ...makeRequest().action, recipient: lookalike },
+      }),
+      PAY_CATALOG,
+      makePolicy()
+    );
+    expect(
+      lookalikeResponse.results.find((r) => r.id === "recipient-matches-policy")
+        ?.status
+    ).to.equal("FAIL");
   });
 
   it("is pure: same input twice gives deep-equal output and never mutates its input", () => {
     const request = deepFreeze(makeRequest());
     const policy = deepFreeze(makePolicy());
+    const catalog = deepFreeze({ pay: [...PAY_CATALOG.pay] });
 
-    const first = consult(request, PAY_CATALOG, policy);
-    const second = consult(request, PAY_CATALOG, policy);
+    const first = consult(request, catalog, policy);
+    const second = consult(request, catalog, policy);
 
     expect(first).to.deep.equal(second);
   });
@@ -268,6 +287,12 @@ describe("consult", () => {
       'require("https',
       'require("net',
       "RpcClient",
+      "node:http",
+      "node:https",
+      "node:net",
+      "Date.now",
+      "new Date",
+      "Math.random",
     ];
 
     readdirSync(srcDir)
