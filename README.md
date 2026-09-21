@@ -32,4 +32,11 @@ npm ci --prefix app
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 ```
 
-[Role record](docs/role-record.md) · [SDK](sdk/README.md) · [MCP server](mcp/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+The payment check has no dependencies of its own. It answers `proceed` for a payment or a swap against the owner's policy:
+
+```sh
+yarn consult:typecheck
+yarn consult:test
+```
+
+[Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
