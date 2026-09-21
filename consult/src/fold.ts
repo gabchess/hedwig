@@ -13,7 +13,7 @@ export interface ConditionResult {
 // outright, and everything else (no results, a mix, an UNVERIFIED, a Policy
 // that does not permit) resolves to UNKNOWN rather than guessing.
 export function foldVerdict(
-  results: ConditionResult[],
+  results: readonly ConditionResult[],
   policyPermits: boolean
 ): Verdict {
   if (results.some((result) => result.status === "FAIL")) {

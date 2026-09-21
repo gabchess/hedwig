@@ -10,7 +10,7 @@ import type {
   ConditionDefinition,
   ConsultRequest,
   Policy,
-} from "../src";
+} from "../src/catalog";
 
 export const CHAIN_ID = CANONICAL_CHAIN_ID;
 export const ASSET_SYMBOL = CANONICAL_ASSET_SYMBOL;

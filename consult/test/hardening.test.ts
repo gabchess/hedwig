@@ -1,13 +1,15 @@
 import { expect } from "chai";
 
-import {
-  consult,
-  type Catalog,
-  type ConditionDefinition,
-  type ConsultRequest,
-  type Policy,
-} from "../src";
+import { consult, type ConsultResponse } from "../src";
+import type {
+  Catalog,
+  ConditionDefinition,
+  ConsultRequest,
+  Policy,
+} from "../src/catalog";
 import { PAY_CATALOG } from "../src/catalog";
+import { foldVerdict } from "../src/fold";
+import { consultWith } from "../src/internal";
 import {
   APPROVED_RECIPIENT,
   ASSET_ADDRESS,
@@ -20,22 +22,20 @@ import {
 // ALLOW_UNDER_POLICY. ALLOW is the only verdict that must be earned.
 
 describe("consult hardening: B1 empty floor", () => {
-  it("an empty results list never folds to ALLOW (pay: [])", () => {
-    const response = consult(
+  it("a catalog with no Floor Condition for an action type is rejected at consultWith time (pay: [])", () => {
+    const response = consultWith({ pay: [] } as Catalog)(
       makeRequest(),
-      { pay: [] } as Catalog,
       makePolicy()
     );
-    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
     expect(response.verdict).to.equal("UNKNOWN");
     expect(
       response.results.some(
-        (r) => r.id === "floor" && r.status === "UNVERIFIED"
+        (r) => r.id === "input-shape" && r.status === "UNVERIFIED"
       )
     ).to.equal(true);
   });
 
-  it("a pay entry holding only isFloor:false Conditions never folds to ALLOW", () => {
+  it("a pay entry holding only isFloor:false Conditions is rejected at consultWith time", () => {
     const catalog: Catalog = {
       pay: [
         {
@@ -45,11 +45,12 @@ describe("consult hardening: B1 empty floor", () => {
         },
       ],
     };
-    const response = consult(makeRequest(), catalog, makePolicy());
-    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(response.results.some((r) => r.id === "input-shape")).to.equal(true);
   });
 
-  it("isFloor: 0 does not count as a floor", () => {
+  it("isFloor: 0 does not count as a floor and is rejected at consultWith time", () => {
     const catalog: Catalog = {
       pay: [
         {
@@ -59,8 +60,9 @@ describe("consult hardening: B1 empty floor", () => {
         },
       ],
     };
-    const response = consult(makeRequest(), catalog, makePolicy());
-    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(response.results.some((r) => r.id === "input-shape")).to.equal(true);
   });
 });
 
@@ -78,7 +80,7 @@ describe("consult hardening: B2 checker result validation", () => {
           evidence: "x",
         } as unknown as ReturnType<ConditionDefinition["check"]>)
     );
-    const response = consult(makeRequest(), catalog, makePolicy());
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
@@ -91,7 +93,7 @@ describe("consult hardening: B2 checker result validation", () => {
           evidence: "x",
         } as unknown as ReturnType<ConditionDefinition["check"]>)
     );
-    const response = consult(makeRequest(), catalog, makePolicy());
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
@@ -99,8 +101,10 @@ describe("consult hardening: B2 checker result validation", () => {
     const catalog = catalogWithChecker(
       () => ({} as unknown as ReturnType<ConditionDefinition["check"]>)
     );
-    expect(() => consult(makeRequest(), catalog, makePolicy())).to.not.throw();
-    const response = consult(makeRequest(), catalog, makePolicy());
+    expect(() =>
+      consultWith(catalog)(makeRequest(), makePolicy())
+    ).to.not.throw();
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
@@ -111,7 +115,7 @@ describe("consult hardening: B2 checker result validation", () => {
         status: "PASS",
         evidence: "x",
       })) as unknown as ConditionDefinition["check"]);
-    const response = consult(makeRequest(), catalog, makePolicy());
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
@@ -121,7 +125,7 @@ describe("consult hardening: B2 checker result validation", () => {
       status: "PASS",
       evidence: "x",
     }));
-    const response = consult(makeRequest(), catalog, makePolicy());
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
     expect(
       response.results.some((r) => r.id === "recipient-matches-policy")
@@ -132,16 +136,109 @@ describe("consult hardening: B2 checker result validation", () => {
     const catalog = catalogWithChecker(
       (() => undefined) as unknown as ConditionDefinition["check"]
     );
-    expect(() => consult(makeRequest(), catalog, makePolicy())).to.not.throw();
-    const response = consult(makeRequest(), catalog, makePolicy());
+    expect(() =>
+      consultWith(catalog)(makeRequest(), makePolicy())
+    ).to.not.throw();
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
   it("every Floor id appears exactly once in results on a clean pass", () => {
-    const response = consult(makeRequest(), PAY_CATALOG, makePolicy());
+    const response = consult(makeRequest(), makePolicy());
     response.floorIds.forEach((id) => {
       expect(response.results.filter((r) => r.id === id)).to.have.length(1);
     });
+  });
+
+  it("reads a status getter that answers PASS four times then FAIL exactly once, so the frozen result never later reports FAIL", () => {
+    let reads = 0;
+    const catalog = catalogWithChecker(() => ({
+      id: "recipient-matches-policy",
+      get status() {
+        reads += 1;
+        return reads <= 4 ? "PASS" : "FAIL";
+      },
+      evidence: "x",
+    }));
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
+    // The single read said PASS, so ALLOW is legitimately earned; reading
+    // the returned result again must not invoke the getter a second time
+    // and must not surface the FAIL the getter would answer on a re-read.
+    expect(reads).to.equal(1);
+    expect(
+      response.results.find((r) => r.id === "recipient-matches-policy")?.status
+    ).to.equal("PASS");
+    expect(reads).to.equal(1);
+    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+  });
+
+  it("a checker result whose status getter answers UNVERIFIED, UNVERIFIED, PASS never resolves to ALLOW, and the getter is read at most once", () => {
+    const answers = ["UNVERIFIED", "UNVERIFIED", "PASS"];
+    let reads = 0;
+    const catalog = catalogWithChecker(
+      () =>
+        ({
+          id: "recipient-matches-policy",
+          get status() {
+            const value = answers[Math.min(reads, answers.length - 1)];
+            reads += 1;
+            return value;
+          },
+          evidence: "x",
+        } as unknown as ReturnType<ConditionDefinition["check"]>)
+    );
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
+    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+    expect(reads).to.equal(1);
+  });
+
+  it("a checker that keeps a reference to its own result and flips it to FAIL afterward cannot change what consult already returned", () => {
+    const liveResult = {
+      id: "recipient-matches-policy",
+      status: "PASS" as string,
+      evidence: "x",
+    };
+    const catalog = catalogWithChecker(() => liveResult as any);
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
+    // The result was PASS at the moment it was checked, so ALLOW is
+    // legitimately earned; mutating the checker's own kept reference
+    // afterward must not retroactively change the returned result.
+    liveResult.status = "FAIL";
+    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(
+      response.results.find((r) => r.id === "recipient-matches-policy")?.status
+    ).to.equal("PASS");
+  });
+
+  it("a Proxy result cannot have its reported status changed by mutating the underlying target after consult already returned", () => {
+    const target = {
+      id: "recipient-matches-policy",
+      status: "PASS",
+      evidence: "x",
+    };
+    const proxied = new Proxy(target, {});
+    const catalog = catalogWithChecker(() => proxied as any);
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
+    target.status = "FAIL";
+
+    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(
+      response.results.find((r) => r.id === "recipient-matches-policy")?.status
+    ).to.equal("PASS");
+  });
+
+  it("the verdict always equals foldVerdict re-applied to the returned results, even after the checker's kept reference mutates", () => {
+    const liveResult = {
+      id: "recipient-matches-policy",
+      status: "PASS" as string,
+      evidence: "x",
+    };
+    const catalog = catalogWithChecker(() => liveResult as any);
+    const response = consultWith(catalog)(makeRequest(), makePolicy());
+    liveResult.status = "FAIL";
+
+    const refolded = foldVerdict(response.results, true);
+    expect(response.verdict).to.equal(refolded);
   });
 });
 
@@ -172,7 +269,7 @@ describe("consult hardening: B3 amount shape", () => {
           amount: amount as unknown as string,
         },
       });
-      const response = consult(request, PAY_CATALOG, makePolicy());
+      const response = consult(request, makePolicy());
       expect(response.verdict, `amount ${JSON.stringify(amount)}`).to.not.equal(
         "ALLOW_UNDER_POLICY"
       );
@@ -183,7 +280,7 @@ describe("consult hardening: B3 amount shape", () => {
     const request = makeRequest({
       action: { ...makeRequest().action, amount: "0" },
     });
-    const response = consult(request, PAY_CATALOG, makePolicy());
+    const response = consult(request, makePolicy());
     const result = response.results.find((r) => r.id === "amount-within-cap");
     expect(result?.status).to.equal("FAIL");
     expect(response.verdict).to.equal("DENY");
@@ -195,7 +292,7 @@ describe("consult hardening: B4 frozen catalog", () => {
     expect(() =>
       (PAY_CATALOG.pay as unknown as unknown[]).splice(0)
     ).to.throw();
-    const response = consult(makeRequest(), PAY_CATALOG, makePolicy());
+    const response = consult(makeRequest(), makePolicy());
     expect(response.results).to.have.length(5);
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
   });
@@ -208,7 +305,6 @@ describe("consult hardening: B5 EVM address value comparison", () => {
     [lower, upper].forEach((recipient) => {
       const response = consult(
         makeRequest({ action: { ...makeRequest().action, recipient } }),
-        PAY_CATALOG,
         makePolicy()
       );
       expect(
@@ -223,7 +319,6 @@ describe("consult hardening: B5 EVM address value comparison", () => {
     const lower = POISONED_RECIPIENT.toLowerCase();
     const response = consult(
       makeRequest({ action: { ...makeRequest().action, recipient: lower } }),
-      PAY_CATALOG,
       makePolicy({ approvedRecipients: [lower] })
     );
     expect(
@@ -242,7 +337,6 @@ describe("consult hardening: B5 EVM address value comparison", () => {
       makeRequest({
         action: { ...makeRequest().action, recipient: lookalike },
       }),
-      PAY_CATALOG,
       makePolicy()
     );
     expect(
@@ -256,7 +350,6 @@ describe("consult hardening: B5 EVM address value comparison", () => {
       makeRequest({
         action: { ...makeRequest().action, chainId: "solana:mainnet" },
       }),
-      PAY_CATALOG,
       makePolicy({ chainId: "solana:mainnet" })
     );
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
@@ -275,7 +368,6 @@ describe("consult hardening: B5 EVM address value comparison", () => {
       makeRequest({
         action: { ...makeRequest().action, recipient: malformed },
       }),
-      PAY_CATALOG,
       makePolicy({ approvedRecipients: [malformed] })
     );
     expect(
@@ -293,7 +385,6 @@ describe("consult hardening: B5 EVM address value comparison", () => {
           asset: { symbol: "USDC", contractAddress: lower },
         },
       }),
-      PAY_CATALOG,
       makePolicy()
     );
     expect(
@@ -309,7 +400,6 @@ describe("consult hardening: B6 permits strictness", () => {
     HOSTILE_PERMITS.forEach((permits) => {
       const response = consult(
         makeRequest(),
-        PAY_CATALOG,
         makePolicy({ permits: permits as unknown as boolean })
       );
       expect(response.verdict, JSON.stringify(permits)).to.not.equal(
@@ -332,22 +422,21 @@ describe("consult hardening: S1 consult never throws", () => {
       const request = makeRequest({
         action: { ...makeRequest().action, type },
       });
-      expect(() => consult(request, PAY_CATALOG, makePolicy())).to.not.throw();
-      const response = consult(request, PAY_CATALOG, makePolicy());
+      expect(() => consult(request, makePolicy())).to.not.throw();
+      const response = consult(request, makePolicy());
       expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
     });
   });
 
   it("a missing request or action does not throw", () => {
     expect(() =>
-      consult(undefined as unknown as ConsultRequest, PAY_CATALOG, makePolicy())
+      consult(undefined as unknown as ConsultRequest, makePolicy())
     ).to.not.throw();
     expect(() =>
-      consult({} as unknown as ConsultRequest, PAY_CATALOG, makePolicy())
+      consult({} as unknown as ConsultRequest, makePolicy())
     ).to.not.throw();
     expect(
-      consult(undefined as unknown as ConsultRequest, PAY_CATALOG, makePolicy())
-        .verdict
+      consult(undefined as unknown as ConsultRequest, makePolicy()).verdict
     ).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
@@ -357,8 +446,8 @@ describe("consult hardening: S1 consult never throws", () => {
         ...makeRequest(),
         conditions: conditions as unknown as string[],
       };
-      expect(() => consult(request, PAY_CATALOG, makePolicy())).to.not.throw();
-      const response = consult(request, PAY_CATALOG, makePolicy());
+      expect(() => consult(request, makePolicy())).to.not.throw();
+      const response = consult(request, makePolicy());
       expect(response.results.some((r) => r.id === "input-shape")).to.equal(
         true
       );
@@ -366,16 +455,12 @@ describe("consult hardening: S1 consult never throws", () => {
     });
   });
 
-  it("an undefined policy or catalog does not throw", () => {
+  it("an undefined policy does not throw", () => {
     expect(() =>
-      consult(makeRequest(), undefined as unknown as Catalog, makePolicy())
-    ).to.not.throw();
-    expect(() =>
-      consult(makeRequest(), PAY_CATALOG, undefined as unknown as Policy)
+      consult(makeRequest(), undefined as unknown as Policy)
     ).to.not.throw();
     expect(
-      consult(makeRequest(), undefined as unknown as Catalog, makePolicy())
-        .verdict
+      consult(makeRequest(), undefined as unknown as Policy).verdict
     ).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
@@ -386,11 +471,10 @@ describe("consult hardening: S1 consult never throws", () => {
       },
     };
     expect(() =>
-      consult(hostile as unknown as ConsultRequest, PAY_CATALOG, makePolicy())
+      consult(hostile as unknown as ConsultRequest, makePolicy())
     ).to.not.throw();
     expect(
-      consult(hostile as unknown as ConsultRequest, PAY_CATALOG, makePolicy())
-        .verdict
+      consult(hostile as unknown as ConsultRequest, makePolicy()).verdict
     ).to.not.equal("ALLOW_UNDER_POLICY");
   });
 
@@ -401,7 +485,7 @@ describe("consult hardening: S1 consult never throws", () => {
       },
     };
     expect(() =>
-      consult(hostile as unknown as ConsultRequest, PAY_CATALOG, makePolicy())
+      consult(hostile as unknown as ConsultRequest, makePolicy())
     ).to.not.throw();
   });
 });
@@ -415,11 +499,7 @@ describe("consult hardening: S2 prototype-chain keyed lookups", () => {
         asset: { symbol: "name", contractAddress: "Object" },
       },
     });
-    const response = consult(
-      request,
-      PAY_CATALOG,
-      makePolicy({ chainId: "constructor" })
-    );
+    const response = consult(request, makePolicy({ chainId: "constructor" }));
     expect(
       response.results.find((r) => r.id === "asset-is-canonical")?.status
     ).to.not.equal("PASS");
@@ -430,7 +510,7 @@ describe("consult hardening: S2 prototype-chain keyed lookups", () => {
     const request = makeRequest({
       action: { ...makeRequest().action, type: "constructor" },
     });
-    const response = consult(request, PAY_CATALOG, makePolicy());
+    const response = consult(request, makePolicy());
     expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
   });
 });
@@ -439,7 +519,6 @@ describe("consult hardening: S3 approvedRecipients shape", () => {
   it("approvedRecipients as a string never substring-matches", () => {
     const response = consult(
       makeRequest({ action: { ...makeRequest().action, recipient: "0x0000" } }),
-      PAY_CATALOG,
       makePolicy({
         approvedRecipients: APPROVED_RECIPIENT as unknown as string[],
       })
@@ -455,7 +534,6 @@ describe("consult hardening: S3 approvedRecipients shape", () => {
     hostileLists.forEach((approvedRecipients) => {
       const response = consult(
         makeRequest({ action: { ...makeRequest().action, recipient: "" } }),
-        PAY_CATALOG,
         makePolicy({
           approvedRecipients: approvedRecipients as unknown as string[],
         })
@@ -492,7 +570,7 @@ describe("consult hardening: S4 checker purity", () => {
     const request = makeRequest({
       action: { ...makeRequest().action, recipient: evilRecipient },
     });
-    const response = consult(request, catalog, makePolicy());
+    const response = consultWith(catalog)(request, makePolicy());
     expect(
       response.results.find((r) => r.id === "recipient-matches-policy")?.status
     ).to.equal("FAIL");
@@ -513,7 +591,7 @@ describe("consult hardening: S7 dedupe and evidence cap", () => {
     };
     const catalog: Catalog = { pay: [...PAY_CATALOG.pay, counted] };
     const request = { ...makeRequest(), conditions: ["counted", "counted"] };
-    consult(request, catalog, makePolicy());
+    consultWith(catalog)(request, makePolicy());
     expect(calls).to.equal(1);
   });
 
@@ -523,7 +601,6 @@ describe("consult hardening: S7 dedupe and evidence cap", () => {
       makeRequest({
         action: { ...makeRequest().action, recipient: longRecipient },
       }),
-      PAY_CATALOG,
       makePolicy()
     );
     const result = response.results.find(
@@ -534,8 +611,243 @@ describe("consult hardening: S7 dedupe and evidence cap", () => {
   });
 });
 
+describe("consult hardening: item 1 clone-first reads", () => {
+  it("reads action.type from the frozen clone only: a getter that answers 'refund' once then 'pay' cannot cross-apply another action type's cap", () => {
+    let calls = 0;
+    const hostileRequest = {
+      action: {
+        get type() {
+          calls += 1;
+          return calls === 1 ? "refund" : "pay";
+        },
+        chainId: "eip155:1",
+        recipient: APPROVED_RECIPIENT,
+        asset: { symbol: "USDC", contractAddress: ASSET_ADDRESS },
+        amount: "5000000",
+      },
+    };
+    const policy = makePolicy({
+      perActionCaps: { pay: "1000000", refund: "9000000" },
+    });
+
+    const response = consult(
+      hostileRequest as unknown as ConsultRequest,
+      policy
+    );
+
+    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+    expect(calls).to.equal(1);
+  });
+});
+
+describe("consult hardening: item 4 bounded work", () => {
+  it("a 79-digit amount gives UNVERIFIED, not ALLOW (78 digits is the uint256 ceiling)", () => {
+    const amount79 = "1" + "0".repeat(78);
+    const response = consult(
+      makeRequest({ action: { ...makeRequest().action, amount: amount79 } }),
+      makePolicy()
+    );
+    expect(
+      response.results.find((r) => r.id === "amount-within-cap")?.status
+    ).to.equal("UNVERIFIED");
+    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+  });
+
+  it("evidence strings never exceed 200 characters, even for a 2,000,000-digit amount", () => {
+    const hugeAmount = "9".repeat(2_000_000);
+    const response = consult(
+      makeRequest({ action: { ...makeRequest().action, amount: hugeAmount } }),
+      makePolicy({ perActionCaps: { pay: hugeAmount } })
+    );
+    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+    response.results.forEach((result) => {
+      expect(result.evidence.length).to.be.at.most(200);
+    });
+  });
+
+  it("evidence strings never exceed 200 characters when two hostile values combine in one message", () => {
+    const hostileValue = "x".repeat(10000);
+    const response = consult(
+      makeRequest({
+        action: {
+          ...makeRequest().action,
+          chainId: hostileValue,
+          asset: { symbol: hostileValue, contractAddress: hostileValue },
+        },
+      }),
+      makePolicy({ chainId: hostileValue })
+    );
+    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+    response.results.forEach((result) => {
+      expect(result.evidence.length).to.be.at.most(200);
+    });
+  });
+
+  it("a request whose JSON exceeds 64 KB returns UNKNOWN quickly", () => {
+    const bigConditions = Array.from({ length: 100_000 }, (_, i) => `c${i}`);
+    const request = { ...makeRequest(), conditions: bigConditions };
+
+    const start = Date.now();
+    const response = consult(request, makePolicy());
+    const elapsed = Date.now() - start;
+
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(response.results.some((r) => r.id === "input-shape")).to.equal(true);
+    expect(elapsed).to.be.lessThan(500);
+  });
+});
+
+describe("consult hardening: item 5 equality checkers require well-formed values on both sides", () => {
+  it("chain-matches-intent never passes when chainId is missing on both sides", () => {
+    const request = makeRequest({
+      action: {
+        ...makeRequest().action,
+        chainId: undefined as unknown as string,
+      },
+    });
+    const response = consult(
+      request,
+      makePolicy({ chainId: undefined as unknown as string })
+    );
+    expect(
+      response.results.find((r) => r.id === "chain-matches-intent")?.status
+    ).to.equal("UNVERIFIED");
+    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+  });
+
+  it("chain-matches-intent never passes on an identical but malformed CAIP-2 string", () => {
+    const badChain = "EIP155:1"; // an uppercase namespace is not a well-formed CAIP-2 id
+    const request = makeRequest({
+      action: { ...makeRequest().action, chainId: badChain },
+    });
+    const response = consult(request, makePolicy({ chainId: badChain }));
+    expect(
+      response.results.find((r) => r.id === "chain-matches-intent")?.status
+    ).to.equal("UNVERIFIED");
+    expect(response.verdict).to.not.equal("ALLOW_UNDER_POLICY");
+  });
+
+  it("recipient-matches-policy never passes when the recipient is missing on both sides", () => {
+    const request = makeRequest({
+      action: {
+        ...makeRequest().action,
+        recipient: undefined as unknown as string,
+      },
+    });
+    const response = consult(
+      request,
+      makePolicy({ approvedRecipients: [undefined as unknown as string] })
+    );
+    expect(
+      response.results.find((r) => r.id === "recipient-matches-policy")?.status
+    ).to.not.equal("PASS");
+  });
+
+  it("recipient-not-poison-derived never passes when the recipient is missing", () => {
+    const request = makeRequest({
+      action: {
+        ...makeRequest().action,
+        recipient: undefined as unknown as string,
+      },
+    });
+    const response = consult(request, makePolicy());
+    expect(
+      response.results.find((r) => r.id === "recipient-not-poison-derived")
+        ?.status
+    ).to.not.equal("PASS");
+  });
+
+  it("asset-is-canonical never passes when the asset is missing on both sides", () => {
+    const request = makeRequest({
+      action: { ...makeRequest().action, asset: undefined as any },
+    });
+    const response = consult(request, makePolicy());
+    expect(
+      response.results.find((r) => r.id === "asset-is-canonical")?.status
+    ).to.not.equal("PASS");
+  });
+
+  it("amount-within-cap never passes when the amount and cap are both missing", () => {
+    const request = makeRequest({
+      action: {
+        ...makeRequest().action,
+        amount: undefined as unknown as string,
+      },
+    });
+    const response = consult(request, makePolicy({ perActionCaps: {} }));
+    expect(
+      response.results.find((r) => r.id === "amount-within-cap")?.status
+    ).to.not.equal("PASS");
+  });
+});
+
+describe("consult hardening: item 3 the catalog self-check", () => {
+  it("consultWith never throws for a broken catalog; it always answers UNKNOWN naming the defect", () => {
+    const brokenCatalogs: Catalog[] = [
+      { pay: [] },
+      {
+        pay: [
+          {
+            id: "",
+            isFloor: true,
+            check: () => ({ id: "", status: "PASS", evidence: "x" }),
+          },
+        ],
+      },
+      {
+        pay: [
+          {
+            id: "dup",
+            isFloor: true,
+            check: () => ({ id: "dup", status: "PASS", evidence: "x" }),
+          },
+          {
+            id: "dup",
+            isFloor: true,
+            check: () => ({ id: "dup", status: "PASS", evidence: "x" }),
+          },
+        ],
+      },
+      { pay: [{ id: "x", isFloor: true, check: "not-a-function" as any }] },
+    ];
+
+    brokenCatalogs.forEach((catalog) => {
+      expect(() => consultWith(catalog)).to.not.throw();
+      const response = consultWith(catalog)(makeRequest(), makePolicy());
+      expect(response.verdict).to.equal("UNKNOWN");
+      expect(response.results.some((r) => r.id === "input-shape")).to.equal(
+        true
+      );
+    });
+  });
+
+  it("consult() takes exactly the request and the policy: a caller cannot pass a third, catalog-shaped argument and change the outcome", () => {
+    // The type system is the real enforcement (consult has no third
+    // parameter to accept a catalog); this runtime check pins the same
+    // fact for the compiled call: passing a would-be catalog as a third
+    // argument at the JS boundary is silently ignored, never honoured.
+    expect(consult.length).to.equal(2);
+    const alwaysPass: ConditionDefinition = {
+      id: "always-pass",
+      isFloor: true,
+      check: () => ({ id: "always-pass", status: "PASS", evidence: "x" }),
+    };
+    const poisonedRequest = makeRequest({
+      action: { ...makeRequest().action, recipient: POISONED_RECIPIENT },
+    });
+    const response = (
+      consult as unknown as (
+        request: unknown,
+        policy: unknown,
+        catalog: unknown
+      ) => ConsultResponse
+    )(poisonedRequest, makePolicy(), { pay: [alwaysPass] });
+    expect(response.verdict).to.equal("DENY");
+  });
+});
+
 describe("consult hardening: property test", () => {
-  it("mutating any single request or policy field never throws and never yields ALLOW_UNDER_POLICY", () => {
+  it("mutating any single request or policy field never throws and never yields an unearned ALLOW_UNDER_POLICY", () => {
     const MUTATIONS: unknown[] = [
       undefined,
       null,
@@ -561,11 +873,12 @@ describe("consult hardening: property test", () => {
       expect(() => {
         response = consult(
           request as unknown as ConsultRequest,
-          PAY_CATALOG,
           policy as unknown as Policy
         );
       }).to.not.throw();
-      if (!allowIsEarned) {
+      if (allowIsEarned) {
+        expect(response?.verdict).to.equal("ALLOW_UNDER_POLICY");
+      } else {
         expect(response?.verdict).to.not.equal("ALLOW_UNDER_POLICY");
       }
     }
@@ -573,8 +886,22 @@ describe("consult hardening: property test", () => {
     // conditions only ever ADDS non-Floor checks; undefined or an empty list
     // is exactly "no extra conditions", the same as the default request,
     // which legitimately earns ALLOW when the rest of the request is valid.
+    // This is pinned as an assertion, not skipped, so the exclusion itself
+    // is proven rather than assumed.
     const conditionsValueIsStillValid = (value: unknown) =>
       value === undefined || (Array.isArray(value) && value.length === 0);
+
+    function makeGetterRequest(): unknown {
+      let reads = 0;
+      return {
+        get action() {
+          reads += 1;
+          return reads === 1
+            ? { ...base.action, type: "refund" }
+            : { ...base.action, type: "pay" };
+        },
+      };
+    }
 
     const requestMutators: {
       build: (value: unknown) => unknown;
@@ -608,6 +935,10 @@ describe("consult hardening: property test", () => {
         build: (v) => ({ ...base, conditions: v }),
         allowIsEarned: conditionsValueIsStillValid,
       },
+      // A getter-based request: now that every field is read from the
+      // frozen clone (item 1), this proves the general property holds for
+      // an adversarial getter too, not only the one regression case above.
+      { build: () => makeGetterRequest() },
     ];
 
     requestMutators.forEach(({ build, allowIsEarned }) => {
@@ -618,7 +949,7 @@ describe("consult hardening: property test", () => {
 
     // permits: true is the base fixture's own correct value, not a
     // mutation; substituting it back in changes nothing and legitimately
-    // still earns ALLOW.
+    // still earns ALLOW. This is pinned as an assertion, not skipped.
     const policyMutators: {
       field: keyof Policy;
       allowIsEarned?: (value: unknown) => boolean;

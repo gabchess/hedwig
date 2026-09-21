@@ -233,7 +233,9 @@ function checkAssetIsCanonical(
   };
 }
 
-const AMOUNT_SHAPE = /^(0|[1-9]\d*)$/;
+// 78 digits covers uint256's maximum value; anything longer cannot be a real
+// amount, and rejecting it here means BigInt() never has to parse it.
+const AMOUNT_SHAPE = /^(0|[1-9]\d{0,77})$/;
 
 function checkAmountWithinCap(
   request: ConsultRequest,
@@ -278,33 +280,56 @@ function checkAmountWithinCap(
     id,
     status: within ? "PASS" : "FAIL",
     evidence: within
-      ? `amount ${amount} is within the cap ${cap}`
-      : `amount ${amount} exceeds the cap ${cap}`,
+      ? `amount ${describe(amount)} is within the cap ${describe(cap)}`
+      : `amount ${describe(amount)} exceeds the cap ${describe(cap)}`,
   };
+}
+
+// eip155:1, solana:mainnet: a CAIP-2 id has a lowercase namespace of 3-8
+// characters, a colon, then a 1-32 character reference.
+const CAIP2_SHAPE = /^[-a-z0-9]{3,8}:[-_a-zA-Z0-9]{1,32}$/;
+
+function isCaip2(value: unknown): value is string {
+  return typeof value === "string" && CAIP2_SHAPE.test(value);
 }
 
 function checkChainMatchesIntent(
   request: ConsultRequest,
   context: ConditionContext
 ): ConditionResult {
-  const matches = request.action.chainId === context.policy.chainId;
+  const id = "chain-matches-intent";
+  const { chainId } = request.action;
+  const ownerChainId = context.policy.chainId;
+
+  // Equality between two absent values is not equality of anything real:
+  // both sides must be a well-formed chain id before comparing them means
+  // the request and the owner's intent actually agree.
+  if (!isCaip2(chainId) || !isCaip2(ownerChainId)) {
+    return {
+      id,
+      status: "UNVERIFIED",
+      evidence: `chain "${describe(
+        chainId
+      )}" or the owner's named chain "${describe(
+        ownerChainId
+      )}" is not a well-formed CAIP-2 id`,
+    };
+  }
+
+  const matches = chainId === ownerChainId;
   return {
-    id: "chain-matches-intent",
+    id,
     status: matches ? "PASS" : "FAIL",
     evidence: matches
-      ? `chain ${describe(
-          request.action.chainId
-        )} matches the owner's named chain`
+      ? `chain ${describe(chainId)} matches the owner's named chain`
       : `chain ${describe(
-          request.action.chainId
-        )} does not match the owner's named chain ${describe(
-          context.policy.chainId
-        )}`,
+          chainId
+        )} does not match the owner's named chain ${describe(ownerChainId)}`,
   };
 }
 
-// Freeze-before-recurse: an already-frozen node is skipped, so a circular
-// reference (as structuredClone can legitimately produce) cannot loop.
+// Freeze-before-recurse skips a node already frozen, so a circular reference
+// cannot loop forever.
 export function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -338,3 +363,56 @@ const PAY_FLOOR: ConditionDefinition[] = [
 export const PAY_CATALOG: Catalog = deepFreeze({
   pay: PAY_FLOOR,
 });
+
+// Returns the first defect found, or undefined for a sound catalog. A
+// caller who can choose the catalog controls the verdict, so a catalog
+// missing its mandatory Floor, or carrying a duplicate or empty id, is a
+// programming error, not a request to answer.
+export function validateCatalog(catalog: unknown): string | undefined {
+  if (catalog === null || typeof catalog !== "object") {
+    return "catalog must be an object";
+  }
+  for (const [actionType, conditions] of Object.entries(
+    catalog as Record<string, unknown>
+  )) {
+    if (!Array.isArray(conditions)) {
+      return `catalog action type "${actionType}" is not an array of Conditions`;
+    }
+    let hasFloor = false;
+    const seenIds = new Set<string>();
+    for (const condition of conditions) {
+      if (condition === null || typeof condition !== "object") {
+        return `catalog action type "${actionType}" has a Condition that is not an object`;
+      }
+      const { id, isFloor, check } = condition as Record<string, unknown>;
+      if (typeof id !== "string" || id.length === 0) {
+        return `catalog action type "${actionType}" has a Condition with an empty or non-string id`;
+      }
+      if (seenIds.has(id)) {
+        return `catalog action type "${actionType}" has a duplicate Condition id "${id}"`;
+      }
+      seenIds.add(id);
+      if (typeof check !== "function") {
+        return `catalog action type "${actionType}" Condition "${id}" has a non-function check`;
+      }
+      if (isFloor === true) {
+        hasFloor = true;
+      }
+    }
+    if (!hasFloor) {
+      return `catalog action type "${actionType}" has no mandatory Floor Condition`;
+    }
+  }
+  return undefined;
+}
+
+export function assertValidCatalog(catalog: Catalog): void {
+  const defect = validateCatalog(catalog);
+  if (defect !== undefined) {
+    throw new Error(defect);
+  }
+}
+
+// A programming error in the trusted, built-in catalog throws here, at
+// import time, never at request time.
+assertValidCatalog(PAY_CATALOG);

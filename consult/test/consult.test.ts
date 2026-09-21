@@ -2,8 +2,10 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "chai";
 
-import { consult, type Catalog, type ConditionDefinition } from "../src";
+import { consult } from "../src";
+import type { Catalog, ConditionDefinition } from "../src/catalog";
 import { PAY_CATALOG } from "../src/catalog";
+import { consultWith } from "../src/internal";
 import {
   APPROVED_RECIPIENT,
   ASSET_ADDRESS,
@@ -35,7 +37,7 @@ function deepFreeze<T>(value: T): T {
 
 describe("consult", () => {
   it("returns ALLOW_UNDER_POLICY when every Floor Condition passes and the Policy permits", () => {
-    const response = consult(makeRequest(), PAY_CATALOG, makePolicy());
+    const response = consult(makeRequest(), makePolicy());
 
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
     expect(response.advisory).to.equal(true);
@@ -51,7 +53,7 @@ describe("consult", () => {
     const request = makeRequest({
       action: { ...makeRequest().action, recipient: UNAPPROVED_RECIPIENT },
     });
-    const response = consult(request, PAY_CATALOG, makePolicy());
+    const response = consult(request, makePolicy());
 
     expect(response.verdict).to.equal("DENY");
     const failing = response.results.find(
@@ -66,7 +68,6 @@ describe("consult", () => {
     });
     const response = consult(
       request,
-      PAY_CATALOG,
       makePolicy({ approvedRecipients: [POISONED_RECIPIENT] })
     );
 
@@ -84,7 +85,7 @@ describe("consult", () => {
         asset: { symbol: "USDT", contractAddress: ASSET_ADDRESS },
       },
     });
-    const response = consult(request, PAY_CATALOG, makePolicy());
+    const response = consult(request, makePolicy());
 
     expect(response.verdict).to.equal("UNKNOWN");
     const unverified = response.results.find(
@@ -96,9 +97,8 @@ describe("consult", () => {
       ...request,
       conditions: [PASSING_EXTRA_CONDITION_ID],
     };
-    const responseWithExtraPass = consult(
+    const responseWithExtraPass = consultWith(CATALOG_WITH_EXTRA_CONDITION)(
       requestWithExtraPass,
-      CATALOG_WITH_EXTRA_CONDITION,
       makePolicy()
     );
     expect(responseWithExtraPass.verdict).to.equal("UNKNOWN");
@@ -112,7 +112,7 @@ describe("consult", () => {
         asset: { symbol: "USDT", contractAddress: ASSET_ADDRESS },
       },
     });
-    const response = consult(request, PAY_CATALOG, makePolicy());
+    const response = consult(request, makePolicy());
 
     expect(response.verdict).to.equal("DENY");
   });
@@ -127,7 +127,7 @@ describe("consult", () => {
     ];
 
     shapes.forEach((shape) => {
-      const response = consult(shape as any, PAY_CATALOG, makePolicy());
+      const response = consult(shape as any, makePolicy());
       expect(response.floorIds).to.have.members(FLOOR_IDS);
       FLOOR_IDS.forEach((id) => {
         expect(response.results.some((result) => result.id === id)).to.equal(
@@ -141,7 +141,7 @@ describe("consult", () => {
     const request = makeRequest({
       action: { ...makeRequest().action, type: "swap" },
     });
-    const response = consult(request, PAY_CATALOG, makePolicy());
+    const response = consult(request, makePolicy());
 
     expect(response.verdict).to.equal("UNKNOWN");
     expect(response.floorIds).to.deep.equal([]);
@@ -155,7 +155,7 @@ describe("consult", () => {
 
   it("returns UNVERIFIED for a Condition id the catalog does not know", () => {
     const request = { ...makeRequest(), conditions: ["not-a-real-condition"] };
-    const response = consult(request, PAY_CATALOG, makePolicy());
+    const response = consult(request, makePolicy());
 
     expect(response.verdict).to.equal("UNKNOWN");
     const unknown = response.results.find(
@@ -177,7 +177,7 @@ describe("consult", () => {
     };
     const request = { ...makeRequest(), conditions: ["throws-on-check"] };
 
-    const response = consult(request, catalog, makePolicy());
+    const response = consultWith(catalog)(request, makePolicy());
 
     const result = response.results.find(
       (item) => item.id === "throws-on-check"
@@ -189,7 +189,6 @@ describe("consult", () => {
   it("compares amounts as bigints, correct above Number.MAX_SAFE_INTEGER", () => {
     const atCap = consult(
       makeRequest({ action: { ...makeRequest().action, amount: "1000000" } }),
-      PAY_CATALOG,
       makePolicy()
     );
     expect(
@@ -199,7 +198,6 @@ describe("consult", () => {
 
     const overCap = consult(
       makeRequest({ action: { ...makeRequest().action, amount: "1000001" } }),
-      PAY_CATALOG,
       makePolicy()
     );
     expect(
@@ -210,7 +208,6 @@ describe("consult", () => {
     const bigCap = "9007199254740993"; // Number.MAX_SAFE_INTEGER + 2
     const atBigCap = consult(
       makeRequest({ action: { ...makeRequest().action, amount: bigCap } }),
-      PAY_CATALOG,
       makePolicy({ perActionCaps: { pay: bigCap } })
     );
     expect(
@@ -222,7 +219,6 @@ describe("consult", () => {
       makeRequest({
         action: { ...makeRequest().action, amount: "9007199254740994" },
       }),
-      PAY_CATALOG,
       makePolicy({ perActionCaps: { pay: bigCap } })
     );
     expect(
@@ -247,7 +243,6 @@ describe("consult", () => {
       makeRequest({
         action: { ...makeRequest().action, recipient: caseVariant },
       }),
-      PAY_CATALOG,
       makePolicy()
     );
     expect(
@@ -259,7 +254,6 @@ describe("consult", () => {
       makeRequest({
         action: { ...makeRequest().action, recipient: lookalike },
       }),
-      PAY_CATALOG,
       makePolicy()
     );
     expect(
@@ -271,10 +265,9 @@ describe("consult", () => {
   it("is pure: same input twice gives deep-equal output and never mutates its input", () => {
     const request = deepFreeze(makeRequest());
     const policy = deepFreeze(makePolicy());
-    const catalog = deepFreeze({ pay: [...PAY_CATALOG.pay] });
 
-    const first = consult(request, catalog, policy);
-    const second = consult(request, catalog, policy);
+    const first = consult(request, policy);
+    const second = consult(request, policy);
 
     expect(first).to.deep.equal(second);
   });
