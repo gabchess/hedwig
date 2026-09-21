@@ -1,7 +1,7 @@
 import {
   foldVerdict,
-  type ConditionResult,
   type ConditionStatus,
+  type EvidenceClass,
   type Verdict,
 } from "./fold";
 import { deepFreeze, describe, truncate } from "./catalog";
@@ -11,22 +11,97 @@ import type {
   ConsultRequest,
   Policy,
 } from "./catalog";
+import {
+  MAX_CONDITION_ID_LENGTH,
+  MAX_EXTRA_CONDITIONS,
+  MAX_INPUT_JSON_LENGTH,
+} from "./constants";
+import { bandOf, supportOf } from "./support";
+import type { Band, ConditionResult } from "./types";
+
+// The one question every ConsultResponse answers, always the same text: a
+// caller acts on `proceed`, never on parsing `verdict` or `results` itself.
+const RESPONSE_QUESTION =
+  "Should this agent proceed with this payment under the owner's policy?" as const;
 
 export interface ConsultResponse {
-  verdict: Verdict;
-  results: readonly ConditionResult[];
-  floorIds: readonly string[];
-  advisory: true;
+  readonly question: typeof RESPONSE_QUESTION;
+  readonly proceed: boolean;
+  readonly verdict: Verdict;
+  readonly support: number;
+  readonly band: Band;
+  readonly results: readonly ConditionResult[];
+  readonly floorIds: readonly string[];
+  readonly advisory: true;
 }
 
 const VALID_STATUSES: ConditionStatus[] = ["PASS", "FAIL", "UNVERIFIED"];
+const VALID_EVIDENCE_CLASSES: EvidenceClass[] = [
+  "onchain-read",
+  "owner-policy",
+  "static-registry",
+  "not-verifiable",
+];
+
+const CORE_REFERENCE = "consult/references/core.md";
+
+// A row this core decides on its own, with no Condition behind it: a broken
+// catalog, an unknown action type, a malformed input. Always UNVERIFIED,
+// always resting on nothing verified.
+function coreResult(
+  id: string,
+  code: string,
+  question: string,
+  evidence: string
+): ConditionResult {
+  return {
+    id,
+    question,
+    status: "UNVERIFIED",
+    code,
+    evidence,
+    evidenceClass: "not-verifiable",
+    reference: CORE_REFERENCE,
+  };
+}
+
+// Every malformed-result path answers UNVERIFIED: a checker earning PASS or
+// FAIL has to say so correctly, or it has not earned either.
+function malformedResult(
+  definition: ConditionDefinition,
+  code: string,
+  evidence: string
+): ConditionResult {
+  return {
+    id: definition.id,
+    question: definition.question,
+    status: "UNVERIFIED",
+    code,
+    evidence,
+    evidenceClass: "not-verifiable",
+    reference: definition.reference,
+  };
+}
+
+function codeDeclaredForStatus(
+  definition: ConditionDefinition,
+  status: string,
+  code: string
+): boolean {
+  if (status === "PASS") return code === definition.codes.pass;
+  if (status === "FAIL") return definition.codes.fail.includes(code);
+  if (status === "UNVERIFIED")
+    return definition.codes.unverified.includes(code);
+  return false;
+}
 
 // A checker is a black box: its return value is data from an untrusted
 // caller-supplied function, not a trusted internal type. Every field is
 // read out of it exactly once into a local, so a getter cannot answer one
 // way during validation and another way to a later reader; what consult()
 // actually returns is a fresh object built from those locals, never the
-// checker's own live object.
+// checker's own live object. question and reference always come from the
+// catalog's own definition, never from the checker.
 function runChecker(
   definition: ConditionDefinition,
   request: ConsultRequest,
@@ -36,70 +111,107 @@ function runChecker(
   try {
     outcome = definition.check(request, { policy });
   } catch (error) {
-    return {
-      id: definition.id,
-      status: "UNVERIFIED",
-      evidence: describeCheckerError(error),
-    };
+    return malformedResult(
+      definition,
+      "CHECKER_THREW",
+      describeCheckerError(error)
+    );
   }
 
   if (isThenable(outcome)) {
-    return {
-      id: definition.id,
-      status: "UNVERIFIED",
-      evidence: "checker returned a thenable instead of a synchronous result",
-    };
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      "checker returned a thenable instead of a synchronous result"
+    );
   }
   if (
     outcome === null ||
     typeof outcome !== "object" ||
     Array.isArray(outcome)
   ) {
-    return {
-      id: definition.id,
-      status: "UNVERIFIED",
-      evidence: "checker returned a malformed result",
-    };
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      "checker returned a malformed result"
+    );
   }
 
   const record = outcome as Record<string, unknown>;
   const rawId = record.id;
   const rawStatus = record.status;
+  const rawCode = record.code;
   const rawEvidence = record.evidence;
+  const rawEvidenceClass = record.evidenceClass;
 
   if (
     typeof rawId !== "string" ||
     typeof rawStatus !== "string" ||
-    typeof rawEvidence !== "string"
+    typeof rawCode !== "string" ||
+    typeof rawEvidence !== "string" ||
+    typeof rawEvidenceClass !== "string"
   ) {
-    return {
-      id: definition.id,
-      status: "UNVERIFIED",
-      evidence: "checker returned a malformed result",
-    };
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      "checker returned a malformed result"
+    );
   }
   if (rawId !== definition.id) {
-    return {
-      id: definition.id,
-      status: "UNVERIFIED",
-      evidence: `checker returned id "${describe(rawId)}" instead of "${
-        definition.id
-      }"`,
-    };
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      `checker returned id "${describe(rawId)}" instead of "${definition.id}"`
+    );
   }
   if (!VALID_STATUSES.includes(rawStatus as ConditionStatus)) {
-    return {
-      id: definition.id,
-      status: "UNVERIFIED",
-      evidence: `checker returned an unrecognised status "${describe(
-        rawStatus
-      )}"`,
-    };
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      `checker returned an unrecognised status "${describe(rawStatus)}"`
+    );
   }
+  if (!VALID_EVIDENCE_CLASSES.includes(rawEvidenceClass as EvidenceClass)) {
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      `checker returned an unrecognised evidence class "${describe(
+        rawEvidenceClass
+      )}"`
+    );
+  }
+  if (!codeDeclaredForStatus(definition, rawStatus, rawCode)) {
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      `checker returned an undeclared code "${describe(
+        rawCode
+      )}" for status "${rawStatus}"`
+    );
+  }
+  // The catalog, not the checker, says how strong the proof behind a code
+  // is. codeDeclaredForStatus has already shown the code is one of this
+  // Condition's own, so the table has an entry for it.
+  const evidenceClass = definition.codeEvidenceClass[rawCode];
+  // A PASS resting on evidence the core has no way to verify is a
+  // contradiction: the status claims proof, the evidence class admits
+  // there is none.
+  if (rawStatus === "PASS" && evidenceClass === "not-verifiable") {
+    return malformedResult(
+      definition,
+      "RESULT_MALFORMED",
+      "a PASS cannot rest on unverifiable evidence"
+    );
+  }
+
   return {
     id: rawId,
+    question: definition.question,
     status: rawStatus as ConditionStatus,
+    code: rawCode,
     evidence: rawEvidence,
+    evidenceClass,
+    reference: definition.reference,
   };
 }
 
@@ -144,9 +256,6 @@ function requireObject(value: unknown, field: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-const MAX_EXTRA_CONDITIONS = 32;
-const MAX_CONDITION_ID_LENGTH = 64;
-
 function readConditionIds(request: Record<string, unknown>): {
   ids: string[];
   extraResult?: ConditionResult;
@@ -169,12 +278,45 @@ function readConditionIds(request: Record<string, unknown>): {
   }
   return {
     ids: [],
-    extraResult: {
-      id: "input-shape",
-      status: "UNVERIFIED",
-      evidence: `conditions must be an array of at most ${MAX_EXTRA_CONDITIONS} strings, each at most ${MAX_CONDITION_ID_LENGTH} characters`,
-    },
+    extraResult: coreResult(
+      "input-shape",
+      "INPUT_SHAPE_INVALID",
+      "Is the request and policy shape valid?",
+      `conditions must be an array of at most ${MAX_EXTRA_CONDITIONS} strings, each at most ${MAX_CONDITION_ID_LENGTH} characters`
+    ),
   };
+}
+
+const STATUS_RANK: Record<ConditionStatus, number> = {
+  FAIL: 0,
+  UNVERIFIED: 1,
+  PASS: 2,
+};
+
+// FAIL first, then UNVERIFIED, then PASS; stable within a group (catalog
+// order), since Array.prototype.sort is a stable sort.
+function sortWorstFirst(
+  results: readonly ConditionResult[]
+): ConditionResult[] {
+  return [...results].sort(
+    (a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status]
+  );
+}
+
+const ABSTENTION_PREFIX = "cannot confirm";
+
+// Every UNVERIFIED row says so in the same fixed words, applied centrally
+// here rather than by every checker remembering to write it: a caller can
+// recognise an abstention by its opening words alone, from any Condition or
+// core-level defect.
+function withAbstentionWording(result: ConditionResult): string {
+  if (result.status !== "UNVERIFIED") {
+    return result.evidence;
+  }
+  if (result.evidence.startsWith(ABSTENTION_PREFIX)) {
+    return result.evidence;
+  }
+  return `${ABSTENTION_PREFIX}: ${result.evidence}`;
 }
 
 // A single checker message can embed more than one caller-derived value
@@ -184,22 +326,36 @@ function readConditionIds(request: Record<string, unknown>): {
 function finalizeResponse(
   results: ConditionResult[],
   floorIds: string[],
-  policyPermits: boolean
+  policyPermits: boolean,
+  weights?: Readonly<Record<EvidenceClass, number>>
 ): ConsultResponse {
-  const cappedResults = Object.freeze(
-    results.map((result) =>
-      Object.freeze({
-        id: result.id,
-        status: result.status,
-        evidence: truncate(result.evidence),
-      })
-    )
+  const cappedResults: ConditionResult[] = results.map((result) => ({
+    ...result,
+    evidence: truncate(withAbstentionWording(result)),
+  }));
+
+  // The verdict is decided first, from the checks alone: foldVerdict reads
+  // only `.status` off each result and has never heard of `support`.
+  const verdict = foldVerdict(cappedResults, policyPermits);
+  const sortedResults = Object.freeze(
+    sortWorstFirst(cappedResults).map((result) => Object.freeze(result))
   );
+
+  // The number is computed AFTER the verdict, never before it and never as
+  // an input to it.
+  const floorRan = floorIds.length > 0;
+  const support = supportOf(verdict, sortedResults, floorRan, weights);
+  const band = bandOf(support);
+
   return Object.freeze({
-    verdict: foldVerdict(cappedResults, policyPermits),
-    results: cappedResults,
+    question: RESPONSE_QUESTION,
+    proceed: verdict === "ALLOW_UNDER_POLICY",
+    verdict,
+    support,
+    band,
+    results: sortedResults,
     floorIds: Object.freeze([...floorIds]),
-    advisory: true,
+    advisory: true as const,
   });
 }
 
@@ -209,20 +365,32 @@ function finalizeResponse(
 function singleResultResponse(
   result: ConditionResult,
   extraResults: ConditionResult[],
-  policyPermits: boolean
+  policyPermits: boolean,
+  weights?: Readonly<Record<EvidenceClass, number>>
 ): ConsultResponse {
-  return finalizeResponse([result, ...extraResults], [], policyPermits);
+  return finalizeResponse(
+    [result, ...extraResults],
+    [],
+    policyPermits,
+    weights
+  );
 }
 
-export function unknownResponse(id: string, evidence: string): ConsultResponse {
+export function unknownResponse(
+  code: string,
+  evidence: string
+): ConsultResponse {
   return singleResultResponse(
-    { id, status: "UNVERIFIED", evidence },
+    coreResult(
+      "input-shape",
+      code,
+      "Is the request and policy shape valid?",
+      evidence
+    ),
     [],
     false
   );
 }
-
-const MAX_INPUT_JSON_LENGTH = 64 * 1024;
 
 function isOversized(value: unknown): boolean {
   try {
@@ -237,7 +405,8 @@ function isOversized(value: unknown): boolean {
 function runConsult(
   catalog: Catalog,
   requestInput: unknown,
-  policyInput: unknown
+  policyInput: unknown,
+  weights?: Readonly<Record<EvidenceClass, number>>
 ): ConsultResponse {
   // Deep-frozen structured clones, read first: every field below comes only
   // from these clones, never again from requestInput or policyInput, so a
@@ -250,7 +419,7 @@ function runConsult(
 
   if (isOversized(clonedRequest) || isOversized(clonedPolicy)) {
     return unknownResponse(
-      "input-shape",
+      "INPUT_TOO_LARGE",
       "request or policy JSON exceeds the size limit"
     );
   }
@@ -276,13 +445,15 @@ function runConsult(
 
   if (conditions === undefined) {
     return singleResultResponse(
-      {
-        id: "action-type",
-        status: "UNVERIFIED",
-        evidence: `action type "${describe(type)}" is not in the catalog`,
-      },
+      coreResult(
+        "action-type",
+        "ACTION_TYPE_UNKNOWN",
+        "Is the action type in the catalog?",
+        `action type "${describe(type)}" is not in the catalog`
+      ),
       extraResults,
-      policyPermits
+      policyPermits,
+      weights
     );
   }
 
@@ -291,13 +462,15 @@ function runConsult(
 
   if (floorIds.length === 0) {
     return singleResultResponse(
-      {
-        id: "floor",
-        status: "UNVERIFIED",
-        evidence: "no floor for action type",
-      },
+      coreResult(
+        "floor",
+        "FLOOR_MISSING",
+        "Does the catalog have a mandatory Floor for this action type?",
+        "no floor for action type"
+      ),
       extraResults,
-      policyPermits
+      policyPermits,
+      weights
     );
   }
 
@@ -308,38 +481,44 @@ function runConsult(
     ...extraIds.map((id): ConditionResult => {
       const definition = conditions.find((condition) => condition.id === id);
       if (definition === undefined) {
-        return {
+        return coreResult(
           id,
-          status: "UNVERIFIED",
-          evidence: `condition "${describe(
+          "CONDITION_UNKNOWN",
+          "Is the named condition in the catalog for this action type?",
+          `condition "${describe(
             id
-          )}" is not in the catalog for action type "${describe(type)}"`,
-        };
+          )}" is not in the catalog for action type "${describe(type)}"`
+        );
       }
       return runChecker(definition, request, policy);
     }),
     ...extraResults,
   ];
 
-  return finalizeResponse(results, floorIds, policyPermits);
+  return finalizeResponse(results, floorIds, policyPermits, weights);
 }
 
 /**
  * Binds a catalog to a `(request, policy) => ConsultResponse` function.
  * Never throws: a malformed request or policy resolves to UNKNOWN with an
  * "input-shape" result naming the defect.
+ *
+ * `weights` is not part of the public door: it exists only so tests can
+ * prove the verdict never moves when the evidence-class weight table does
+ * (see consult/src/internal.ts). Production always uses the real table.
  */
 export function makeConsult(
-  catalog: Catalog
+  catalog: Catalog,
+  weights?: Readonly<Record<EvidenceClass, number>>
 ): (request: ConsultRequest, policy: Policy) => ConsultResponse {
   return function consultBound(
     requestInput: unknown,
     policyInput: unknown
   ): ConsultResponse {
     try {
-      return runConsult(catalog, requestInput, policyInput);
+      return runConsult(catalog, requestInput, policyInput, weights);
     } catch (error) {
-      return unknownResponse("input-shape", describeInputError(error));
+      return unknownResponse("INPUT_SHAPE_INVALID", describeInputError(error));
     }
   };
 }

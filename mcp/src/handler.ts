@@ -12,15 +12,39 @@ import { readPolicyFile } from "./policy";
 // that).
 const MAX_ARGUMENT_BYTES = 64 * 1024;
 
+const ADAPTER_REFERENCE = "consult/references/core.md";
+
 // A stop signal every failure below shares: an agent that catches a thrown
 // error might retry or proceed past it, but an UNKNOWN verdict is a normal
 // tool result and gets the same handling as any other verdict. A DENY
 // consult() itself returns is an answer, not a failure, and this function's
-// caller returns it unchanged.
-export function unknownAdapterResponse(evidence: string): ConsultResponse {
+// caller returns it unchanged. Carries the same fields consult() itself
+// returns, so a caller never needs a second code path for an adapter
+// failure versus a genuine UNKNOWN verdict.
+export function unknownAdapterResponse(
+  code: string,
+  evidence: string
+): ConsultResponse {
   return {
+    question:
+      "Should this agent proceed with this payment under the owner's policy?",
+    proceed: false,
     verdict: "UNKNOWN",
-    results: [{ id: "adapter", status: "UNVERIFIED", evidence }],
+    support: 0,
+    band: "red",
+    results: [
+      {
+        id: "adapter",
+        question: "Did the adapter reach a policy and a well-formed request?",
+        status: "UNVERIFIED",
+        code,
+        evidence: evidence.startsWith("cannot confirm")
+          ? evidence
+          : `cannot confirm: ${evidence}`,
+        evidenceClass: "not-verifiable",
+        reference: ADAPTER_REFERENCE,
+      },
+    ],
     floorIds: [],
     advisory: true,
   };
@@ -39,15 +63,24 @@ export function handleConsult(
   try {
     serialized = JSON.stringify(rawArgs) ?? "";
   } catch {
-    return unknownAdapterResponse("tool arguments could not be measured");
+    return unknownAdapterResponse(
+      "ADAPTER_FAILED",
+      "tool arguments could not be measured"
+    );
   }
   if (Buffer.byteLength(serialized, "utf8") > MAX_ARGUMENT_BYTES) {
-    return unknownAdapterResponse("tool arguments exceed the size limit");
+    return unknownAdapterResponse(
+      "ADAPTER_INPUT_TOO_LARGE",
+      "tool arguments exceed the size limit"
+    );
   }
 
   const policyResult = readPolicyFile(policyPath);
   if (!policyResult.ok) {
-    return unknownAdapterResponse(policyResult.reason);
+    return unknownAdapterResponse(
+      "ADAPTER_POLICY_UNREADABLE",
+      policyResult.reason
+    );
   }
 
   // Every key but "request" is ignored: the caller cannot choose the
@@ -62,6 +95,9 @@ export function handleConsult(
   try {
     return consult(request as never, policyResult.policy as never);
   } catch {
-    return unknownAdapterResponse("consult raised an unexpected error");
+    return unknownAdapterResponse(
+      "ADAPTER_FAILED",
+      "consult raised an unexpected error"
+    );
   }
 }

@@ -15,6 +15,7 @@ import {
   UNAPPROVED_RECIPIENT,
   makePolicy,
   makeRequest,
+  testCondition,
 } from "./fixtures";
 
 const FLOOR_IDS = [
@@ -23,6 +24,7 @@ const FLOOR_IDS = [
   "asset-is-canonical",
   "amount-within-cap",
   "chain-matches-intent",
+  "target-is-canonical",
 ];
 
 function deepFreeze<T>(value: T): T {
@@ -40,12 +42,27 @@ describe("consult", () => {
     const response = consult(makeRequest(), makePolicy());
 
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(response.proceed).to.equal(true);
+    expect(response.question).to.equal(
+      "Should this agent proceed with this payment under the owner's policy?"
+    );
+    // Pinned worked value: three owner-policy (0.9) and three
+    // static-registry (0.6) PASS rows, so the weakest is 0.6 and
+    // support = 0.80 + 0.20 * 0.6 = 0.92.
+    expect(response.support).to.equal(0.92);
+    expect(response.band).to.equal("green");
     expect(response.advisory).to.equal(true);
     expect(response.floorIds).to.have.members(FLOOR_IDS);
-    expect(response.results).to.have.length(5);
+    expect(response.results).to.have.length(6);
     response.results.forEach((result) => {
       expect(result.status).to.equal("PASS");
       expect(result.evidence).to.be.a("string").that.is.not.empty;
+      expect(result.question).to.be.a("string").that.is.not.empty;
+      expect(result.code).to.be.a("string").that.is.not.empty;
+      expect(result.reference).to.be.a("string").that.is.not.empty;
+      expect(["onchain-read", "owner-policy", "static-registry"]).to.include(
+        result.evidenceClass
+      );
     });
   });
 
@@ -165,13 +182,13 @@ describe("consult", () => {
   });
 
   it("treats a throwing checker as UNVERIFIED without crashing consult", () => {
-    const throwingCondition: ConditionDefinition = {
+    const throwingCondition: ConditionDefinition = testCondition({
       id: "throws-on-check",
       isFloor: false,
       check: () => {
         throw new TypeError("boom");
       },
-    };
+    });
     const catalog: Catalog = {
       pay: [...PAY_CATALOG.pay, throwingCondition],
     };

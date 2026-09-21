@@ -1,0 +1,255 @@
+[
+  {
+    "id": "clean-request-is-an-authorised-allow",
+    "authorizedAllow": true,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "malformed-amount-negative",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "-5",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "malformed-amount-empty-string",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "malformed-amount-padded-whitespace",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": " 10 ",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "malformed-amount-hex",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "0x10",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "malformed-amount-boolean-true",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": true,
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "oversized-amount",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "10000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "case-variant-poison-address",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x0000000000000000000000000000000000BAD001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x0000000000000000000000000000000000BAD001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "truthy-but-not-strictly-true-permits",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": 1,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "prototype-key-action-type",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "constructor",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  },
+  {
+    "id": "target-is-a-different-contract",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0x1111111111111111111111111111111111111111"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+      "perActionCaps": { "pay": "1000000" }
+    }
+  }
+]

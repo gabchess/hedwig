@@ -102,6 +102,15 @@ describe("handleConsult", () => {
       expect(result.results).to.have.length(1);
       expect(result.results[0].id).to.equal("adapter");
       expect(result.results[0].status).to.equal("UNVERIFIED");
+      // The adapter's own UNKNOWN response carries every new field, and
+      // never a code any consult() Condition would itself declare.
+      expect(result.proceed).to.equal(false);
+      expect(result.support).to.equal(0);
+      expect(result.band).to.equal("red");
+      expect(result.results[0].code).to.equal("ADAPTER_POLICY_UNREADABLE");
+      expect(result.results[0].evidence).to.match(/^cannot confirm/);
+      expect(result.results[0].evidenceClass).to.equal("not-verifiable");
+      expect(result.results[0].reference).to.be.a("string").that.is.not.empty;
     });
 
     it("unreadable file (a directory in its place)", () => {
@@ -182,6 +191,7 @@ describe("handleConsult", () => {
 
     expect(result.verdict).to.equal("UNKNOWN");
     expect(result.results[0].id).to.equal("adapter");
+    expect(result.results[0].code).to.equal("ADAPTER_INPUT_TOO_LARGE");
     expect(elapsedMs).to.be.lessThan(200);
   });
 
