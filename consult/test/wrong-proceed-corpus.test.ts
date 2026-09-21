@@ -23,9 +23,7 @@ interface CorpusEntry {
   authorizedAllow: boolean;
   request: unknown;
   policy: unknown;
-  // Optional: only the swap entries that legitimately need a clock
-  // (deadline-set-and-fresh) carry this. Absent for every pay entry, which
-  // ignores facts entirely.
+  // Optional: entries that need a clock or a role fact carry this.
   facts?: unknown;
 }
 

@@ -134,7 +134,20 @@ describe("handleConsult", () => {
 
       const withRoleEverywhere = handleConsult(
         {
-          request: { ...VALID_REQUEST, solanaRole: GOOD_FACT },
+          request: {
+            ...VALID_REQUEST,
+            solanaRole: GOOD_FACT,
+            facts: {
+              now: Math.floor(Date.now() / 1000),
+              solanaRole: {
+                ...GOOD_FACT,
+                provenance: {
+                  ...GOOD_FACT.provenance,
+                  observedAt: Math.floor(Date.now() / 1000),
+                },
+              },
+            },
+          },
           solanaRole: GOOD_FACT,
           facts: { solanaRole: GOOD_FACT },
           _meta: { facts: { solanaRole: GOOD_FACT } },

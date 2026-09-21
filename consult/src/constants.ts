@@ -19,7 +19,7 @@ export const EVIDENCE_ECHO_LIMIT = 120;
 
 // How old a Solana role fact may be, in seconds, before role-requirement-met
 // stops trusting it. A policy's own maxAgeSeconds must fall at or under this
-// ceiling: the owner can ask for a fresher fact, never a stalen one.
+// ceiling: the owner can ask for a fresher fact, never an older one.
 export const MAX_ROLE_FACT_AGE_SECONDS = 60;
 
 // --- support score (consult/src/support.ts) ---

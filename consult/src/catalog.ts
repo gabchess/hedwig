@@ -8,9 +8,8 @@ import type { CheckerOutcome, EvidenceClass } from "./fold";
 export type SolanaCluster = "devnet" | "testnet" | "mainnet-beta";
 
 // The owner's Solana role requirement, stated by the owner and never by the
-// request. `member` is optional and, when present, is read only by the
-// Reader (a later ticket) that turns it into a `RoleFact`; the Floor
-// Condition here only checks its shape.
+// request. `member` is optional; the Floor Condition checks its shape and
+// never compares it.
 export interface RequiredRolePolicy {
   mode: "required";
   cluster: SolanaCluster;
@@ -45,7 +44,7 @@ export interface Policy {
 // The shape of a Solana role fact `role-requirement-met` reads, and the
 // shape of `context.facts` this repository ever produces. Exported for a
 // caller's own typing; consult() itself still treats `context.facts` as
-// unread, untrusted `unknown` data (see ConditionContext below) — only a
+// unread, untrusted `unknown` data (see ConditionContext below): only a
 // Condition's own checker narrows it, and only after proving each field's
 // shape for itself.
 export interface RoleFactSubject {
@@ -1023,8 +1022,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
   {
     id: "role-requirement-met",
     isFloor: true,
-    question:
-      "Does the agent hold the role the owner requires, or has the owner required none?",
+    question: "Is the owner's role requirement met?",
     reference: `${REFERENCE_ROOT}/role-requirement-met.md`,
     codes: {
       pass: ["ROLE_NOT_REQUIRED", "ROLE_HELD"],
@@ -1346,8 +1344,8 @@ function checkSlippageWithinCeiling(
   };
 }
 
-// facts.now is the only clock consult() ever sees, and only this Condition
-// reads it; every other swap Condition ignores facts entirely.
+// facts.now is the only clock consult() ever sees. This Condition and
+// role-requirement-met are the only ones that read it.
 function checkDeadlineSetAndFresh(
   request: ConsultRequest,
   context: ConditionContext
@@ -1776,8 +1774,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
   {
     id: "role-requirement-met",
     isFloor: true,
-    question:
-      "Does the agent hold the role the owner requires, or has the owner required none?",
+    question: "Is the owner's role requirement met?",
     reference: `${SWAP_REFERENCE_ROOT}/role-requirement-met.md`,
     codes: {
       pass: ["SWAP_ROLE_NOT_REQUIRED", "SWAP_ROLE_HELD"],

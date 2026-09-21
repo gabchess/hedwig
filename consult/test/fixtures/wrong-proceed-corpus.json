@@ -2637,7 +2637,7 @@
         "pay": "1000000"
       },
       "role": {
-        "mode": "REQUIRED",
+        "mode": "NOT-REQUIRED",
         "cluster": "mainnet-beta",
         "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
@@ -2687,7 +2687,7 @@
         "0x00000000000000000000000000000000a11ce001"
       ],
       "role": {
-        "mode": "REQUIRED",
+        "mode": "NOT-REQUIRED",
         "cluster": "mainnet-beta",
         "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",

@@ -1,23 +1,20 @@
 # role-requirement-met
 
-The owner may require the agent to currently hold a named role on a Solana
-program: an org, a role name, and the holder pubkey the role was assigned
-to. The check reads a fact about that role record, observed at a stated
-time by the caller of `consult()`, and compares it with the holder the
-owner named. It never calls Solana itself; the fact is supplied as data,
-the same way `facts.now` is. The check flags a stale fact, a fact about a
-different role or holder than the one the owner named, and a role the
-owner's own program reports as disabled, expired, or unassigned. It does
-not claim that the agent controls the holder key: proving a transaction
-signer is the named holder is a separate concern for the caller integrating
-this Condition's result.
+Every policy states the owner's choice about a Solana role: required, or
+not required. When a role is required, the check reads a fact about that
+role record, observed at a stated time and supplied by the caller of
+`consult()` as data, the same way `facts.now` is, and compares its subject
+with the cluster, program, role and holder the owner named. `consult()`
+makes no network call. The check flags a stale fact, a fact about a
+different role or holder than the one the owner named, and a fact that
+reports the role as disabled, expired, or unassigned.
 
 When the owner's policy sets `role.mode` to `"not-required"`, this row
-passes without looking at any fact: the owner asked for no role, so none is
-owed. A `mode: "required"` policy names `cluster`, `programId`, `role`, and
-`holder` (each a 32-to-44-character base58 id), an optional `member` id the
-Reader that turns a role record into a fact will use, and `maxAgeSeconds`,
-the freshest a fact may be and still count.
+passes without looking at any fact. A `mode: "required"` policy names a
+`cluster` (`devnet`, `testnet` or `mainnet-beta`); a `programId`, `role`
+and `holder`, each a base58 id of 32 to 44 characters; an optional `member`
+id of the same shape, which this check never compares; and `maxAgeSeconds`,
+the oldest a fact may be and still count, an integer from 1 to 60.
 
 - PASS: `role.mode` is `"not-required"`, or it is `"required"` with a
   well-formed policy, a supplied `solanaRole` fact whose subject exactly

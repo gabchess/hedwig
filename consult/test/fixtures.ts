@@ -208,7 +208,7 @@ export function makeGoodRoleFact(
     valid: true,
     reason: "ok",
     provenance: {
-      source: "hedwig-mcp-role-reader",
+      source: "rpc.example",
       slot: 123456789,
       commitment: "confirmed",
       observedAt: ROLE_FACT_OBSERVED_AT,
