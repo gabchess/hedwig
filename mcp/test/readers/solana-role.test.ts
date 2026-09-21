@@ -289,6 +289,36 @@ describe("gatherSolanaRole: valid true requires the program's own success line (
       ],
     ],
     [
+      "logs has the success line AND a failed line in the form the runtime writes",
+      [
+        `Program ${GOLDEN.programId} invoke [1]`,
+        `Program ${GOLDEN.programId} failed: custom program error: 0x1`,
+        `Program ${GOLDEN.programId} success`,
+      ],
+    ],
+    [
+      "logs has the success line AND a bare failed line",
+      [
+        `Program ${GOLDEN.programId} invoke [1]`,
+        `Program ${GOLDEN.programId} failed`,
+        `Program ${GOLDEN.programId} success`,
+      ],
+    ],
+    [
+      "logs only quotes the success line inside a program log",
+      [
+        `Program ${GOLDEN.programId} invoke [1]`,
+        `Program log: Program ${GOLDEN.programId} success`,
+      ],
+    ],
+    [
+      "logs has the success line with trailing text",
+      [
+        `Program ${GOLDEN.programId} invoke [1]`,
+        `Program ${GOLDEN.programId} success extra`,
+      ],
+    ],
+    [
       "logs names a different program's success",
       ["Program 11111111111111111111111111111111 success"],
     ],

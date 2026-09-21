@@ -53,7 +53,7 @@ describe("readers/config: readClusterConfig (env injected, never process.env)", 
     expect(lines).to.have.length(1);
   });
 
-  it("rejects a URL with user-info instead of letting a real fetch throw later", () => {
+  it("rejects a URL with user-info at configuration time", () => {
     const canary = "CANARY-USERINFO-SECRET";
     const { lines, restore } = captureErrors();
     const config = readClusterConfig("devnet", {

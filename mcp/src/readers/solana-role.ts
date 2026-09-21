@@ -254,11 +254,16 @@ function readOutcome(
   const logs = valueRecord.logs;
 
   const successLine = `Program ${programId} success`;
+  // The runtime writes a failure as "Program <id> failed: <reason>" and an
+  // invoke as "Program <id> invoke [<depth>]", so both are prefix matches
+  // up to their own separator. The success line carries nothing after it
+  // and stays exact.
   const failedLine = `Program ${programId} failed`;
-  // A real invoke line carries a call-depth suffix ("Program <id> invoke
-  // [1]"), so this is a prefix match; success and failed lines never carry
-  // that suffix, so those stay exact.
-  const invokeLinePrefix = `Program ${programId} invoke`;
+  const invokeLinePrefix = `Program ${programId} invoke [`;
+  const hasFailedLine = (lines: readonly string[]): boolean =>
+    lines.some(
+      (line) => line === failedLine || line.startsWith(`${failedLine}:`)
+    );
 
   if (err === null) {
     if (slot <= 0) {
@@ -267,7 +272,7 @@ function readOutcome(
     if (!isStringArray(logs) || logs.length === 0) {
       return undefined;
     }
-    if (!logs.includes(successLine) || logs.includes(failedLine)) {
+    if (!logs.includes(successLine) || hasFailedLine(logs)) {
       return undefined;
     }
     return { slot, configDefect: false, valid: true, reason: "ok" };

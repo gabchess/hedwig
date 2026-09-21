@@ -232,6 +232,29 @@ describe("handleConsult: the Solana role Reader wired end to end", function () {
     expect(row?.code).to.equal("ROLE_FACT_MISSING");
   });
 
+  it("reads the fact's observedAt before the call and consult's clock after it", async () => {
+    // A clock that moves one second on every read: with the right order the
+    // fact is one second old; with consult's clock read first, the fact
+    // would be observed in the future and the role row could not PASS.
+    const realNow = Date.now;
+    let reads = 0;
+    const base = realNow();
+    Date.now = () => base + 1000 * reads++;
+    try {
+      globalThis.fetch = (async () =>
+        fakeResponse(200, OK_BODY)) as unknown as typeof fetch;
+      const result = await handleConsult(
+        { request: PAY_REQUEST },
+        payPolicyPath
+      );
+      const row = result.results.find((r) => r.id === "role-requirement-met");
+      expect(row?.code).to.equal("ROLE_HELD");
+      expect(result.verdict).to.equal("ALLOW_UNDER_POLICY");
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
   it("text block and structuredContent match consult() called directly", async () => {
     globalThis.fetch = (async () =>
       fakeResponse(200, OK_BODY)) as unknown as typeof fetch;

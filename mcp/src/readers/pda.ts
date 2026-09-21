@@ -45,7 +45,8 @@ const CURVE25519_D = mod(
 // little-endian with the sign bit cleared, x^2 = (y^2-1)/(d*y^2+1) mod p,
 // and the encoding is a curve point iff x^2 is zero or a quadratic residue
 // (Euler's criterion: x2^((p-1)/2) mod p === 1). A non-canonical y (>= p)
-// is treated as not a point, the same as an unrecognised encoding.
+// is not a point, and neither is x = 0 with the sign bit set: zero has no
+// negative, so that encoding names nothing.
 export function isOnCurve(bytes: Buffer): boolean {
   if (bytes.length !== 32) {
     return false;
@@ -54,6 +55,7 @@ export function isOnCurve(bytes: Buffer): boolean {
   for (let i = 31; i >= 0; i--) {
     y = (y << 8n) | BigInt(bytes[i]);
   }
+  const signBitSet = (bytes[31] & 0x80) !== 0;
   y &= (1n << 255n) - 1n;
   if (y >= CURVE25519_P) {
     return false;
@@ -67,7 +69,7 @@ export function isOnCurve(bytes: Buffer): boolean {
   }
   const x2 = mod(u * modInverse(v, CURVE25519_P), CURVE25519_P);
   if (x2 === 0n) {
-    return true;
+    return !signBitSet;
   }
   return powMod(x2, (CURVE25519_P - 1n) / 2n, CURVE25519_P) === 1n;
 }
