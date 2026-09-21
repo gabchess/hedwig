@@ -17,6 +17,11 @@ export const MAX_INPUT_JSON_LENGTH = 64 * 1024;
 // cannot blow up a log or a report.
 export const EVIDENCE_ECHO_LIMIT = 120;
 
+// How old a Solana role fact may be, in seconds, before role-requirement-met
+// stops trusting it. A policy's own maxAgeSeconds must fall at or under this
+// ceiling: the owner can ask for a fresher fact, never a stalen one.
+export const MAX_ROLE_FACT_AGE_SECONDS = 60;
+
 // --- support score (consult/src/support.ts) ---
 
 // How strong the proof behind a PASS is, strongest to weakest. A PASS can
