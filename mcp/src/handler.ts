@@ -27,7 +27,7 @@ export function unknownAdapterResponse(
 ): ConsultResponse {
   return {
     question:
-      "Should this agent proceed with this payment under the owner's policy?",
+      "Should this agent proceed with this action under the owner's policy?",
     proceed: false,
     verdict: "UNKNOWN",
     support: 0,
@@ -93,7 +93,12 @@ export function handleConsult(
       : undefined;
 
   try {
-    return consult(request as never, policyResult.policy as never);
+    // The adapter is the only clock consult() ever sees: it supplies
+    // `now` as data on every call, and the tool's own input schema has no
+    // `facts` field, so a caller can never substitute a different one.
+    return consult(request as never, policyResult.policy as never, {
+      now: Math.floor(Date.now() / 1000),
+    });
   } catch {
     return unknownAdapterResponse(
       "ADAPTER_FAILED",

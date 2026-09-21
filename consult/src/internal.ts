@@ -17,7 +17,11 @@ import type { EvidenceClass } from "./fold";
 export function consultWith(
   catalog: Catalog,
   weights?: Readonly<Record<EvidenceClass, number>>
-): (request: ConsultRequest, policy: Policy) => ConsultResponse {
+): (
+  request: ConsultRequest,
+  policy: Policy,
+  facts?: unknown
+) => ConsultResponse {
   const defect = validateCatalog(catalog);
   if (defect !== undefined) {
     return () => unknownResponse("INPUT_SHAPE_INVALID", defect);

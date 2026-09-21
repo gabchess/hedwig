@@ -19,13 +19,26 @@ import {
 import { bandOf, supportOf } from "./support";
 import type { Band, ConditionResult } from "./types";
 
-// The one question every ConsultResponse answers, always the same text: a
-// caller acts on `proceed`, never on parsing `verdict` or `results` itself.
-const RESPONSE_QUESTION =
-  "Should this agent proceed with this payment under the owner's policy?" as const;
+// The question is fixed catalog text keyed by action type, never built from
+// request text. An action type the catalog does not know (or a request too
+// malformed to even name one) gets the generic fallback, never a guess.
+const RESPONSE_QUESTION_BY_ACTION_TYPE: Readonly<Record<string, string>> =
+  Object.freeze({
+    pay: "Should this agent proceed with this payment under the owner's policy?",
+    swap: "Should this agent proceed with this swap under the owner's policy?",
+  });
+const DEFAULT_RESPONSE_QUESTION =
+  "Should this agent proceed with this action under the owner's policy?";
+
+function questionForActionType(type: unknown): string {
+  return typeof type === "string" &&
+    Object.hasOwn(RESPONSE_QUESTION_BY_ACTION_TYPE, type)
+    ? RESPONSE_QUESTION_BY_ACTION_TYPE[type]
+    : DEFAULT_RESPONSE_QUESTION;
+}
 
 export interface ConsultResponse {
-  readonly question: typeof RESPONSE_QUESTION;
+  readonly question: string;
   readonly proceed: boolean;
   readonly verdict: Verdict;
   readonly support: number;
@@ -105,11 +118,12 @@ function codeDeclaredForStatus(
 function runChecker(
   definition: ConditionDefinition,
   request: ConsultRequest,
-  policy: Policy
+  policy: Policy,
+  facts: unknown
 ): ConditionResult {
   let outcome: unknown;
   try {
-    outcome = definition.check(request, { policy });
+    outcome = definition.check(request, { policy, facts });
   } catch (error) {
     return malformedResult(
       definition,
@@ -324,6 +338,7 @@ function withAbstentionWording(result: ConditionResult): string {
 // the way in is not enough to bound the composed sentence, so every
 // evidence string is capped again, once, right before it leaves consult().
 function finalizeResponse(
+  question: string,
   results: ConditionResult[],
   floorIds: string[],
   policyPermits: boolean,
@@ -348,7 +363,7 @@ function finalizeResponse(
   const band = bandOf(support);
 
   return Object.freeze({
-    question: RESPONSE_QUESTION,
+    question,
     proceed: verdict === "ALLOW_UNDER_POLICY",
     verdict,
     support,
@@ -363,12 +378,14 @@ function finalizeResponse(
 // (a broken catalog, an unknown action type, a catalog with no Floor, a
 // malformed or oversized input).
 function singleResultResponse(
+  question: string,
   result: ConditionResult,
   extraResults: ConditionResult[],
   policyPermits: boolean,
   weights?: Readonly<Record<EvidenceClass, number>>
 ): ConsultResponse {
   return finalizeResponse(
+    question,
     [result, ...extraResults],
     [],
     policyPermits,
@@ -381,6 +398,7 @@ export function unknownResponse(
   evidence: string
 ): ConsultResponse {
   return singleResultResponse(
+    DEFAULT_RESPONSE_QUESTION,
     coreResult(
       "input-shape",
       code,
@@ -406,6 +424,7 @@ function runConsult(
   catalog: Catalog,
   requestInput: unknown,
   policyInput: unknown,
+  factsInput: unknown,
   weights?: Readonly<Record<EvidenceClass, number>>
 ): ConsultResponse {
   // Deep-frozen structured clones, read first: every field below comes only
@@ -413,19 +432,29 @@ function runConsult(
   // checker (or consult itself) can never see one value while deciding and
   // a different value while acting on the same request. Size is measured
   // on the clone rather than the raw input for the same reason: measuring
-  // the raw input would read a hostile getter a second time.
+  // the raw input would read a hostile getter a second time. `facts` gets
+  // the same treatment (cloned, size-capped), but never the `requireObject`
+  // a malformed request or policy gets: a missing or malformed `facts` is
+  // never a reason to refuse the whole request, only for whichever
+  // Condition reads it to answer UNVERIFIED.
   const clonedRequest = structuredClone(requestInput);
   const clonedPolicy = structuredClone(policyInput);
+  const clonedFacts = structuredClone(factsInput);
 
-  if (isOversized(clonedRequest) || isOversized(clonedPolicy)) {
+  if (
+    isOversized(clonedRequest) ||
+    isOversized(clonedPolicy) ||
+    isOversized(clonedFacts)
+  ) {
     return unknownResponse(
       "INPUT_TOO_LARGE",
-      "request or policy JSON exceeds the size limit"
+      "request, policy, or facts JSON exceeds the size limit"
     );
   }
 
   const request = deepFreeze(clonedRequest) as unknown as ConsultRequest;
   const policy = deepFreeze(clonedPolicy) as unknown as Policy;
+  const facts = deepFreeze(clonedFacts);
 
   const requestObj = requireObject(request, "request");
   const actionObj = requireObject(requestObj.action, "request.action");
@@ -436,6 +465,7 @@ function runConsult(
   const extraResults = extraResult ? [extraResult] : [];
 
   const type = actionObj.type;
+  const question = questionForActionType(type);
   const conditions =
     typeof type === "string" &&
     Object.hasOwn(catalog, type) &&
@@ -445,6 +475,7 @@ function runConsult(
 
   if (conditions === undefined) {
     return singleResultResponse(
+      question,
       coreResult(
         "action-type",
         "ACTION_TYPE_UNKNOWN",
@@ -462,6 +493,7 @@ function runConsult(
 
   if (floorIds.length === 0) {
     return singleResultResponse(
+      question,
       coreResult(
         "floor",
         "FLOOR_MISSING",
@@ -477,7 +509,9 @@ function runConsult(
   const extraIds = extraIdsRaw.filter((id) => !floorIds.includes(id));
 
   const results: ConditionResult[] = [
-    ...floor.map((definition) => runChecker(definition, request, policy)),
+    ...floor.map((definition) =>
+      runChecker(definition, request, policy, facts)
+    ),
     ...extraIds.map((id): ConditionResult => {
       const definition = conditions.find((condition) => condition.id === id);
       if (definition === undefined) {
@@ -490,18 +524,18 @@ function runConsult(
           )}" is not in the catalog for action type "${describe(type)}"`
         );
       }
-      return runChecker(definition, request, policy);
+      return runChecker(definition, request, policy, facts);
     }),
     ...extraResults,
   ];
 
-  return finalizeResponse(results, floorIds, policyPermits, weights);
+  return finalizeResponse(question, results, floorIds, policyPermits, weights);
 }
 
 /**
- * Binds a catalog to a `(request, policy) => ConsultResponse` function.
- * Never throws: a malformed request or policy resolves to UNKNOWN with an
- * "input-shape" result naming the defect.
+ * Binds a catalog to a `(request, policy, facts?) => ConsultResponse`
+ * function. Never throws: a malformed request or policy resolves to
+ * UNKNOWN with an "input-shape" result naming the defect.
  *
  * `weights` is not part of the public door: it exists only so tests can
  * prove the verdict never moves when the evidence-class weight table does
@@ -510,13 +544,24 @@ function runConsult(
 export function makeConsult(
   catalog: Catalog,
   weights?: Readonly<Record<EvidenceClass, number>>
-): (request: ConsultRequest, policy: Policy) => ConsultResponse {
+): (
+  request: ConsultRequest,
+  policy: Policy,
+  facts?: unknown
+) => ConsultResponse {
   return function consultBound(
     requestInput: unknown,
-    policyInput: unknown
+    policyInput: unknown,
+    factsInput?: unknown
   ): ConsultResponse {
     try {
-      return runConsult(catalog, requestInput, policyInput, weights);
+      return runConsult(
+        catalog,
+        requestInput,
+        policyInput,
+        factsInput,
+        weights
+      );
     } catch (error) {
       return unknownResponse("INPUT_SHAPE_INVALID", describeInputError(error));
     }

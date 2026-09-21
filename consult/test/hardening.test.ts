@@ -864,12 +864,12 @@ describe("consult hardening: item 3 the catalog self-check", () => {
     });
   });
 
-  it("consult() takes exactly the request and the policy: a caller cannot pass a third, catalog-shaped argument and change the outcome", () => {
-    // The type system is the real enforcement (consult has no third
+  it("consult() takes exactly the request, the policy, and facts: a caller cannot pass a fourth, catalog-shaped argument and change the outcome", () => {
+    // The type system is the real enforcement (consult has no fourth
     // parameter to accept a catalog); this runtime check pins the same
-    // fact for the compiled call: passing a would-be catalog as a third
+    // fact for the compiled call: passing a would-be catalog as a fourth
     // argument at the JS boundary is silently ignored, never honoured.
-    expect(consult.length).to.equal(2);
+    expect(consult.length).to.equal(3);
     const alwaysPass: ConditionDefinition = testCondition({
       id: "always-pass",
       isFloor: true,
@@ -888,9 +888,10 @@ describe("consult hardening: item 3 the catalog self-check", () => {
       consult as unknown as (
         request: unknown,
         policy: unknown,
+        facts: unknown,
         catalog: unknown
       ) => ConsultResponse
-    )(poisonedRequest, makePolicy(), { pay: [alwaysPass] });
+    )(poisonedRequest, makePolicy(), undefined, { pay: [alwaysPass] });
     expect(response.verdict).to.equal("DENY");
   });
 });
