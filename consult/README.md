@@ -15,6 +15,8 @@ const response = consult(request, policy);
 
 `support` shows how much of the owner's checklist was proven and how strong the proof behind it was; it never decides `verdict`. Callers act on `proceed`. `results` lists the worst outcome first: FAIL, then UNVERIFIED, then PASS.
 
+A pay or swap policy may also require a Solana role: `role: { mode: "not-required" }`, or `role: { mode: "required", cluster, programId, role, holder, maxAgeSeconds }`.
+
 A swap request adds a third, optional argument, `facts`, the only place a clock ever enters: `consult(request, policy, { now })`. `pay` never reads it.
 
 ```ts
