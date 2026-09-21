@@ -3,7 +3,11 @@ import type { ConsultResponse } from "@hedwig/consult";
 
 import { readPolicyFile } from "./policy";
 import { getSolanaClusterConfig } from "./readers/config";
-import { gatherSolanaRole, SIMULATE_DEADLINE_MS } from "./readers/solana-role";
+import {
+  clusterForRoleRequirement,
+  gatherSolanaRole,
+  SIMULATE_DEADLINE_MS,
+} from "./readers/solana-role";
 
 // The wire's one edge guard: a small request must never buy a policy read
 // or a consult() run. Measured in bytes, so a multi-byte character cannot pass a
@@ -64,18 +68,6 @@ function readPolicyRole(policy: unknown): unknown {
   return (policy as Record<string, unknown>).role;
 }
 
-function readPolicyRoleCluster(policyRole: unknown): string | undefined {
-  if (
-    policyRole === null ||
-    typeof policyRole !== "object" ||
-    Array.isArray(policyRole)
-  ) {
-    return undefined;
-  }
-  const cluster = (policyRole as Record<string, unknown>).cluster;
-  return typeof cluster === "string" ? cluster : undefined;
-}
-
 // The plain handler behind the one MCP tool. Takes the raw tool call
 // arguments exactly as the transport delivered them and the policy file
 // path (never taken from the arguments), and returns exactly what
@@ -120,26 +112,31 @@ export async function handleConsult(
 
   // The Solana role Reader reads only the owner's policy file (read above)
   // and its own env-configured cluster settings: the request is never
-  // consulted here, so nothing a caller sends can steer the outbound call
-  // or the resulting fact. gatherSolanaRole itself never throws or
-  // rejects, so a config defect or a network failure surfaces as an
-  // absent fact, not as an adapter failure.
+  // consulted here, so nothing a caller sends can steer which cluster is
+  // read, the outbound call, or the resulting fact (pinned by a test: a
+  // request stuffing its own "cluster" field changes nothing).
+  // clusterForRoleRequirement applies the same mode/cluster/programId
+  // checks gatherSolanaRole itself uses, so a "not-required" policy, or a
+  // required one naming an unrecognised cluster or the wrong programId,
+  // never reaches config.ts and never triggers its startup lines.
+  // gatherSolanaRole itself never throws or rejects, so a config defect or
+  // a network failure surfaces as an absent fact, not as an adapter
+  // failure.
   const policyRole = readPolicyRole(policyResult.policy);
-  const clusterConfig = getSolanaClusterConfig(
-    readPolicyRoleCluster(policyRole) ?? ""
-  );
-  // One clock reading shared by both consult()'s `now` and the Reader's
-  // `observedAt`: reading Date.now() twice, moments apart, could otherwise
-  // straddle a second boundary and manufacture a fact that looks stale
-  // before consult() ever sees it.
-  const now = Math.floor(Date.now() / 1000);
+  const cluster = clusterForRoleRequirement(policyRole);
+  const clusterConfig = cluster ? getSolanaClusterConfig(cluster) : undefined;
   const solanaRole = await gatherSolanaRole(policyRole, {
     fetch: globalThis.fetch,
-    now: () => now,
+    // observedAt: read inside the Reader, right before it sends.
+    now: () => Math.floor(Date.now() / 1000),
     feePayer: clusterConfig?.feePayer,
     rpcUrl: clusterConfig?.rpcUrl,
     deadlineMs: SIMULATE_DEADLINE_MS,
   });
+  // consult()'s own clock: read only after the Reader has returned, so the
+  // gap between it and the fact's observedAt reflects how long the actual
+  // round trip took, and a stale fact can be detected at all.
+  const now = Math.floor(Date.now() / 1000);
 
   try {
     // The adapter is the only clock and the only Solana reader consult()

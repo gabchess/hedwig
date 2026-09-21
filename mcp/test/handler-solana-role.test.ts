@@ -28,7 +28,6 @@ const REQUIRED_ROLE = {
   programId: GOLDEN.programId,
   role: GOLDEN.role,
   holder: GOLDEN.holder,
-  member: GOLDEN.member,
   maxAgeSeconds: 60,
 };
 
@@ -97,14 +96,28 @@ function rpcResult(err: unknown, logs: string[]): string {
   });
 }
 
-const OK_BODY = rpcResult(null, ["Program log: ok"]);
+const OK_BODY = rpcResult(null, [
+  `Program ${GOLDEN.programId} invoke [1]`,
+  `Program ${GOLDEN.programId} success`,
+]);
 const MEMBER_MISSING_BODY = rpcResult(
   { InstructionError: [0, { Custom: 3012 }] },
-  ["AnchorError: AccountNotInitialized"]
+  [
+    `Program ${GOLDEN.programId} invoke [1]`,
+    "Program log: AnchorError, Custom(3012)",
+  ]
 );
 
-function fakeResponse(status: number, body: string): Response {
-  return { status, text: async () => body } as unknown as Response;
+function fakeResponse(
+  status: number,
+  body: string,
+  extra: Partial<{ redirected: boolean }> = {}
+): Response {
+  return {
+    status,
+    redirected: extra.redirected ?? false,
+    text: async () => body,
+  } as unknown as Response;
 }
 
 describe("handleConsult: the Solana role Reader wired end to end", function () {
@@ -116,6 +129,10 @@ describe("handleConsult: the Solana role Reader wired end to end", function () {
   let originalFetch: typeof globalThis.fetch;
   let originalDevnetUrl: string | undefined;
   let originalDevnetFeePayer: string | undefined;
+  let originalMainnetUrl: string | undefined;
+  let originalMainnetFeePayer: string | undefined;
+
+  const MAINNET_RPC_URL = "https://api.mainnet-beta.solana.com/";
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "hedwig-mcp-solana-e2e-"));
@@ -127,8 +144,12 @@ describe("handleConsult: the Solana role Reader wired end to end", function () {
     originalFetch = globalThis.fetch;
     originalDevnetUrl = process.env.HEDWIG_SOLANA_RPC_URL_DEVNET;
     originalDevnetFeePayer = process.env.HEDWIG_SOLANA_FEE_PAYER_DEVNET;
+    originalMainnetUrl = process.env.HEDWIG_SOLANA_RPC_URL_MAINNET;
+    originalMainnetFeePayer = process.env.HEDWIG_SOLANA_FEE_PAYER_MAINNET;
     process.env.HEDWIG_SOLANA_RPC_URL_DEVNET = RPC_URL;
     process.env.HEDWIG_SOLANA_FEE_PAYER_DEVNET = GOLDEN.feePayer;
+    process.env.HEDWIG_SOLANA_RPC_URL_MAINNET = MAINNET_RPC_URL;
+    process.env.HEDWIG_SOLANA_FEE_PAYER_MAINNET = GOLDEN.feePayer;
     __resetSolanaClusterConfigForTests();
   });
 
@@ -144,6 +165,16 @@ describe("handleConsult: the Solana role Reader wired end to end", function () {
       delete process.env.HEDWIG_SOLANA_FEE_PAYER_DEVNET;
     } else {
       process.env.HEDWIG_SOLANA_FEE_PAYER_DEVNET = originalDevnetFeePayer;
+    }
+    if (originalMainnetUrl === undefined) {
+      delete process.env.HEDWIG_SOLANA_RPC_URL_MAINNET;
+    } else {
+      process.env.HEDWIG_SOLANA_RPC_URL_MAINNET = originalMainnetUrl;
+    }
+    if (originalMainnetFeePayer === undefined) {
+      delete process.env.HEDWIG_SOLANA_FEE_PAYER_MAINNET;
+    } else {
+      process.env.HEDWIG_SOLANA_FEE_PAYER_MAINNET = originalMainnetFeePayer;
     }
     __resetSolanaClusterConfigForTests();
   });
@@ -278,5 +309,64 @@ describe("handleConsult: the Solana role Reader wired end to end", function () {
     await handleConsult({ request: PAY_REQUEST }, notRequiredPolicyPath);
 
     expect(calls).to.equal(0);
+  });
+
+  it("a not-required or wrong-programId policy never reaches config.ts at all (S2)", async () => {
+    const originalError = console.error;
+    const errorLines: unknown[] = [];
+    console.error = (...args: unknown[]) => errorLines.push(args);
+    try {
+      delete process.env.HEDWIG_SOLANA_FEE_PAYER_DEVNET;
+      __resetSolanaClusterConfigForTests();
+
+      const notRequiredPolicyPath = join(dir, "not-required-policy.json");
+      writeFileSync(
+        notRequiredPolicyPath,
+        JSON.stringify({ ...PAY_POLICY, role: { mode: "not-required" } })
+      );
+      await handleConsult({ request: PAY_REQUEST }, notRequiredPolicyPath);
+      expect(errorLines).to.have.length(0);
+
+      const wrongProgramIdPolicyPath = join(dir, "wrong-program-policy.json");
+      writeFileSync(
+        wrongProgramIdPolicyPath,
+        JSON.stringify({
+          ...PAY_POLICY,
+          role: { ...REQUIRED_ROLE, programId: GOLDEN.role },
+        })
+      );
+      await handleConsult({ request: PAY_REQUEST }, wrongProgramIdPolicyPath);
+      expect(errorLines).to.have.length(0);
+    } finally {
+      console.error = originalError;
+    }
+  });
+
+  it("the caller cannot choose the cluster: a mainnet policy always calls the mainnet URL (S3)", async () => {
+    let calledUrl: unknown;
+    globalThis.fetch = (async (url: unknown) => {
+      calledUrl = url;
+      return fakeResponse(200, OK_BODY);
+    }) as unknown as typeof fetch;
+
+    const mainnetPolicyPath = join(dir, "mainnet-policy.json");
+    writeFileSync(
+      mainnetPolicyPath,
+      JSON.stringify({
+        ...PAY_POLICY,
+        role: { ...REQUIRED_ROLE, cluster: "mainnet-beta" },
+      })
+    );
+
+    await handleConsult(
+      {
+        request: { ...PAY_REQUEST, cluster: "devnet" },
+        cluster: "devnet",
+        facts: { cluster: "devnet" },
+      },
+      mainnetPolicyPath
+    );
+
+    expect(calledUrl).to.equal(MAINNET_RPC_URL);
   });
 });
