@@ -57,7 +57,7 @@ outside this repository. Every proper name, link, and status claim must make
 sense without access to a maintainer's local environment. Public grant,
 adoption, deployment, and security claims must link to public evidence.
 
-Run `yarn public:check` before opening a pull request.
+Run `yarn public:check` before opening a pull request. The check reads an optional list of extra patterns from the git info directory; without that file, run `PUBLIC_BOUNDARY_PRIVATE_PATTERNS_FILE= yarn public:check`.
 
 ## Pull request bar
 
