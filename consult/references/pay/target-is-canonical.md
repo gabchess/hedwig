@@ -2,8 +2,8 @@
 
 The contract the transaction actually calls is checked against the same
 canonical deployment registry `asset-is-canonical` reads, keyed by chain and
-symbol. This prevents a payment from routing through a contract other than
-the asset's own canonical contract, even when the recipient, amount, and
+symbol. The check flags a payment that calls any contract other than the
+asset's own canonical contract, even when the recipient, amount, and
 declared asset all look correct.
 
 - PASS: the target contract matches the registry's canonical entry.

@@ -2,8 +2,8 @@
 
 The request's chain identifier is checked against the chain the owner named
 in their policy, both parsed as a CAIP-2 chain id (for example
-`eip155:1`). This prevents a payment intended for one chain from being
-carried out on a different chain the owner never authorized for it.
+`eip155:1`). The check flags a payment meant for one chain that is
+about to run on a chain the owner did not name.
 
 - PASS: both chain ids are well-formed CAIP-2 ids and match exactly.
 - FAIL: both chain ids are well-formed CAIP-2 ids but do not match.

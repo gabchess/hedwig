@@ -13,6 +13,6 @@ const response = consult(request, policy);
 // response.floorIds, response.advisory: true
 ```
 
-`support` shows how much of the owner's checklist was proven and how strong the proof behind it was; it never decides `verdict`. Callers act on `proceed`.
+`support` shows how much of the owner's checklist was proven and how strong the proof behind it was; it never decides `verdict`. Callers act on `proceed`. `results` lists the worst outcome first: FAIL, then UNVERIFIED, then PASS.
 
 Run `yarn consult:typecheck` and `yarn consult:test`.
