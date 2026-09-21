@@ -42,6 +42,11 @@ jobs:
           yarn sdk:typecheck
           yarn sdk:test
 
+      - name: Typecheck and test consult
+        run: |
+          yarn consult:typecheck
+          yarn consult:test
+
       - name: Build the SDK
         run: yarn sdk:build
 
