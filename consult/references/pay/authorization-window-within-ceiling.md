@@ -36,6 +36,6 @@ integer from 1 to 86400.
 - EIP-3009, `transferWithAuthorization`'s `validBefore` parameter, "the
   time before which this is valid (unix time)":
   https://eips.ethereum.org/EIPS/eip-3009
-- The x402 specification's `maxTimeoutSeconds`, the field a facilitator
-  derives an authorization's window from:
+- The x402 specification's `maxTimeoutSeconds`, "maximum time allowed for
+  payment completion":
   https://github.com/coinbase/x402/blob/main/specs/x402-specification-v1.md

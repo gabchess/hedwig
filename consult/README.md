@@ -19,7 +19,7 @@ Every policy states its choice about a Solana role: `role: { mode: "not-required
 
 A `pay` policy states the same choice about an EIP-3009 authorization window: `authorizationWindow: { mode: "not-required" }`, or `authorizationWindow: { mode: "required", maxSeconds }`.
 
-The third, optional argument, `facts`, is the only place a clock or a chain observation enters: `consult(request, policy, { now, solanaRole })`. A swap reads `now` for its deadline; a required role reads `now` and `solanaRole`.
+The third, optional argument, `facts`, is the only place a clock or a chain observation enters: `consult(request, policy, { now, solanaRole })`. A swap reads `now` for its deadline; a required role reads `now` and `solanaRole`; a required authorization window reads `now`.
 
 ```ts
 const swapResponse = consult(

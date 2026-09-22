@@ -54,8 +54,8 @@ export interface Policy {
   // guessing a default.
   role?: RolePolicy;
   // pay-only: whether an EIP-3009 authorization's validBefore must fall
-  // within a bounded window. Optional for the same reason `role` is: a
-  // fixture written before this field existed keeps its earned allow.
+  // within a bounded window. Optional in the type only: like `role`, a
+  // policy that omits it answers UNVERIFIED rather than guessing a default.
   authorizationWindow?: AuthorizationWindowPolicy;
 }
 
