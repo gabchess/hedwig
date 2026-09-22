@@ -17,3 +17,4 @@ contract on both sides.
 
 - Circle Developer Docs, "USDC Contract Addresses": https://developers.circle.com/stablecoins/usdc-contract-addresses
 - weth.io, canonical WETH contract addresses by chain: https://weth.io
+- Base, "Base Contracts", the chain's own list of its core contract addresses, including WETH: https://docs.base.org/base-chain/network-information/base-contracts
