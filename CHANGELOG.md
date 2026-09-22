@@ -4,9 +4,15 @@ Versions track shipped code.
 
 ## Unreleased
 
+## [0.3.0] - 2026-09-22
+
+A new Floor Condition is a versioned change for every policy: a policy that omits the Condition's field answers `UNKNOWN` with a code naming the field, and a policy opts out with `{ "mode": "not-required" }`.
+
 ### Added
 
-- `authorization-window-within-ceiling`, a `pay` Floor Condition comparing an EIP-3009 authorization's `validBefore` against the owner's `authorizationWindow` policy. `policyFields` on every catalog Condition names which Policy fields its checker reads.
+- `authorization-window-within-ceiling`, a `pay` Floor Condition comparing an EIP-3009 authorization's `validBefore` against the owner's `authorizationWindow` policy. (#48)
+- `policyFields` on every catalog Condition, exposed by `describeCatalog()` and `augment/data/conditions.json`: the policy fields each checker reads, so a policy can be checked against the catalog before a call. (#48)
+- The canonical asset table, generated data files and evals cover the new Condition; every existing policy example carries `authorizationWindow: { "mode": "not-required" }`. (#48)
 
 ## [0.2.0] - 2026-09-22
 
