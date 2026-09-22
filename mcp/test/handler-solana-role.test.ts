@@ -37,6 +37,7 @@ const PAY_POLICY = {
   approvedRecipients: [OWNER],
   perActionCaps: { pay: "1000000" },
   role: REQUIRED_ROLE,
+  authorizationWindow: { mode: "not-required" as const },
 };
 
 const PAY_REQUEST = {

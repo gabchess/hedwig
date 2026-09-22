@@ -60,6 +60,46 @@ describe("wrong-proceed corpus", () => {
     });
   });
 
+  // Each entry below is otherwise a clean pay request: every other Floor
+  // row PASSes, so the printed non-PASS rows prove exactly one Condition,
+  // authorization-window-within-ceiling, is what earns the non-allow.
+  const AUTHORIZATION_WINDOW_SINGLE_CAUSE: Record<string, string> = {
+    "pay-authorization-window-policy-missing": "AUTHORIZATION_POLICY_MISSING",
+    "pay-authorization-window-policy-malformed":
+      "AUTHORIZATION_POLICY_MALFORMED",
+    "pay-authorization-window-ceiling-missing": "AUTHORIZATION_CEILING_MISSING",
+    "pay-authorization-window-ceiling-malformed":
+      "AUTHORIZATION_CEILING_MALFORMED",
+    "pay-authorization-malformed": "AUTHORIZATION_MALFORMED",
+    "pay-authorization-now-unavailable": "AUTHORIZATION_NOW_UNAVAILABLE",
+    "pay-authorization-window-past": "AUTHORIZATION_WINDOW_PAST",
+    "pay-authorization-window-exceeds-ceiling":
+      "AUTHORIZATION_WINDOW_EXCEEDS_CEILING",
+  };
+
+  it("each authorization-window corpus entry is a single-cause non-allow", () => {
+    const ids = Object.keys(AUTHORIZATION_WINDOW_SINGLE_CAUSE);
+    expect(ids.length).to.equal(8);
+    ids.forEach((id) => {
+      const entry = CORPUS.find((candidate) => candidate.id === id);
+      expect(entry, id).to.exist;
+      const response = consult(
+        entry!.request as never,
+        entry!.policy as never,
+        entry!.facts as never
+      );
+      const nonPass = response.results.filter((r) => r.status !== "PASS");
+      // eslint-disable-next-line no-console
+      console.log(`${id}: non-PASS rows`, nonPass);
+      expect(nonPass, id).to.have.length(1);
+      expect(nonPass[0].id, id).to.equal("authorization-window-within-ceiling");
+      expect(nonPass[0].code, id).to.equal(
+        AUTHORIZATION_WINDOW_SINGLE_CAUSE[id]
+      );
+      expect(response.proceed, id).to.equal(false);
+    });
+  });
+
   it("an empty Floor never earns an unauthorised allow", () => {
     const response = consultWith({ pay: [] } as Catalog)(
       makeRequest(),

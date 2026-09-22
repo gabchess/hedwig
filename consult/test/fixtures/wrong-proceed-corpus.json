@@ -26,6 +26,9 @@
       },
       "role": {
         "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     }
   },
@@ -55,6 +58,9 @@
         "pay": "1000000"
       },
       "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
         "mode": "not-required"
       }
     }
@@ -86,6 +92,9 @@
       },
       "role": {
         "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     }
   },
@@ -115,6 +124,9 @@
         "pay": "1000000"
       },
       "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
         "mode": "not-required"
       }
     }
@@ -146,6 +158,9 @@
       },
       "role": {
         "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     }
   },
@@ -175,6 +190,9 @@
         "pay": "1000000"
       },
       "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
         "mode": "not-required"
       }
     }
@@ -206,6 +224,9 @@
       },
       "role": {
         "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     }
   },
@@ -236,6 +257,9 @@
       },
       "role": {
         "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     }
   },
@@ -265,6 +289,9 @@
         "pay": "1000000"
       },
       "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
         "mode": "not-required"
       }
     }
@@ -325,6 +352,9 @@
         "pay": "1000000"
       },
       "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
         "mode": "not-required"
       }
     }
@@ -2274,6 +2304,9 @@
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
         "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
         "maxAgeSeconds": 60
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     },
     "facts": {
@@ -2397,6 +2430,9 @@
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
         "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
         "maxAgeSeconds": 60
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     },
     "facts": {
@@ -2520,6 +2556,9 @@
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
         "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
         "maxAgeSeconds": 60
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     },
     "facts": {
@@ -2643,6 +2682,9 @@
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
         "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
         "maxAgeSeconds": 60
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     }
   },
@@ -2731,6 +2773,9 @@
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
         "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
         "maxAgeSeconds": 60
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     },
     "facts": {
@@ -2854,6 +2899,9 @@
         "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
         "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
         "maxAgeSeconds": 60
+      },
+      "authorizationWindow": {
+        "mode": "not-required"
       }
     },
     "facts": {
@@ -2943,6 +2991,285 @@
           "observedAt": 2000000000
         }
       }
+    }
+  },
+  {
+    "id": "pay-authorization-window-policy-missing",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      }
+    }
+  },
+  {
+    "id": "pay-authorization-window-policy-malformed",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "bogus"
+      }
+    }
+  },
+  {
+    "id": "pay-authorization-window-ceiling-missing",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "required"
+      }
+    }
+  },
+  {
+    "id": "pay-authorization-window-ceiling-malformed",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "required",
+        "maxSeconds": 0
+      }
+    }
+  },
+  {
+    "id": "pay-authorization-malformed",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "validBefore": -1
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "required",
+        "maxSeconds": 600
+      }
+    },
+    "facts": {
+      "now": 2000000000
+    }
+  },
+  {
+    "id": "pay-authorization-now-unavailable",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "validBefore": 2000000300
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "required",
+        "maxSeconds": 600
+      }
+    }
+  },
+  {
+    "id": "pay-authorization-window-past",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "validBefore": 1999999999
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "required",
+        "maxSeconds": 600
+      }
+    },
+    "facts": {
+      "now": 2000000000
+    }
+  },
+  {
+    "id": "pay-authorization-window-exceeds-ceiling",
+    "authorizedAllow": false,
+    "request": {
+      "action": {
+        "type": "pay",
+        "chainId": "eip155:1",
+        "recipient": "0x00000000000000000000000000000000a11ce001",
+        "asset": {
+          "symbol": "USDC",
+          "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        "amount": "1000000",
+        "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "validBefore": 2000000601
+      }
+    },
+    "policy": {
+      "permits": true,
+      "chainId": "eip155:1",
+      "approvedRecipients": [
+        "0x00000000000000000000000000000000a11ce001"
+      ],
+      "perActionCaps": {
+        "pay": "1000000"
+      },
+      "role": {
+        "mode": "not-required"
+      },
+      "authorizationWindow": {
+        "mode": "required",
+        "maxSeconds": 600
+      }
+    },
+    "facts": {
+      "now": 2000000000
     }
   }
 ]

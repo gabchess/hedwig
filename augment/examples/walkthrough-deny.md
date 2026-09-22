@@ -31,7 +31,8 @@ list can still be one the owner would refuse.
   "chainId": "eip155:1",
   "approvedRecipients": ["0x0000000000000000000000000000000000bad001"],
   "perActionCaps": { "pay": "1000000" },
-  "role": { "mode": "not-required" }
+  "role": { "mode": "not-required" },
+  "authorizationWindow": { "mode": "not-required" }
 }
 ```
 
@@ -107,6 +108,15 @@ list can still be one the owner would refuse.
       "evidence": "owner policy requires no role",
       "evidenceClass": "owner-policy",
       "reference": "consult/references/pay/role-requirement-met.md"
+    },
+    {
+      "id": "authorization-window-within-ceiling",
+      "question": "Is the authorization's validBefore within the owner's maximum authorization window?",
+      "status": "PASS",
+      "code": "AUTHORIZATION_NOT_REQUIRED",
+      "evidence": "owner policy requires no authorization window",
+      "evidenceClass": "owner-policy",
+      "reference": "consult/references/pay/authorization-window-within-ceiling.md"
     }
   ],
   "floorIds": [
@@ -116,7 +126,8 @@ list can still be one the owner would refuse.
     "amount-within-cap",
     "chain-matches-intent",
     "target-is-canonical",
-    "role-requirement-met"
+    "role-requirement-met",
+    "authorization-window-within-ceiling"
   ],
   "advisory": true
 }

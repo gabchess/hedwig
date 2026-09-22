@@ -40,6 +40,7 @@ describe("results ordering", () => {
       "chain-matches-intent",
       "target-is-canonical",
       "role-requirement-met",
+      "authorization-window-within-ceiling",
     ]);
   });
 

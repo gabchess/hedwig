@@ -21,4 +21,5 @@ export const VALID_POLICY = {
   approvedRecipients: ["0x00000000000000000000000000000000a11ce001"],
   perActionCaps: { pay: "1000000" },
   role: { mode: "not-required" },
+  authorizationWindow: { mode: "not-required" },
 };

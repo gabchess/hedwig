@@ -32,6 +32,7 @@ const REQUIRED_ROLE_POLICY = {
     holder: GOLDEN.holder,
     maxAgeSeconds: 60,
   },
+  authorizationWindow: { mode: "not-required" },
 };
 
 function rpcResult(err: unknown, logs: string[]): string {
