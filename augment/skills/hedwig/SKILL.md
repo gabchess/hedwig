@@ -39,7 +39,11 @@ Each row in `results` carries `id`, `question`, `status` (`PASS`/`FAIL`/`UNVERIF
 `evidence`, `evidenceClass`, and `reference`. `results` lists the worst status first.
 
 For the full Condition catalog, every question, code, and evidence class, read
-[references/conditions.md](references/conditions.md).
+[references/conditions.md](references/conditions.md). For allowances and permits, read
+[references/approvals.md](references/approvals.md). For how a recipient is checked, read
+[references/recipients.md](references/recipients.md). For mapping an x402 payment
+requirement into a `pay` request, read
+[references/x402-payments.md](references/x402-payments.md).
 
 ## Example: a clean payment
 
