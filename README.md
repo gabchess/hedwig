@@ -39,4 +39,4 @@ yarn consult:typecheck
 yarn consult:test
 ```
 
-[Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Agent skill](augment/README.md) · [Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
