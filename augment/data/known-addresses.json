@@ -1,0 +1,20 @@
+{
+  "eip155:1": {
+    "tokens": {
+      "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    },
+    "routers": {
+      "universal-router": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85"
+    }
+  },
+  "eip155:8453": {
+    "tokens": {
+      "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "WETH": "0x4200000000000000000000000000000000000006"
+    },
+    "routers": {
+      "universal-router": "0xd6145b2D3F379919E8CdEda7B97e37c4b2Ca9c40"
+    }
+  }
+}

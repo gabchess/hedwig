@@ -55,6 +55,11 @@ jobs:
       - name: Build consult
         run: yarn consult:build
 
+      - name: Verify augment/ against the built catalog
+        run: |
+          npm run augment:verify
+          node scripts/verify-augment.js --self-test
+
       - name: Install mcp dependencies
         run: npm ci --ignore-scripts --prefix mcp
 

@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./introspect": {
+      "types": "./dist/introspect.d.ts",
+      "require": "./dist/introspect.js",
+      "default": "./dist/introspect.js"
     }
   }
 }

@@ -187,7 +187,9 @@ export const BASE_CHAIN_ID = "eip155:8453";
 export const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 export const BASE_WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
 
-const CANONICAL_ASSETS: Readonly<
+// Exported so consult/src/introspect.ts can describe this table without
+// re-deriving it from the individual chain/symbol constants above.
+export const CANONICAL_ASSETS: Readonly<
   Record<string, Readonly<Record<string, string>>>
 > = Object.freeze({
   [CANONICAL_CHAIN_ID]: Object.freeze({
@@ -211,6 +213,11 @@ export const CANONICAL_ROUTERS: Readonly<Record<string, string>> =
     "eip155:1": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
     "eip155:8453": "0xd6145b2D3F379919E8CdEda7B97e37c4b2Ca9c40",
   });
+
+// The name introspect.ts reports for every entry in CANONICAL_ROUTERS: this
+// catalog only ever knows Uniswap's Universal Router deployments, so one
+// fixed name covers the whole table.
+export const CANONICAL_ROUTER_NAME = "universal-router";
 
 export const POISON_FLAGGED_RECIPIENT =
   "0x0000000000000000000000000000000000bad001";
