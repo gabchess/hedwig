@@ -32,7 +32,7 @@ npm ci --prefix app
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 ```
 
-The payment check has no dependencies of its own. It answers `proceed` for a payment or a swap against the owner's policy:
+The payment check has no dependencies of its own. It answers `proceed` for a payment or a swap against the owner's policy. Any check it cannot complete answers `UNKNOWN`, and `proceed` stays `false`:
 
 ```sh
 yarn consult:typecheck
