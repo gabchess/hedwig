@@ -95,3 +95,29 @@ ends with `Hedwig-gated consumer state change OK on devnet`.
 The first public run is recorded in
 [`docs/deployment/evidence/2026-07-24-consumer-devnet-integration.md`](../docs/deployment/evidence/2026-07-24-consumer-devnet-integration.md).
 It is a builder-owned reference integration, not independent adoption.
+
+## Run the revoke demo
+
+The revoke demo shows a policy requiring a Solana role change its answer with
+no redeploy, no config edit and no server restart: only an on-chain revoke.
+
+```bash
+yarn consult:build && yarn mcp:build && npm --prefix app run revoke-demo
+```
+
+It generates its own throwaway keypair the first time it runs (a file
+outside the repository, overridable with `HEDWIG_DEMO_KEYPAIR`), funds it
+from the devnet faucet, creates an org and a role, assigns the role to a
+second generated key, and spawns the built MCP server once over stdio. It
+asks the server the same payment question twice: once while the role is
+held, and once after revoking it on-chain, with no restart in between. It
+prints a transcript with every transaction's signature and an explorer
+link, and the two verdicts. Pass `--out <path>` to also write the full
+machine-readable record of both answers.
+
+The RPC endpoint defaults to the public devnet RPC; set
+`HEDWIG_DEMO_RPC_URL` to use a different one. The demo refuses to run
+against any cluster whose genesis hash is not devnet's.
+
+A recorded run is at
+[`docs/deployment/evidence/2026-09-22-revoke-demo.md`](../docs/deployment/evidence/2026-09-22-revoke-demo.md).

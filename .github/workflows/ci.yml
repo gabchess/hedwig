@@ -73,6 +73,11 @@ jobs:
         # sdk/dist, and sdk/dist is not committed.
         run: ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 
+      - name: Test the demo app
+        # Pure-logic unit tests only: no live server, no network. Uses the
+        # app's own tsx devDependency, already installed above.
+        run: npm --prefix app test
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
