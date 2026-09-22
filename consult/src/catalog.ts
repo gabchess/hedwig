@@ -178,12 +178,27 @@ export const CANONICAL_WETH_SYMBOL = "WETH";
 export const CANONICAL_WETH_ADDRESS =
   "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
-const CANONICAL_ASSETS: Record<string, Record<string, string>> = {
-  [CANONICAL_CHAIN_ID]: {
+// Base (eip155:8453). USDC verified against Circle's own contract address
+// list (https://developers.circle.com/stablecoins/usdc-contract-addresses)
+// and WETH against Base's own contract list
+// (https://docs.base.org/base-chain/network-information/base-contracts),
+// both on 2026-09-22; each contract's symbol() was also read from the chain.
+export const BASE_CHAIN_ID = "eip155:8453";
+export const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+export const BASE_WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
+
+const CANONICAL_ASSETS: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = Object.freeze({
+  [CANONICAL_CHAIN_ID]: Object.freeze({
     [CANONICAL_ASSET_SYMBOL]: CANONICAL_ASSET_ADDRESS,
     [CANONICAL_WETH_SYMBOL]: CANONICAL_WETH_ADDRESS,
-  },
-};
+  }),
+  [BASE_CHAIN_ID]: Object.freeze({
+    [CANONICAL_ASSET_SYMBOL]: BASE_USDC_ADDRESS,
+    [CANONICAL_WETH_SYMBOL]: BASE_WETH_ADDRESS,
+  }),
+});
 
 // Uniswap's own Universal Router deployment addresses, verified 2026-09-21
 // against https://github.com/Uniswap/universal-router/blob/main/deploy-addresses/
