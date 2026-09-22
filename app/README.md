@@ -118,3 +118,6 @@ machine-readable record of both answers.
 The RPC endpoint defaults to the public devnet RPC; set
 `HEDWIG_DEMO_RPC_URL` to use a different one. The demo refuses to run
 against any cluster whose genesis hash is not devnet's.
+
+A recorded run is at
+[`docs/deployment/evidence/2026-09-22-revoke-demo.md`](../docs/deployment/evidence/2026-09-22-revoke-demo.md).
