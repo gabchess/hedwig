@@ -85,6 +85,10 @@ exist.
 A code is unique across the whole catalog, so a code names one Condition and
 one outcome. `pay` and `swap` share four Condition ids and no codes.
 
+Each Condition also names the policy fields its checker reads, as
+`policyFields` in `augment/data/conditions.json`, so a policy is checked
+against the catalog before a call.
+
 ## Sources
 
 - Condition ids, questions, codes and per-code evidence classes:

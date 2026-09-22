@@ -12,7 +12,7 @@ so it never drifts from the code it describes.
   `yarn consult:build` after any catalog change, then
   `yarn augment:verify --write` to regenerate them and `yarn augment:verify`
   to check them.
-- `evals/`: eight scenarios, each a fixture plus its expected verdict,
+- `evals/`: nine scenarios, each a fixture plus its expected verdict,
   `proceed` flag, and non-PASS rows with their status and code. `yarn augment:verify` runs
   every scenario through `consult()` and fails on any mismatch.
 - `examples/walkthrough-deny.md`: one full DENY response, row by row, with

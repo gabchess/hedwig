@@ -22,9 +22,9 @@ Include:
 ## Scope
 
 The current supported targets are the repository's reviewed devnet commit and
-the fixed core and reference-consumer program IDs listed in `README.md`. The
+the fixed core and reference-consumer program IDs listed in [`THREAT-MODEL.md`](THREAT-MODEL.md). The
 reference consumer is deployed on devnet. The repository-local SDK alpha remains a
-repository test surface and is not published.
+repository test surface and is not published. `@hedwig/consult` and `@hedwig/mcp` are in scope at the reviewed commit. Both are `private` and neither is published.
 
 Reports about mainnet, npm publication, hosted infrastructure, or external
 integrations describe surfaces Hedwig does not operate today.
