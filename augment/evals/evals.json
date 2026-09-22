@@ -106,5 +106,20 @@
         "code": "ROLE_FACT_MISSING"
       }
     ]
+  },
+  {
+    "id": "pay-authorization-window-past-deny",
+    "description": "a payment whose EIP-3009 authorization's validBefore has already passed",
+    "fixture": "pay-authorization-window-past-deny.json",
+    "decidingCondition": "authorization-window-within-ceiling",
+    "expectedVerdict": "DENY",
+    "expectedProceed": false,
+    "expectedNonPassRows": [
+      {
+        "id": "authorization-window-within-ceiling",
+        "status": "FAIL",
+        "code": "AUTHORIZATION_WINDOW_PAST"
+      }
+    ]
   }
 ]

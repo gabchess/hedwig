@@ -16,12 +16,12 @@ the evidence class each code carries.
 Three inputs and nothing else.
 
 - `request.action`: `type`, `chainId`, `target`, `recipient`, `asset`
-  (`symbol`, `contractAddress`), `amount`, `tokenIn`, `tokenOut`,
-  `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`,
+  (`symbol`, `contractAddress`), `amount`, `validBefore`, `tokenIn`,
+  `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`,
   `approvalAmount`.
 - `policy`, the owner's file: `permits`, `chainId`, `approvedRecipients`,
   `perActionCaps`, `maxSlippageBps`, `maxDeadlineSeconds`, `ownerAddresses`,
-  `role`.
+  `role`, `authorizationWindow`.
 - `facts`, supplied by the caller as data: `now` and `solanaRole`.
   `consult()` reads no clock and makes no network or RPC call, so a
   Condition that needs the current time or a chain observation reads it here
@@ -65,6 +65,7 @@ exist.
 | [`chain-matches-intent`](../../../../consult/references/pay/chain-matches-intent.md) | Does the request's chain match the owner's named chain? | `CHAIN_MATCHES_INTENT` (owner-policy) | `CHAIN_MISMATCH` (owner-policy) | `CHAIN_ID_MALFORMED` |
 | [`target-is-canonical`](../../../../consult/references/pay/target-is-canonical.md) | Does the transaction call the canonical asset contract? | `TARGET_IS_CANONICAL` (static-registry) | `TARGET_NOT_CANONICAL` (static-registry) | `TARGET_SHAPE_INVALID`, `TARGET_CHAIN_UNSUPPORTED`, `TARGET_REGISTRY_ENTRY_MISSING` |
 | [`role-requirement-met`](../../../../consult/references/pay/role-requirement-met.md) | Is the owner's role requirement met? | `ROLE_NOT_REQUIRED` (owner-policy), `ROLE_HELD` (onchain-read) | `ROLE_DISABLED`, `ROLE_MEMBERSHIP_EXPIRED`, `ROLE_MEMBER_MISSING` (onchain-read) | `ROLE_POLICY_MISSING`, `ROLE_POLICY_MALFORMED`, `ROLE_FACT_MISSING`, `ROLE_FACT_MALFORMED`, `ROLE_FACT_SUBJECT_MISMATCH`, `ROLE_FACT_AGE_UNKNOWN`, `ROLE_FACT_STALE` |
+| [`authorization-window-within-ceiling`](../../../../consult/references/pay/authorization-window-within-ceiling.md) | Is the authorization's validBefore within the owner's maximum authorization window? | `AUTHORIZATION_NOT_REQUIRED` (owner-policy), `AUTHORIZATION_WITHIN_CEILING` (owner-policy) | `AUTHORIZATION_WINDOW_PAST`, `AUTHORIZATION_WINDOW_EXCEEDS_CEILING` (owner-policy) | `AUTHORIZATION_POLICY_MISSING`, `AUTHORIZATION_POLICY_MALFORMED`, `AUTHORIZATION_CEILING_MISSING`, `AUTHORIZATION_CEILING_MALFORMED`, `AUTHORIZATION_MALFORMED`, `AUTHORIZATION_NOW_UNAVAILABLE` |
 
 ## swap
 

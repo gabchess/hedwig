@@ -4,6 +4,10 @@ Versions track shipped code.
 
 ## Unreleased
 
+### Added
+
+- `authorization-window-within-ceiling`, a `pay` Floor Condition comparing an EIP-3009 authorization's `validBefore` against the owner's `authorizationWindow` policy. `policyFields` on every catalog Condition names which Policy fields its checker reads.
+
 ## [0.2.0] - 2026-09-22
 
 Tests on the verdict path mutate one field at a time and pin the resulting verdict. The agent skill's checker proves itself against a mutated data file, a dropped reference and a flipped eval verdict.

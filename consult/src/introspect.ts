@@ -32,6 +32,11 @@ export interface CatalogConditionDescription {
   };
   readonly evidenceClass: Readonly<Record<string, string>>;
   readonly reference: string;
+  // The dot-path of every Policy field this Condition's checker reads, so a
+  // policy generator can lint its own output against the catalog before
+  // ever calling consult(). Empty for a Condition that decides from the
+  // request or a static registry alone.
+  readonly policyFields: readonly string[];
 }
 
 export interface CatalogDescription {
@@ -60,6 +65,7 @@ function conditionKey(definition: ConditionDefinition): string {
     fail: definition.codes.fail,
     unverified: definition.codes.unverified,
     codeEvidenceClass: definition.codeEvidenceClass,
+    policyFields: definition.policyFields ?? [],
   });
 }
 
@@ -91,6 +97,7 @@ function describeConditions(): CatalogConditionDescription[] {
     },
     evidenceClass: { ...definition.codeEvidenceClass },
     reference: definition.reference,
+    policyFields: [...(definition.policyFields ?? [])],
   }));
 }
 

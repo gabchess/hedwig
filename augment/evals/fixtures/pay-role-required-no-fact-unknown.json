@@ -15,8 +15,12 @@
   "policy": {
     "permits": true,
     "chainId": "eip155:1",
-    "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
-    "perActionCaps": { "pay": "1000000" },
+    "approvedRecipients": [
+      "0x00000000000000000000000000000000a11ce001"
+    ],
+    "perActionCaps": {
+      "pay": "1000000"
+    },
     "role": {
       "mode": "required",
       "cluster": "mainnet-beta",
@@ -24,6 +28,9 @@
       "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
       "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
       "maxAgeSeconds": 60
+    },
+    "authorizationWindow": {
+      "mode": "not-required"
     }
   }
 }

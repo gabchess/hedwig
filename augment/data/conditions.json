@@ -31,7 +31,10 @@
         "RECIPIENT_CHAIN_UNSUPPORTED": "not-verifiable",
         "APPROVED_RECIPIENTS_INVALID": "not-verifiable"
       },
-      "reference": "consult/references/pay/recipient-matches-policy.md"
+      "reference": "consult/references/pay/recipient-matches-policy.md",
+      "policyFields": [
+        "approvedRecipients"
+      ]
     },
     {
       "id": "recipient-not-poison-derived",
@@ -58,7 +61,8 @@
         "POISON_CHECK_SHAPE_INVALID": "not-verifiable",
         "POISON_CHECK_CHAIN_UNSUPPORTED": "not-verifiable"
       },
-      "reference": "consult/references/pay/recipient-not-poison-derived.md"
+      "reference": "consult/references/pay/recipient-not-poison-derived.md",
+      "policyFields": []
     },
     {
       "id": "asset-is-canonical",
@@ -85,7 +89,8 @@
         "ASSET_REGISTRY_ENTRY_MISSING": "not-verifiable",
         "ASSET_ADDRESS_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/pay/asset-is-canonical.md"
+      "reference": "consult/references/pay/asset-is-canonical.md",
+      "policyFields": []
     },
     {
       "id": "amount-within-cap",
@@ -114,7 +119,10 @@
         "CAP_MISSING": "not-verifiable",
         "AMOUNT_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/pay/amount-within-cap.md"
+      "reference": "consult/references/pay/amount-within-cap.md",
+      "policyFields": [
+        "perActionCaps.pay"
+      ]
     },
     {
       "id": "chain-matches-intent",
@@ -139,7 +147,10 @@
         "CHAIN_MISMATCH": "owner-policy",
         "CHAIN_ID_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/pay/chain-matches-intent.md"
+      "reference": "consult/references/pay/chain-matches-intent.md",
+      "policyFields": [
+        "chainId"
+      ]
     },
     {
       "id": "target-is-canonical",
@@ -168,7 +179,8 @@
         "TARGET_CHAIN_UNSUPPORTED": "not-verifiable",
         "TARGET_REGISTRY_ENTRY_MISSING": "not-verifiable"
       },
-      "reference": "consult/references/pay/target-is-canonical.md"
+      "reference": "consult/references/pay/target-is-canonical.md",
+      "policyFields": []
     },
     {
       "id": "role-requirement-met",
@@ -211,7 +223,52 @@
         "ROLE_FACT_AGE_UNKNOWN": "not-verifiable",
         "ROLE_FACT_STALE": "not-verifiable"
       },
-      "reference": "consult/references/pay/role-requirement-met.md"
+      "reference": "consult/references/pay/role-requirement-met.md",
+      "policyFields": [
+        "role"
+      ]
+    },
+    {
+      "id": "authorization-window-within-ceiling",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Is the authorization's validBefore within the owner's maximum authorization window?",
+      "codes": {
+        "pass": [
+          "AUTHORIZATION_NOT_REQUIRED",
+          "AUTHORIZATION_WITHIN_CEILING"
+        ],
+        "fail": [
+          "AUTHORIZATION_WINDOW_PAST",
+          "AUTHORIZATION_WINDOW_EXCEEDS_CEILING"
+        ],
+        "unverified": [
+          "AUTHORIZATION_POLICY_MISSING",
+          "AUTHORIZATION_POLICY_MALFORMED",
+          "AUTHORIZATION_CEILING_MISSING",
+          "AUTHORIZATION_CEILING_MALFORMED",
+          "AUTHORIZATION_MALFORMED",
+          "AUTHORIZATION_NOW_UNAVAILABLE"
+        ]
+      },
+      "evidenceClass": {
+        "AUTHORIZATION_NOT_REQUIRED": "owner-policy",
+        "AUTHORIZATION_WITHIN_CEILING": "owner-policy",
+        "AUTHORIZATION_WINDOW_PAST": "owner-policy",
+        "AUTHORIZATION_WINDOW_EXCEEDS_CEILING": "owner-policy",
+        "AUTHORIZATION_POLICY_MISSING": "not-verifiable",
+        "AUTHORIZATION_POLICY_MALFORMED": "not-verifiable",
+        "AUTHORIZATION_CEILING_MISSING": "not-verifiable",
+        "AUTHORIZATION_CEILING_MALFORMED": "not-verifiable",
+        "AUTHORIZATION_MALFORMED": "not-verifiable",
+        "AUTHORIZATION_NOW_UNAVAILABLE": "not-verifiable"
+      },
+      "reference": "consult/references/pay/authorization-window-within-ceiling.md",
+      "policyFields": [
+        "authorizationWindow"
+      ]
     },
     {
       "id": "target-is-canonical",
@@ -240,7 +297,8 @@
         "SWAP_TARGET_CHAIN_UNSUPPORTED": "not-verifiable",
         "SWAP_TARGET_ROUTER_UNKNOWN": "not-verifiable"
       },
-      "reference": "consult/references/swap/target-is-canonical.md"
+      "reference": "consult/references/swap/target-is-canonical.md",
+      "policyFields": []
     },
     {
       "id": "token-in-is-canonical",
@@ -269,7 +327,8 @@
         "SWAP_TOKEN_IN_REGISTRY_ENTRY_MISSING": "not-verifiable",
         "SWAP_TOKEN_IN_ADDRESS_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/swap/token-in-is-canonical.md"
+      "reference": "consult/references/swap/token-in-is-canonical.md",
+      "policyFields": []
     },
     {
       "id": "token-out-is-canonical",
@@ -298,7 +357,8 @@
         "SWAP_TOKEN_OUT_REGISTRY_ENTRY_MISSING": "not-verifiable",
         "SWAP_TOKEN_OUT_ADDRESS_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/swap/token-out-is-canonical.md"
+      "reference": "consult/references/swap/token-out-is-canonical.md",
+      "policyFields": []
     },
     {
       "id": "slippage-within-ceiling",
@@ -335,7 +395,10 @@
         "SLIPPAGE_EXCEEDS_CEILING": "owner-policy",
         "SLIPPAGE_CEILING_MISSING": "not-verifiable"
       },
-      "reference": "consult/references/swap/slippage-within-ceiling.md"
+      "reference": "consult/references/swap/slippage-within-ceiling.md",
+      "policyFields": [
+        "maxSlippageBps"
+      ]
     },
     {
       "id": "deadline-set-and-fresh",
@@ -366,7 +429,10 @@
         "DEADLINE_NOW_UNAVAILABLE": "not-verifiable",
         "DEADLINE_CEILING_MISSING": "not-verifiable"
       },
-      "reference": "consult/references/swap/deadline-set-and-fresh.md"
+      "reference": "consult/references/swap/deadline-set-and-fresh.md",
+      "policyFields": [
+        "maxDeadlineSeconds"
+      ]
     },
     {
       "id": "output-recipient-is-owner",
@@ -397,7 +463,10 @@
         "SWAP_RECIPIENT_CHAIN_UNSUPPORTED": "not-verifiable",
         "SWAP_OWNER_ADDRESSES_INVALID": "not-verifiable"
       },
-      "reference": "consult/references/swap/output-recipient-is-owner.md"
+      "reference": "consult/references/swap/output-recipient-is-owner.md",
+      "policyFields": [
+        "ownerAddresses"
+      ]
     },
     {
       "id": "approval-scoped-to-this-swap",
@@ -422,7 +491,8 @@
         "SWAP_APPROVAL_NOT_SCOPED": "owner-policy",
         "SWAP_APPROVAL_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/swap/approval-scoped-to-this-swap.md"
+      "reference": "consult/references/swap/approval-scoped-to-this-swap.md",
+      "policyFields": []
     },
     {
       "id": "amount-within-cap",
@@ -451,7 +521,10 @@
         "SWAP_CAP_MISSING": "not-verifiable",
         "SWAP_AMOUNT_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/swap/amount-within-cap.md"
+      "reference": "consult/references/swap/amount-within-cap.md",
+      "policyFields": [
+        "perActionCaps.swap"
+      ]
     },
     {
       "id": "chain-matches-intent",
@@ -476,7 +549,10 @@
         "SWAP_CHAIN_MISMATCH": "owner-policy",
         "SWAP_CHAIN_ID_MALFORMED": "not-verifiable"
       },
-      "reference": "consult/references/swap/chain-matches-intent.md"
+      "reference": "consult/references/swap/chain-matches-intent.md",
+      "policyFields": [
+        "chainId"
+      ]
     },
     {
       "id": "role-requirement-met",
@@ -519,7 +595,10 @@
         "SWAP_ROLE_FACT_AGE_UNKNOWN": "not-verifiable",
         "SWAP_ROLE_FACT_STALE": "not-verifiable"
       },
-      "reference": "consult/references/swap/role-requirement-met.md"
+      "reference": "consult/references/swap/role-requirement-met.md",
+      "policyFields": [
+        "role"
+      ]
     }
   ]
 }

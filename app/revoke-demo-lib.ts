@@ -378,6 +378,7 @@ export const BASE_PAY_POLICY = Object.freeze({
   chainId: "eip155:1",
   approvedRecipients: ["0x00000000000000000000000000000000a11ce001"],
   perActionCaps: { pay: "1000000" },
+  authorizationWindow: { mode: "not-required" as const },
 });
 
 // The same EVM "pay" request the mcp test fixtures use, unchanged by the

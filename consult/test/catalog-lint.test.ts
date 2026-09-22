@@ -2,8 +2,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "chai";
 
-import { CATALOG, passCodesOf } from "../src/catalog";
-import type { ConditionDefinition } from "../src/catalog";
+import {
+  CATALOG,
+  POLICY_READING_CONDITION_IDS,
+  passCodesOf,
+  validateCatalog,
+} from "../src/catalog";
+import type { Catalog, ConditionDefinition } from "../src/catalog";
 
 const REPO_ROOT = join(__dirname, "..", "..");
 const CODE_SHAPE = /^[A-Z][A-Z0-9_]+$/;
@@ -99,5 +104,42 @@ describe("catalog lint", () => {
         ).to.not.equal("not-verifiable");
       });
     });
+  });
+
+  it("declares policyFields as an array of non-empty strings wherever present", () => {
+    allConditions().forEach((condition) => {
+      if (condition.policyFields === undefined) {
+        return;
+      }
+      expect(condition.policyFields, condition.id).to.be.an("array");
+      condition.policyFields.forEach((field) => {
+        expect(field, condition.id).to.be.a("string").that.is.not.empty;
+      });
+    });
+  });
+
+  it("declares a non-empty policyFields for every Condition known to read the owner's policy", () => {
+    allConditions().forEach((condition) => {
+      if (!POLICY_READING_CONDITION_IDS.has(condition.id)) {
+        return;
+      }
+      expect(condition.policyFields, condition.id).to.be.an("array").that.is.not
+        .empty;
+    });
+  });
+
+  it("validateCatalog rejects a policy-reading Condition whose policyFields was blanked", () => {
+    // A mutated copy, never the real CATALOG: proves the enforcement fires,
+    // it does not touch the catalog consult() actually binds to.
+    const mutated: Catalog = {
+      ...CATALOG,
+      pay: CATALOG.pay.map((condition) =>
+        condition.id === "recipient-matches-policy"
+          ? { ...condition, policyFields: [] }
+          : condition
+      ),
+    };
+    expect(validateCatalog(mutated)).to.be.a("string");
+    expect(validateCatalog(CATALOG)).to.equal(undefined);
   });
 });

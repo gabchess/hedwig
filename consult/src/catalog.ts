@@ -1,6 +1,7 @@
 import {
   EVIDENCE_CLASS_WEIGHTS,
   EVIDENCE_ECHO_LIMIT,
+  MAX_AUTHORIZATION_WINDOW_SECONDS,
   MAX_ROLE_FACT_AGE_SECONDS,
 } from "./constants";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
@@ -22,6 +23,19 @@ export interface RequiredRolePolicy {
 
 export type RolePolicy = { mode: "not-required" } | RequiredRolePolicy;
 
+// The owner's choice about an EIP-3009 authorization's validity window,
+// stated the same way `role` is: a mode the owner sets, never a default this
+// catalog guesses. `maxSeconds` is the oldest a fresh authorization may run,
+// an integer from 1 to MAX_AUTHORIZATION_WINDOW_SECONDS.
+export interface RequiredAuthorizationWindowPolicy {
+  mode: "required";
+  maxSeconds: number;
+}
+
+export type AuthorizationWindowPolicy =
+  | { mode: "not-required" }
+  | RequiredAuthorizationWindowPolicy;
+
 export interface Policy {
   permits: boolean;
   chainId: string;
@@ -39,6 +53,10 @@ export interface Policy {
   // Condition that finds it missing answers UNVERIFIED rather than
   // guessing a default.
   role?: RolePolicy;
+  // pay-only: whether an EIP-3009 authorization's validBefore must fall
+  // within a bounded window. Optional in the type only: like `role`, a
+  // policy that omits it answers UNVERIFIED rather than guessing a default.
+  authorizationWindow?: AuthorizationWindowPolicy;
 }
 
 // The shape of a Solana role fact `role-requirement-met` reads, and the
@@ -90,6 +108,9 @@ export interface ConsultAction {
   // pay-only fields.
   asset?: { symbol: string; contractAddress: string };
   amount?: string;
+  // The EIP-3009 authorization's validBefore (unix seconds): the time
+  // before which `transferWithAuthorization` accepts the signature.
+  validBefore?: number;
 
   // swap-only fields.
   tokenIn?: { symbol: string; contractAddress: string };
@@ -159,8 +180,35 @@ export interface ConditionDefinition {
   // evidenceClass the checker itself might report, so a checker can never
   // inflate its own proof.
   codeEvidenceClass: Readonly<Record<string, EvidenceClass>>;
+  // The dot-path of every Policy field this Condition's checker reads (for
+  // example `["approvedRecipients"]`, `["perActionCaps.pay"]`), so a policy
+  // generator can lint its own output against the catalog before ever
+  // calling consult(). Empty for a Condition whose checker decides from the
+  // request or a static registry alone. Optional so a test-only Condition,
+  // never a real catalog entry, is never forced to declare one; validateCatalog
+  // requires it non-empty for every id POLICY_READING_CONDITION_IDS names.
+  policyFields?: readonly string[];
   check: ConditionChecker;
 }
+
+// Every Condition id in this catalog whose checker reads at least one field
+// off context.policy, read once here so validateCatalog can catch a
+// Condition that reads the owner's policy but ships with an empty or
+// missing policyFields declaration. An id absent from this set decides
+// entirely from the request or a static registry; its checker takes
+// `_context` and never touches `context.policy`. The same id is shared by a
+// pay instance and a swap instance of the same Condition (for example
+// "role-requirement-met"), and both read policy the same way.
+export const POLICY_READING_CONDITION_IDS: ReadonlySet<string> = new Set([
+  "recipient-matches-policy",
+  "amount-within-cap",
+  "chain-matches-intent",
+  "role-requirement-met",
+  "authorization-window-within-ceiling",
+  "slippage-within-ceiling",
+  "deadline-set-and-fresh",
+  "output-recipient-is-owner",
+]);
 
 export type Catalog = Readonly<Record<string, readonly ConditionDefinition[]>>;
 
@@ -930,6 +978,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
       RECIPIENT_CHAIN_UNSUPPORTED: "not-verifiable",
       APPROVED_RECIPIENTS_INVALID: "not-verifiable",
     },
+    policyFields: ["approvedRecipients"],
     check: checkRecipientMatchesPolicy,
   },
   {
@@ -951,6 +1000,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
       POISON_CHECK_SHAPE_INVALID: "not-verifiable",
       POISON_CHECK_CHAIN_UNSUPPORTED: "not-verifiable",
     },
+    policyFields: [],
     check: checkRecipientNotPoisonDerived,
   },
   {
@@ -969,6 +1019,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
       ASSET_REGISTRY_ENTRY_MISSING: "not-verifiable",
       ASSET_ADDRESS_MALFORMED: "not-verifiable",
     },
+    policyFields: [],
     check: checkAssetIsCanonical,
   },
   {
@@ -989,6 +1040,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
       CAP_MISSING: "not-verifiable",
       AMOUNT_MALFORMED: "not-verifiable",
     },
+    policyFields: ["perActionCaps.pay"],
     check: makeAmountWithinCapChecker("amount-within-cap", "amount", {
       pass: "AMOUNT_WITHIN_CAP",
       exceeds: "AMOUNT_EXCEEDS_CAP",
@@ -1012,6 +1064,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
       CHAIN_MISMATCH: "owner-policy",
       CHAIN_ID_MALFORMED: "not-verifiable",
     },
+    policyFields: ["chainId"],
     check: makeChainMatchesIntentChecker("chain-matches-intent", {
       pass: "CHAIN_MATCHES_INTENT",
       mismatch: "CHAIN_MISMATCH",
@@ -1039,6 +1092,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
       TARGET_CHAIN_UNSUPPORTED: "not-verifiable",
       TARGET_REGISTRY_ENTRY_MISSING: "not-verifiable",
     },
+    policyFields: [],
     check: checkTargetIsCanonical,
   },
   {
@@ -1073,6 +1127,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
       ROLE_FACT_AGE_UNKNOWN: "not-verifiable",
       ROLE_FACT_STALE: "not-verifiable",
     },
+    policyFields: ["role"],
     check: makeRoleRequirementMetChecker("role-requirement-met", {
       notRequired: "ROLE_NOT_REQUIRED",
       held: "ROLE_HELD",
@@ -1087,6 +1142,42 @@ const PAY_FLOOR: ConditionDefinition[] = [
       ageUnknown: "ROLE_FACT_AGE_UNKNOWN",
       stale: "ROLE_FACT_STALE",
     }),
+  },
+  {
+    id: "authorization-window-within-ceiling",
+    isFloor: true,
+    question:
+      "Is the authorization's validBefore within the owner's maximum authorization window?",
+    reference: `${REFERENCE_ROOT}/authorization-window-within-ceiling.md`,
+    codes: {
+      pass: ["AUTHORIZATION_NOT_REQUIRED", "AUTHORIZATION_WITHIN_CEILING"],
+      fail: [
+        "AUTHORIZATION_WINDOW_PAST",
+        "AUTHORIZATION_WINDOW_EXCEEDS_CEILING",
+      ],
+      unverified: [
+        "AUTHORIZATION_POLICY_MISSING",
+        "AUTHORIZATION_POLICY_MALFORMED",
+        "AUTHORIZATION_CEILING_MISSING",
+        "AUTHORIZATION_CEILING_MALFORMED",
+        "AUTHORIZATION_MALFORMED",
+        "AUTHORIZATION_NOW_UNAVAILABLE",
+      ],
+    },
+    codeEvidenceClass: {
+      AUTHORIZATION_NOT_REQUIRED: "owner-policy",
+      AUTHORIZATION_WITHIN_CEILING: "owner-policy",
+      AUTHORIZATION_WINDOW_PAST: "owner-policy",
+      AUTHORIZATION_WINDOW_EXCEEDS_CEILING: "owner-policy",
+      AUTHORIZATION_POLICY_MISSING: "not-verifiable",
+      AUTHORIZATION_POLICY_MALFORMED: "not-verifiable",
+      AUTHORIZATION_CEILING_MISSING: "not-verifiable",
+      AUTHORIZATION_CEILING_MALFORMED: "not-verifiable",
+      AUTHORIZATION_MALFORMED: "not-verifiable",
+      AUTHORIZATION_NOW_UNAVAILABLE: "not-verifiable",
+    },
+    policyFields: ["authorizationWindow"],
+    check: checkAuthorizationWindowWithinCeiling,
   },
 ];
 
@@ -1439,6 +1530,128 @@ function checkDeadlineSetAndFresh(
   };
 }
 
+// pay-only twin of checkDeadlineSetAndFresh: same facts.now clock pattern,
+// same shape checks, comparing an EIP-3009 authorization's validBefore
+// against the current time instead of a swap deadline. Wrapped in the same
+// mode switch role-requirement-met uses, so a policy written before this
+// Condition existed states "not-required" explicitly rather than losing its
+// earned allow to a field it never declared.
+function checkAuthorizationWindowWithinCeiling(
+  request: ConsultRequest,
+  context: ConditionContext
+): CheckerOutcome {
+  const id = "authorization-window-within-ceiling";
+
+  const unverified = (code: string, evidence: string): CheckerOutcome => ({
+    id,
+    status: "UNVERIFIED",
+    code,
+    evidenceClass: "not-verifiable",
+    evidence,
+  });
+
+  const authorizationWindow = (
+    context.policy as unknown as { authorizationWindow?: unknown }
+  ).authorizationWindow;
+  if (
+    authorizationWindow === null ||
+    typeof authorizationWindow !== "object" ||
+    Array.isArray(authorizationWindow)
+  ) {
+    return unverified(
+      "AUTHORIZATION_POLICY_MISSING",
+      "policy authorizationWindow is missing or not an object"
+    );
+  }
+  const mode = (authorizationWindow as Record<string, unknown>).mode;
+  if (mode !== "required" && mode !== "not-required") {
+    return unverified(
+      "AUTHORIZATION_POLICY_MALFORMED",
+      `policy authorizationWindow mode "${describe(
+        mode
+      )}" is neither "required" nor "not-required"`
+    );
+  }
+  if (mode === "not-required") {
+    return {
+      id,
+      status: "PASS",
+      code: "AUTHORIZATION_NOT_REQUIRED",
+      evidenceClass: "owner-policy",
+      evidence: "owner policy requires no authorization window",
+    };
+  }
+
+  const maxSeconds = (authorizationWindow as Record<string, unknown>)
+    .maxSeconds;
+  if (maxSeconds === undefined) {
+    return unverified(
+      "AUTHORIZATION_CEILING_MISSING",
+      "policy authorizationWindow.maxSeconds is not configured"
+    );
+  }
+  if (
+    typeof maxSeconds !== "number" ||
+    !Number.isInteger(maxSeconds) ||
+    maxSeconds < 1 ||
+    maxSeconds > MAX_AUTHORIZATION_WINDOW_SECONDS
+  ) {
+    return unverified(
+      "AUTHORIZATION_CEILING_MALFORMED",
+      "policy authorizationWindow.maxSeconds is not an integer from 1 to the ceiling"
+    );
+  }
+
+  const { validBefore } = request.action;
+  if (
+    typeof validBefore !== "number" ||
+    !Number.isSafeInteger(validBefore) ||
+    validBefore <= 0
+  ) {
+    return unverified(
+      "AUTHORIZATION_MALFORMED",
+      `validBefore "${describe(validBefore)}" is not a safe positive integer`
+    );
+  }
+
+  const now = readFactNow(context.facts);
+  if (now === undefined) {
+    return unverified(
+      "AUTHORIZATION_NOW_UNAVAILABLE",
+      "cannot confirm the current time to compare against the authorization window"
+    );
+  }
+
+  if (validBefore <= now) {
+    return {
+      id,
+      status: "FAIL",
+      code: "AUTHORIZATION_WINDOW_PAST",
+      evidenceClass: "owner-policy",
+      evidence: `validBefore ${describe(
+        validBefore
+      )} is not after the current time ${describe(now)}`,
+    };
+  }
+
+  const within = validBefore - now <= maxSeconds;
+  return {
+    id,
+    status: within ? "PASS" : "FAIL",
+    code: within
+      ? "AUTHORIZATION_WITHIN_CEILING"
+      : "AUTHORIZATION_WINDOW_EXCEEDS_CEILING",
+    evidenceClass: "owner-policy",
+    evidence: within
+      ? `validBefore ${describe(
+          validBefore
+        )} is within the owner's authorization window`
+      : `validBefore ${describe(validBefore)} is more than ${describe(
+          maxSeconds
+        )} seconds out`,
+  };
+}
+
 // Folds two questions into one Condition, since swap's Floor names no
 // separate poison-derived check the way pay's does: is the output
 // recipient an address the owner actually holds, and is it free of any
@@ -1577,6 +1790,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_TARGET_CHAIN_UNSUPPORTED: "not-verifiable",
       SWAP_TARGET_ROUTER_UNKNOWN: "not-verifiable",
     },
+    policyFields: [],
     check: checkSwapTargetIsCanonical,
   },
   {
@@ -1611,6 +1825,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
         addressMalformed: "SWAP_TOKEN_IN_ADDRESS_MALFORMED",
       }
     ),
+    policyFields: [],
   },
   {
     id: "token-out-is-canonical",
@@ -1644,6 +1859,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
         addressMalformed: "SWAP_TOKEN_OUT_ADDRESS_MALFORMED",
       }
     ),
+    policyFields: [],
   },
   {
     id: "slippage-within-ceiling",
@@ -1674,6 +1890,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SLIPPAGE_EXCEEDS_CEILING: "owner-policy",
       SLIPPAGE_CEILING_MISSING: "not-verifiable",
     },
+    policyFields: ["maxSlippageBps"],
     check: checkSlippageWithinCeiling,
   },
   {
@@ -1699,6 +1916,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       DEADLINE_NOW_UNAVAILABLE: "not-verifiable",
       DEADLINE_CEILING_MISSING: "not-verifiable",
     },
+    policyFields: ["maxDeadlineSeconds"],
     check: checkDeadlineSetAndFresh,
   },
   {
@@ -1727,6 +1945,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_RECIPIENT_CHAIN_UNSUPPORTED: "not-verifiable",
       SWAP_OWNER_ADDRESSES_INVALID: "not-verifiable",
     },
+    policyFields: ["ownerAddresses"],
     check: checkOutputRecipientIsOwner,
   },
   {
@@ -1744,6 +1963,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_APPROVAL_NOT_SCOPED: "owner-policy",
       SWAP_APPROVAL_MALFORMED: "not-verifiable",
     },
+    policyFields: [],
     check: checkApprovalScopedToThisSwap,
   },
   {
@@ -1764,6 +1984,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_CAP_MISSING: "not-verifiable",
       SWAP_AMOUNT_MALFORMED: "not-verifiable",
     },
+    policyFields: ["perActionCaps.swap"],
     check: makeAmountWithinCapChecker("amount-within-cap", "amountIn", {
       pass: "SWAP_AMOUNT_WITHIN_CAP",
       exceeds: "SWAP_AMOUNT_EXCEEDS_CAP",
@@ -1787,6 +2008,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_CHAIN_MISMATCH: "owner-policy",
       SWAP_CHAIN_ID_MALFORMED: "not-verifiable",
     },
+    policyFields: ["chainId"],
     check: makeChainMatchesIntentChecker("chain-matches-intent", {
       pass: "SWAP_CHAIN_MATCHES_INTENT",
       mismatch: "SWAP_CHAIN_MISMATCH",
@@ -1829,6 +2051,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_ROLE_FACT_AGE_UNKNOWN: "not-verifiable",
       SWAP_ROLE_FACT_STALE: "not-verifiable",
     },
+    policyFields: ["role"],
     check: makeRoleRequirementMetChecker("role-requirement-met", {
       notRequired: "SWAP_ROLE_NOT_REQUIRED",
       held: "SWAP_ROLE_HELD",
@@ -1898,6 +2121,7 @@ export function validateCatalog(catalog: unknown): string | undefined {
         reference,
         codes,
         codeEvidenceClass,
+        policyFields,
       } = condition as Record<string, unknown>;
       if (typeof id !== "string" || id.length === 0) {
         return `catalog action type "${actionType}" has a Condition with an empty or non-string id`;
@@ -1924,6 +2148,10 @@ export function validateCatalog(catalog: unknown): string | undefined {
       if (defect !== undefined) {
         return defect;
       }
+      const policyFieldsDefect = validatePolicyFields(id, policyFields);
+      if (policyFieldsDefect !== undefined) {
+        return policyFieldsDefect;
+      }
       if (isFloor === true) {
         hasFloor = true;
       }
@@ -1931,6 +2159,34 @@ export function validateCatalog(catalog: unknown): string | undefined {
     if (!hasFloor) {
       return `catalog action type "${actionType}" has no mandatory Floor Condition`;
     }
+  }
+  return undefined;
+}
+
+// `policyFields` is optional (a test-only Condition never has to declare
+// one), but once present it must be a real list of dot-paths; and a
+// Condition whose id names it as a known policy reader
+// (POLICY_READING_CONDITION_IDS) must declare at least one, so a checker
+// that reads the owner's policy can never ship silently undocumented.
+function validatePolicyFields(
+  conditionId: string,
+  policyFields: unknown
+): string | undefined {
+  if (policyFields !== undefined) {
+    if (
+      !Array.isArray(policyFields) ||
+      policyFields.some(
+        (field) => typeof field !== "string" || field.length === 0
+      )
+    ) {
+      return `catalog Condition "${conditionId}" has a policyFields that is not an array of non-empty strings`;
+    }
+  }
+  if (
+    POLICY_READING_CONDITION_IDS.has(conditionId) &&
+    (!Array.isArray(policyFields) || policyFields.length === 0)
+  ) {
+    return `catalog Condition "${conditionId}" reads the owner's policy but declares no policyFields`;
   }
   return undefined;
 }

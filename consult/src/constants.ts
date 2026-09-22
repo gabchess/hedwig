@@ -22,6 +22,12 @@ export const EVIDENCE_ECHO_LIMIT = 120;
 // ceiling: the owner can ask for a fresher fact, never an older one.
 export const MAX_ROLE_FACT_AGE_SECONDS = 60;
 
+// How far out an EIP-3009 authorization's validBefore may sit, in seconds,
+// before authorization-window-within-ceiling stops accepting it. A policy's
+// own maxSeconds must fall at or under this ceiling: the owner can ask for a
+// tighter window, never a looser one.
+export const MAX_AUTHORIZATION_WINDOW_SECONDS = 86400;
+
 // --- support score (consult/src/support.ts) ---
 
 // How strong the proof behind a PASS is, strongest to weakest. A PASS can

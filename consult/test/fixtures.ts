@@ -38,6 +38,7 @@ export function makePolicy(overrides: Partial<Policy> = {}): Policy {
     approvedRecipients: [APPROVED_RECIPIENT],
     perActionCaps: { pay: "1000000" },
     role: { mode: "not-required" },
+    authorizationWindow: { mode: "not-required" },
     ...overrides,
   };
 }
@@ -189,6 +190,20 @@ export function makeRequiredRolePolicy(
     role: ROLE_NAME,
     holder: ROLE_HOLDER,
     maxAgeSeconds: ROLE_MAX_AGE_SECONDS,
+    ...overrides,
+  };
+}
+
+// -- authorization-window-within-ceiling fixtures ------------------------
+
+export const AUTHORIZATION_MAX_SECONDS = 600;
+
+export function makeRequiredAuthorizationWindowPolicy(
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    mode: "required",
+    maxSeconds: AUTHORIZATION_MAX_SECONDS,
     ...overrides,
   };
 }
