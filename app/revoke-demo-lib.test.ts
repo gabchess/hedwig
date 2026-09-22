@@ -739,3 +739,43 @@ test("parseOutPath reads the path following --out", () => {
   assert.equal(parseOutPath(["--out"]), undefined);
   assert.equal(parseOutPath(["--other", "value"]), undefined);
 });
+
+// The path guard runs before any read: a loose-mode wallet file under a
+// denied directory is refused for its location, never for its mode. A
+// mode error here would mean the file had already been opened.
+test("loadOrGenerateKeypair refuses a denied location before it looks at the file", () => {
+  const fakeHome = scratchDir("hedwig-revoke-demo-guard-first-home-");
+  try {
+    const solanaDir = join(fakeHome, ".config", "solana");
+    mkdirSync(solanaDir, { recursive: true });
+    const candidate = join(solanaDir, "id.json");
+    writeFileSync(candidate, "[0]", { mode: 0o644 });
+    assert.throws(
+      () => loadOrGenerateKeypair(candidate, fakeHome),
+      /denied directory|wallet/
+    );
+  } finally {
+    rmSync(fakeHome, { recursive: true, force: true });
+  }
+});
+
+// The read itself never follows a link, even when the guard is bypassed by
+// calling the reader directly with a symlink to a well-formed 600 file.
+test("readExistingKeypair refuses a symlink to a valid 600 key file", () => {
+  const dir = scratchDir("hedwig-revoke-demo-read-nofollow-");
+  try {
+    const target = join(dir, "real.json");
+    writeFileSync(
+      target,
+      JSON.stringify(Array.from(Keypair.generate().secretKey)),
+      {
+        mode: 0o600,
+      }
+    );
+    const link = join(dir, "link.json");
+    symlinkSync(target, link);
+    assert.throws(() => readExistingKeypair(link));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
