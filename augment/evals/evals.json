@@ -1,0 +1,74 @@
+[
+  {
+    "id": "pay-clean-allow",
+    "description": "a payment that meets every pay Floor Condition",
+    "fixture": "pay-clean-allow.json",
+    "decidingCondition": "every pay Floor Condition (unanimous PASS required for ALLOW)",
+    "expectedVerdict": "ALLOW_UNDER_POLICY",
+    "expectedProceed": true,
+    "expectedNonPassIds": []
+  },
+  {
+    "id": "pay-poison-recipient-deny",
+    "description": "a payment to a recipient the owner had approved, that is also flagged as poison-derived",
+    "fixture": "pay-poison-recipient-deny.json",
+    "decidingCondition": "recipient-not-poison-derived",
+    "expectedVerdict": "DENY",
+    "expectedProceed": false,
+    "expectedNonPassIds": ["recipient-not-poison-derived"]
+  },
+  {
+    "id": "pay-wrong-chain-deny",
+    "description": "a payment on a canonical chain that is not the chain the owner named",
+    "fixture": "pay-wrong-chain-deny.json",
+    "decidingCondition": "chain-matches-intent",
+    "expectedVerdict": "DENY",
+    "expectedProceed": false,
+    "expectedNonPassIds": ["chain-matches-intent"]
+  },
+  {
+    "id": "pay-no-cap-unknown",
+    "description": "a payment under a policy with no configured cap for the pay action type",
+    "fixture": "pay-no-cap-unknown.json",
+    "decidingCondition": "amount-within-cap",
+    "expectedVerdict": "UNKNOWN",
+    "expectedProceed": false,
+    "expectedNonPassIds": ["amount-within-cap"]
+  },
+  {
+    "id": "swap-clean-allow",
+    "description": "a swap that meets every swap Floor Condition",
+    "fixture": "swap-clean-allow.json",
+    "decidingCondition": "every swap Floor Condition (unanimous PASS required for ALLOW)",
+    "expectedVerdict": "ALLOW_UNDER_POLICY",
+    "expectedProceed": true,
+    "expectedNonPassIds": []
+  },
+  {
+    "id": "swap-slippage-over-ceiling-deny",
+    "description": "a swap whose declared slippage is honestly reported but above the owner's ceiling",
+    "fixture": "swap-slippage-over-ceiling-deny.json",
+    "decidingCondition": "slippage-within-ceiling",
+    "expectedVerdict": "DENY",
+    "expectedProceed": false,
+    "expectedNonPassIds": ["slippage-within-ceiling"]
+  },
+  {
+    "id": "swap-stale-deadline-deny",
+    "description": "a swap whose deadline has already passed",
+    "fixture": "swap-stale-deadline-deny.json",
+    "decidingCondition": "deadline-set-and-fresh",
+    "expectedVerdict": "DENY",
+    "expectedProceed": false,
+    "expectedNonPassIds": ["deadline-set-and-fresh"]
+  },
+  {
+    "id": "pay-role-required-no-fact-unknown",
+    "description": "a payment under a policy that requires a Solana role, with no role fact supplied",
+    "fixture": "pay-role-required-no-fact-unknown.json",
+    "decidingCondition": "role-requirement-met",
+    "expectedVerdict": "UNKNOWN",
+    "expectedProceed": false,
+    "expectedNonPassIds": ["role-requirement-met"]
+  }
+]

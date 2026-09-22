@@ -18,11 +18,17 @@ import { expect } from "chai";
 const CONSULT_ROOT = resolve(__dirname, "..");
 
 describe("package door", () => {
-  it("exports exactly one entry point, the package root", () => {
+  it("exports exactly the package root and the introspect subpath", () => {
     const pkg = JSON.parse(
       readFileSync(join(CONSULT_ROOT, "package.json"), "utf8")
     );
-    expect(Object.keys(pkg.exports)).to.deep.equal(["."]);
+    expect(Object.keys(pkg.exports)).to.deep.equal([".", "./introspect"]);
+  });
+
+  it("the package root exports only consult at runtime", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const door = require("../src/index");
+    expect(Object.keys(door)).to.deep.equal(["consult"]);
   });
 
   describe("deep import paths", () => {

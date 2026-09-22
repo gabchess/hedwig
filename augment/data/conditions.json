@@ -1,0 +1,525 @@
+{
+  "actionTypes": [
+    "pay",
+    "swap"
+  ],
+  "conditions": [
+    {
+      "id": "recipient-matches-policy",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Does the recipient match an entry the owner approved?",
+      "codes": {
+        "pass": [
+          "RECIPIENT_MATCHES_POLICY"
+        ],
+        "fail": [
+          "RECIPIENT_NOT_IN_POLICY"
+        ],
+        "unverified": [
+          "RECIPIENT_SHAPE_INVALID",
+          "RECIPIENT_CHAIN_UNSUPPORTED",
+          "APPROVED_RECIPIENTS_INVALID"
+        ]
+      },
+      "evidenceClass": {
+        "RECIPIENT_MATCHES_POLICY": "owner-policy",
+        "RECIPIENT_NOT_IN_POLICY": "owner-policy",
+        "RECIPIENT_SHAPE_INVALID": "not-verifiable",
+        "RECIPIENT_CHAIN_UNSUPPORTED": "not-verifiable",
+        "APPROVED_RECIPIENTS_INVALID": "not-verifiable"
+      },
+      "reference": "consult/references/pay/recipient-matches-policy.md"
+    },
+    {
+      "id": "recipient-not-poison-derived",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Is the recipient free of any recorded poison transfer?",
+      "codes": {
+        "pass": [
+          "RECIPIENT_NOT_POISON_DERIVED"
+        ],
+        "fail": [
+          "RECIPIENT_POISON_DERIVED"
+        ],
+        "unverified": [
+          "POISON_CHECK_SHAPE_INVALID",
+          "POISON_CHECK_CHAIN_UNSUPPORTED"
+        ]
+      },
+      "evidenceClass": {
+        "RECIPIENT_NOT_POISON_DERIVED": "static-registry",
+        "RECIPIENT_POISON_DERIVED": "static-registry",
+        "POISON_CHECK_SHAPE_INVALID": "not-verifiable",
+        "POISON_CHECK_CHAIN_UNSUPPORTED": "not-verifiable"
+      },
+      "reference": "consult/references/pay/recipient-not-poison-derived.md"
+    },
+    {
+      "id": "asset-is-canonical",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Does the asset contract match the canonical entry?",
+      "codes": {
+        "pass": [
+          "ASSET_IS_CANONICAL"
+        ],
+        "fail": [
+          "ASSET_NOT_CANONICAL"
+        ],
+        "unverified": [
+          "ASSET_REGISTRY_ENTRY_MISSING",
+          "ASSET_ADDRESS_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "ASSET_IS_CANONICAL": "static-registry",
+        "ASSET_NOT_CANONICAL": "static-registry",
+        "ASSET_REGISTRY_ENTRY_MISSING": "not-verifiable",
+        "ASSET_ADDRESS_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/pay/asset-is-canonical.md"
+    },
+    {
+      "id": "amount-within-cap",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Is the amount above zero and within the owner's cap for this action?",
+      "codes": {
+        "pass": [
+          "AMOUNT_WITHIN_CAP"
+        ],
+        "fail": [
+          "AMOUNT_EXCEEDS_CAP",
+          "AMOUNT_ZERO"
+        ],
+        "unverified": [
+          "CAP_MISSING",
+          "AMOUNT_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "AMOUNT_WITHIN_CAP": "owner-policy",
+        "AMOUNT_EXCEEDS_CAP": "owner-policy",
+        "AMOUNT_ZERO": "owner-policy",
+        "CAP_MISSING": "not-verifiable",
+        "AMOUNT_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/pay/amount-within-cap.md"
+    },
+    {
+      "id": "chain-matches-intent",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Does the request's chain match the owner's named chain?",
+      "codes": {
+        "pass": [
+          "CHAIN_MATCHES_INTENT"
+        ],
+        "fail": [
+          "CHAIN_MISMATCH"
+        ],
+        "unverified": [
+          "CHAIN_ID_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "CHAIN_MATCHES_INTENT": "owner-policy",
+        "CHAIN_MISMATCH": "owner-policy",
+        "CHAIN_ID_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/pay/chain-matches-intent.md"
+    },
+    {
+      "id": "target-is-canonical",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Does the transaction call the canonical asset contract?",
+      "codes": {
+        "pass": [
+          "TARGET_IS_CANONICAL"
+        ],
+        "fail": [
+          "TARGET_NOT_CANONICAL"
+        ],
+        "unverified": [
+          "TARGET_SHAPE_INVALID",
+          "TARGET_CHAIN_UNSUPPORTED",
+          "TARGET_REGISTRY_ENTRY_MISSING"
+        ]
+      },
+      "evidenceClass": {
+        "TARGET_IS_CANONICAL": "static-registry",
+        "TARGET_NOT_CANONICAL": "static-registry",
+        "TARGET_SHAPE_INVALID": "not-verifiable",
+        "TARGET_CHAIN_UNSUPPORTED": "not-verifiable",
+        "TARGET_REGISTRY_ENTRY_MISSING": "not-verifiable"
+      },
+      "reference": "consult/references/pay/target-is-canonical.md"
+    },
+    {
+      "id": "role-requirement-met",
+      "actionTypes": [
+        "pay"
+      ],
+      "floor": true,
+      "question": "Is the owner's role requirement met?",
+      "codes": {
+        "pass": [
+          "ROLE_NOT_REQUIRED",
+          "ROLE_HELD"
+        ],
+        "fail": [
+          "ROLE_DISABLED",
+          "ROLE_MEMBERSHIP_EXPIRED",
+          "ROLE_MEMBER_MISSING"
+        ],
+        "unverified": [
+          "ROLE_POLICY_MISSING",
+          "ROLE_POLICY_MALFORMED",
+          "ROLE_FACT_MISSING",
+          "ROLE_FACT_MALFORMED",
+          "ROLE_FACT_SUBJECT_MISMATCH",
+          "ROLE_FACT_AGE_UNKNOWN",
+          "ROLE_FACT_STALE"
+        ]
+      },
+      "evidenceClass": {
+        "ROLE_NOT_REQUIRED": "owner-policy",
+        "ROLE_HELD": "onchain-read",
+        "ROLE_DISABLED": "onchain-read",
+        "ROLE_MEMBERSHIP_EXPIRED": "onchain-read",
+        "ROLE_MEMBER_MISSING": "onchain-read",
+        "ROLE_POLICY_MISSING": "not-verifiable",
+        "ROLE_POLICY_MALFORMED": "not-verifiable",
+        "ROLE_FACT_MISSING": "not-verifiable",
+        "ROLE_FACT_MALFORMED": "not-verifiable",
+        "ROLE_FACT_SUBJECT_MISMATCH": "not-verifiable",
+        "ROLE_FACT_AGE_UNKNOWN": "not-verifiable",
+        "ROLE_FACT_STALE": "not-verifiable"
+      },
+      "reference": "consult/references/pay/role-requirement-met.md"
+    },
+    {
+      "id": "target-is-canonical",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Does the transaction call a canonical router?",
+      "codes": {
+        "pass": [
+          "SWAP_TARGET_IS_CANONICAL"
+        ],
+        "fail": [
+          "SWAP_TARGET_NOT_CANONICAL"
+        ],
+        "unverified": [
+          "SWAP_TARGET_SHAPE_INVALID",
+          "SWAP_TARGET_CHAIN_UNSUPPORTED",
+          "SWAP_TARGET_ROUTER_UNKNOWN"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_TARGET_IS_CANONICAL": "static-registry",
+        "SWAP_TARGET_NOT_CANONICAL": "static-registry",
+        "SWAP_TARGET_SHAPE_INVALID": "not-verifiable",
+        "SWAP_TARGET_CHAIN_UNSUPPORTED": "not-verifiable",
+        "SWAP_TARGET_ROUTER_UNKNOWN": "not-verifiable"
+      },
+      "reference": "consult/references/swap/target-is-canonical.md"
+    },
+    {
+      "id": "token-in-is-canonical",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Does the input token contract match the canonical entry?",
+      "codes": {
+        "pass": [
+          "SWAP_TOKEN_IN_IS_CANONICAL"
+        ],
+        "fail": [
+          "SWAP_TOKEN_IN_NOT_CANONICAL",
+          "SWAP_TOKEN_IN_SAME_AS_TOKEN_OUT"
+        ],
+        "unverified": [
+          "SWAP_TOKEN_IN_REGISTRY_ENTRY_MISSING",
+          "SWAP_TOKEN_IN_ADDRESS_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_TOKEN_IN_IS_CANONICAL": "static-registry",
+        "SWAP_TOKEN_IN_NOT_CANONICAL": "static-registry",
+        "SWAP_TOKEN_IN_SAME_AS_TOKEN_OUT": "static-registry",
+        "SWAP_TOKEN_IN_REGISTRY_ENTRY_MISSING": "not-verifiable",
+        "SWAP_TOKEN_IN_ADDRESS_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/swap/token-in-is-canonical.md"
+    },
+    {
+      "id": "token-out-is-canonical",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Does the output token contract match the canonical entry?",
+      "codes": {
+        "pass": [
+          "SWAP_TOKEN_OUT_IS_CANONICAL"
+        ],
+        "fail": [
+          "SWAP_TOKEN_OUT_NOT_CANONICAL",
+          "SWAP_TOKEN_OUT_SAME_AS_TOKEN_IN"
+        ],
+        "unverified": [
+          "SWAP_TOKEN_OUT_REGISTRY_ENTRY_MISSING",
+          "SWAP_TOKEN_OUT_ADDRESS_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_TOKEN_OUT_IS_CANONICAL": "static-registry",
+        "SWAP_TOKEN_OUT_NOT_CANONICAL": "static-registry",
+        "SWAP_TOKEN_OUT_SAME_AS_TOKEN_IN": "static-registry",
+        "SWAP_TOKEN_OUT_REGISTRY_ENTRY_MISSING": "not-verifiable",
+        "SWAP_TOKEN_OUT_ADDRESS_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/swap/token-out-is-canonical.md"
+    },
+    {
+      "id": "slippage-within-ceiling",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Is the declared slippage within the owner's ceiling?",
+      "codes": {
+        "pass": [
+          "SLIPPAGE_WITHIN_CEILING"
+        ],
+        "fail": [
+          "SLIPPAGE_AMOUNTS_MALFORMED",
+          "SLIPPAGE_QUOTED_OUT_ZERO",
+          "SLIPPAGE_MIN_OUT_ZERO",
+          "SLIPPAGE_MIN_OUT_EXCEEDS_QUOTE",
+          "SLIPPAGE_BPS_MALFORMED",
+          "SLIPPAGE_DECLARED_MISMATCH",
+          "SLIPPAGE_EXCEEDS_CEILING"
+        ],
+        "unverified": [
+          "SLIPPAGE_CEILING_MISSING"
+        ]
+      },
+      "evidenceClass": {
+        "SLIPPAGE_WITHIN_CEILING": "caller-stated",
+        "SLIPPAGE_AMOUNTS_MALFORMED": "owner-policy",
+        "SLIPPAGE_QUOTED_OUT_ZERO": "owner-policy",
+        "SLIPPAGE_MIN_OUT_ZERO": "owner-policy",
+        "SLIPPAGE_MIN_OUT_EXCEEDS_QUOTE": "owner-policy",
+        "SLIPPAGE_BPS_MALFORMED": "owner-policy",
+        "SLIPPAGE_DECLARED_MISMATCH": "owner-policy",
+        "SLIPPAGE_EXCEEDS_CEILING": "owner-policy",
+        "SLIPPAGE_CEILING_MISSING": "not-verifiable"
+      },
+      "reference": "consult/references/swap/slippage-within-ceiling.md"
+    },
+    {
+      "id": "deadline-set-and-fresh",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Is the deadline set, in the future, and within the owner's window?",
+      "codes": {
+        "pass": [
+          "DEADLINE_FRESH"
+        ],
+        "fail": [
+          "DEADLINE_PAST",
+          "DEADLINE_TOO_FAR"
+        ],
+        "unverified": [
+          "DEADLINE_MALFORMED",
+          "DEADLINE_NOW_UNAVAILABLE",
+          "DEADLINE_CEILING_MISSING"
+        ]
+      },
+      "evidenceClass": {
+        "DEADLINE_FRESH": "owner-policy",
+        "DEADLINE_PAST": "owner-policy",
+        "DEADLINE_TOO_FAR": "owner-policy",
+        "DEADLINE_MALFORMED": "not-verifiable",
+        "DEADLINE_NOW_UNAVAILABLE": "not-verifiable",
+        "DEADLINE_CEILING_MISSING": "not-verifiable"
+      },
+      "reference": "consult/references/swap/deadline-set-and-fresh.md"
+    },
+    {
+      "id": "output-recipient-is-owner",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Does the output land on an address the owner holds, free of any recorded poison transfer?",
+      "codes": {
+        "pass": [
+          "SWAP_OUTPUT_RECIPIENT_IS_OWNER"
+        ],
+        "fail": [
+          "SWAP_OUTPUT_RECIPIENT_NOT_OWNER",
+          "SWAP_RECIPIENT_POISON_DERIVED"
+        ],
+        "unverified": [
+          "SWAP_RECIPIENT_SHAPE_INVALID",
+          "SWAP_RECIPIENT_CHAIN_UNSUPPORTED",
+          "SWAP_OWNER_ADDRESSES_INVALID"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_OUTPUT_RECIPIENT_IS_OWNER": "owner-policy",
+        "SWAP_OUTPUT_RECIPIENT_NOT_OWNER": "owner-policy",
+        "SWAP_RECIPIENT_POISON_DERIVED": "static-registry",
+        "SWAP_RECIPIENT_SHAPE_INVALID": "not-verifiable",
+        "SWAP_RECIPIENT_CHAIN_UNSUPPORTED": "not-verifiable",
+        "SWAP_OWNER_ADDRESSES_INVALID": "not-verifiable"
+      },
+      "reference": "consult/references/swap/output-recipient-is-owner.md"
+    },
+    {
+      "id": "approval-scoped-to-this-swap",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Does the approval cover exactly this swap's input amount?",
+      "codes": {
+        "pass": [
+          "SWAP_APPROVAL_SCOPED"
+        ],
+        "fail": [
+          "SWAP_APPROVAL_NOT_SCOPED"
+        ],
+        "unverified": [
+          "SWAP_APPROVAL_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_APPROVAL_SCOPED": "owner-policy",
+        "SWAP_APPROVAL_NOT_SCOPED": "owner-policy",
+        "SWAP_APPROVAL_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/swap/approval-scoped-to-this-swap.md"
+    },
+    {
+      "id": "amount-within-cap",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Is the input amount above zero and within the owner's cap for this action?",
+      "codes": {
+        "pass": [
+          "SWAP_AMOUNT_WITHIN_CAP"
+        ],
+        "fail": [
+          "SWAP_AMOUNT_EXCEEDS_CAP",
+          "SWAP_AMOUNT_ZERO"
+        ],
+        "unverified": [
+          "SWAP_CAP_MISSING",
+          "SWAP_AMOUNT_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_AMOUNT_WITHIN_CAP": "owner-policy",
+        "SWAP_AMOUNT_EXCEEDS_CAP": "owner-policy",
+        "SWAP_AMOUNT_ZERO": "owner-policy",
+        "SWAP_CAP_MISSING": "not-verifiable",
+        "SWAP_AMOUNT_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/swap/amount-within-cap.md"
+    },
+    {
+      "id": "chain-matches-intent",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Does the request's chain match the owner's named chain?",
+      "codes": {
+        "pass": [
+          "SWAP_CHAIN_MATCHES_INTENT"
+        ],
+        "fail": [
+          "SWAP_CHAIN_MISMATCH"
+        ],
+        "unverified": [
+          "SWAP_CHAIN_ID_MALFORMED"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_CHAIN_MATCHES_INTENT": "owner-policy",
+        "SWAP_CHAIN_MISMATCH": "owner-policy",
+        "SWAP_CHAIN_ID_MALFORMED": "not-verifiable"
+      },
+      "reference": "consult/references/swap/chain-matches-intent.md"
+    },
+    {
+      "id": "role-requirement-met",
+      "actionTypes": [
+        "swap"
+      ],
+      "floor": true,
+      "question": "Is the owner's role requirement met?",
+      "codes": {
+        "pass": [
+          "SWAP_ROLE_NOT_REQUIRED",
+          "SWAP_ROLE_HELD"
+        ],
+        "fail": [
+          "SWAP_ROLE_DISABLED",
+          "SWAP_ROLE_MEMBERSHIP_EXPIRED",
+          "SWAP_ROLE_MEMBER_MISSING"
+        ],
+        "unverified": [
+          "SWAP_ROLE_POLICY_MISSING",
+          "SWAP_ROLE_POLICY_MALFORMED",
+          "SWAP_ROLE_FACT_MISSING",
+          "SWAP_ROLE_FACT_MALFORMED",
+          "SWAP_ROLE_FACT_SUBJECT_MISMATCH",
+          "SWAP_ROLE_FACT_AGE_UNKNOWN",
+          "SWAP_ROLE_FACT_STALE"
+        ]
+      },
+      "evidenceClass": {
+        "SWAP_ROLE_NOT_REQUIRED": "owner-policy",
+        "SWAP_ROLE_HELD": "onchain-read",
+        "SWAP_ROLE_DISABLED": "onchain-read",
+        "SWAP_ROLE_MEMBERSHIP_EXPIRED": "onchain-read",
+        "SWAP_ROLE_MEMBER_MISSING": "onchain-read",
+        "SWAP_ROLE_POLICY_MISSING": "not-verifiable",
+        "SWAP_ROLE_POLICY_MALFORMED": "not-verifiable",
+        "SWAP_ROLE_FACT_MISSING": "not-verifiable",
+        "SWAP_ROLE_FACT_MALFORMED": "not-verifiable",
+        "SWAP_ROLE_FACT_SUBJECT_MISMATCH": "not-verifiable",
+        "SWAP_ROLE_FACT_AGE_UNKNOWN": "not-verifiable",
+        "SWAP_ROLE_FACT_STALE": "not-verifiable"
+      },
+      "reference": "consult/references/swap/role-requirement-met.md"
+    }
+  ]
+}

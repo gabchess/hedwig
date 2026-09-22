@@ -17,7 +17,8 @@
     "consult:build": "tsc -p consult/tsconfig.json",
     "mcp:typecheck": "tsc -p mcp/tsconfig.json --noEmit && tsc -p mcp/tsconfig.test.json --noEmit",
     "mcp:test": "ts-mocha -p mcp/tsconfig.test.json \"mcp/test/**/*.test.ts\"",
-    "mcp:build": "tsc -p mcp/tsconfig.json"
+    "mcp:build": "tsc -p mcp/tsconfig.json",
+    "augment:verify": "node scripts/verify-augment.js"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2"

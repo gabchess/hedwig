@@ -1,0 +1,22 @@
+{
+  "request": {
+    "action": {
+      "type": "pay",
+      "chainId": "eip155:8453",
+      "recipient": "0x00000000000000000000000000000000a11ce001",
+      "asset": {
+        "symbol": "USDC",
+        "contractAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      },
+      "amount": "1000000",
+      "target": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    }
+  },
+  "policy": {
+    "permits": true,
+    "chainId": "eip155:1",
+    "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
+    "perActionCaps": { "pay": "1000000" },
+    "role": { "mode": "not-required" }
+  }
+}
