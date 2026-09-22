@@ -187,16 +187,18 @@ export const BASE_CHAIN_ID = "eip155:8453";
 export const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 export const BASE_WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
 
-const CANONICAL_ASSETS: Record<string, Record<string, string>> = {
-  [CANONICAL_CHAIN_ID]: {
+const CANONICAL_ASSETS: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = Object.freeze({
+  [CANONICAL_CHAIN_ID]: Object.freeze({
     [CANONICAL_ASSET_SYMBOL]: CANONICAL_ASSET_ADDRESS,
     [CANONICAL_WETH_SYMBOL]: CANONICAL_WETH_ADDRESS,
-  },
-  [BASE_CHAIN_ID]: {
+  }),
+  [BASE_CHAIN_ID]: Object.freeze({
     [CANONICAL_ASSET_SYMBOL]: BASE_USDC_ADDRESS,
     [CANONICAL_WETH_SYMBOL]: BASE_WETH_ADDRESS,
-  },
-};
+  }),
+});
 
 // Uniswap's own Universal Router deployment addresses, verified 2026-09-21
 // against https://github.com/Uniswap/universal-router/blob/main/deploy-addresses/

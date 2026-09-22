@@ -43,6 +43,21 @@ const baseSwap = (action: Record<string, unknown> = {}) =>
   });
 
 describe("Base assets", () => {
+  it("pins the two Base addresses as literals, so a wrong digit in the table cannot hide behind the constant", () => {
+    expect(BASE_USDC_ADDRESS).to.equal(
+      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    );
+    expect(BASE_WETH_ADDRESS).to.equal(
+      "0x4200000000000000000000000000000000000006"
+    );
+    expect(CANONICAL_ASSET_ADDRESS).to.equal(
+      "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    );
+    expect(CANONICAL_WETH_ADDRESS).to.equal(
+      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    );
+  });
+
   it("a clean USDC pay on Base earns ALLOW at 0.92", () => {
     const response = consult(basePay(), makePolicy({ chainId: BASE_CHAIN_ID }));
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
