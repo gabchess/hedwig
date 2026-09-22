@@ -3,7 +3,7 @@
 The owner already approved this recipient once. A poison-transfer scan
 later flagged the same address, so `recipient-not-poison-derived` catches
 what `recipient-matches-policy` alone cannot: an address on the approved
-list is not automatically a safe one.
+list can still be one the owner would refuse.
 
 ## Request
 

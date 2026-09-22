@@ -105,11 +105,15 @@ function checkReferencePaths(conditionsCatalog, repoRoot, failures) {
   }
 }
 
-function nonPassIds(response) {
+function nonPassRows(response) {
   return response.results
     .filter((result) => result.status !== "PASS")
-    .map((result) => result.id)
-    .sort();
+    .map((result) => ({
+      id: result.id,
+      status: result.status,
+      code: result.code,
+    }))
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 function checkEvals(augmentDir, consult, failures) {
@@ -135,13 +139,15 @@ function checkEvals(augmentDir, consult, failures) {
         `${scenario.id}: expected proceed ${scenario.expectedProceed}, got ${response.proceed}`
       );
     }
-    const actual = nonPassIds(response);
-    const expected = [...scenario.expectedNonPassIds].sort();
+    const actual = nonPassRows(response);
+    const expected = [...scenario.expectedNonPassRows].sort((a, b) =>
+      a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+    );
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       failures.push(
-        `${scenario.id}: expected non-PASS rows [${expected.join(
-          ", "
-        )}], got [${actual.join(", ")}]`
+        `${scenario.id}: expected non-PASS rows ${JSON.stringify(
+          expected
+        )}, got ${JSON.stringify(actual)}`
       );
     }
   }
@@ -296,12 +302,53 @@ function runSelfTest({ consult, describeCatalog }) {
     }
   }
 
+  // Mutation 4: a changed code on an expected non-PASS row must fail, so a
+  // Condition that starts failing for a different reason cannot pass silently.
+  {
+    const tmpRoot = makeTempCopy();
+    try {
+      const evalsPath = path.join(tmpRoot, "augment", "evals", "evals.json");
+      const scenarios = readJson(evalsPath);
+      const withRow = scenarios.find((s) => s.expectedNonPassRows.length > 0);
+      withRow.expectedNonPassRows[0].code = "SOME_OTHER_CODE";
+      fs.writeFileSync(evalsPath, stableStringify(scenarios));
+      const failures = verify(tmpRoot);
+      if (failures.length === 0) {
+        problems.push("a changed expected code did not fail verification");
+      }
+    } finally {
+      fs.rmSync(tmpRoot, { recursive: true, force: true });
+    }
+  }
+
   return problems;
 }
 
+// `--write` regenerates the two data files from the built catalog, so the
+// only path to a changed data file is through the code that describes it.
+function writeGeneratedFiles(augmentDir, describeCatalog) {
+  const dataDir = path.join(augmentDir, "data");
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dataDir, "conditions.json"),
+    stableStringify(buildConditionsCatalog(describeCatalog))
+  );
+  fs.writeFileSync(
+    path.join(dataDir, "known-addresses.json"),
+    stableStringify(buildKnownAddresses(describeCatalog))
+  );
+}
+
 function main() {
-  const selfTest = process.argv.slice(2).includes("--self-test");
+  const args = process.argv.slice(2);
+  const selfTest = args.includes("--self-test");
+  const write = args.includes("--write");
   const { consult, describeCatalog } = loadConsult(REPO_ROOT);
+
+  if (write) {
+    writeGeneratedFiles(path.join(REPO_ROOT, "augment"), describeCatalog);
+    process.stdout.write("augment-verify: data files written\n");
+  }
 
   if (selfTest) {
     const problems = runSelfTest({ consult, describeCatalog });

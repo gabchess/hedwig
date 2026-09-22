@@ -9,10 +9,11 @@ so it never drifts from the code it describes.
 - `data/conditions.json` and `data/known-addresses.json`: the Condition
   catalog and the canonical asset and router tables, generated from
   `@hedwig/consult`'s own `describeCatalog()`. Never hand-edit these; run
-  `yarn consult:build` after any catalog change, then `yarn augment:verify`
-  to regenerate and check them.
+  `yarn consult:build` after any catalog change, then
+  `yarn augment:verify --write` to regenerate them and `yarn augment:verify`
+  to check them.
 - `evals/`: eight scenarios, each a fixture plus its expected verdict,
-  `proceed` flag, and set of non-PASS rows. `yarn augment:verify` runs
+  `proceed` flag, and non-PASS rows with their status and code. `yarn augment:verify` runs
   every scenario through `consult()` and fails on any mismatch.
 - `examples/walkthrough-deny.md`: one full DENY response, row by row, with
   the reason for each non-PASS row.
@@ -31,8 +32,8 @@ node scripts/verify-augment.js
 node scripts/verify-augment.js --self-test
 ```
 
-`augment:verify` regenerates `data/*.json` from the built catalog and
-fails if the committed files differ, checks every reference path
+`augment:verify` rebuilds `data/*.json` from the built catalog in memory and
+fails if the committed files differ (`--write` writes them), checks every reference path
 `data/conditions.json` names actually exists and is non-empty, and runs
 every eval scenario through `consult()` to confirm its verdict, `proceed`,
 and non-PASS rows. `--self-test` proves the checker itself catches a

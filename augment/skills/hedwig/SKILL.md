@@ -30,7 +30,7 @@ From code, `consult(request, policy, facts?)` from `@hedwig/consult` returns the
 
 ## The verdict grammar
 
-`verdict` is one of three values: `ALLOW_UNDER_POLICY` (every Floor row PASS, policy permits),
+`verdict` is one of three values: `ALLOW_UNDER_POLICY` (every row PASS, every Floor id present, policy permits),
 `DENY` (at least one FAIL), or `UNKNOWN` (a mix, an UNVERIFIED row, or a policy that does not
 permit). `proceed` is exactly `verdict === "ALLOW_UNDER_POLICY"`. `band` (`green`/`amber`/`red`)
 is derived from `support` after the verdict and decides nothing.
@@ -56,7 +56,7 @@ Request:
   "amount": "1000000", "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" } }
 ```
 
-Response (`results` truncated to its first row; every row here PASSes):
+Response (`results` truncated to its first row, `floorIds` omitted; every row here PASSes):
 
 ```json
 { "question": "Should this agent proceed with this payment under the owner's policy?",

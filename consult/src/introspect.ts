@@ -56,7 +56,7 @@ function conditionKey(definition: ConditionDefinition): string {
     isFloor: definition.isFloor,
     question: definition.question,
     reference: definition.reference,
-    pass: passCodesOf(definition.codes),
+    pass: [...passCodesOf(definition.codes)],
     fail: definition.codes.fail,
     unverified: definition.codes.unverified,
     codeEvidenceClass: definition.codeEvidenceClass,
@@ -85,7 +85,7 @@ function describeConditions(): CatalogConditionDescription[] {
     floor: definition.isFloor,
     question: definition.question,
     codes: {
-      pass: passCodesOf(definition.codes),
+      pass: [...passCodesOf(definition.codes)],
       fail: [...definition.codes.fail],
       unverified: [...definition.codes.unverified],
     },

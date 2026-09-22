@@ -6,7 +6,7 @@
     "decidingCondition": "every pay Floor Condition (unanimous PASS required for ALLOW)",
     "expectedVerdict": "ALLOW_UNDER_POLICY",
     "expectedProceed": true,
-    "expectedNonPassIds": []
+    "expectedNonPassRows": []
   },
   {
     "id": "pay-poison-recipient-deny",
@@ -15,7 +15,13 @@
     "decidingCondition": "recipient-not-poison-derived",
     "expectedVerdict": "DENY",
     "expectedProceed": false,
-    "expectedNonPassIds": ["recipient-not-poison-derived"]
+    "expectedNonPassRows": [
+      {
+        "id": "recipient-not-poison-derived",
+        "status": "FAIL",
+        "code": "RECIPIENT_POISON_DERIVED"
+      }
+    ]
   },
   {
     "id": "pay-wrong-chain-deny",
@@ -24,7 +30,13 @@
     "decidingCondition": "chain-matches-intent",
     "expectedVerdict": "DENY",
     "expectedProceed": false,
-    "expectedNonPassIds": ["chain-matches-intent"]
+    "expectedNonPassRows": [
+      {
+        "id": "chain-matches-intent",
+        "status": "FAIL",
+        "code": "CHAIN_MISMATCH"
+      }
+    ]
   },
   {
     "id": "pay-no-cap-unknown",
@@ -33,7 +45,13 @@
     "decidingCondition": "amount-within-cap",
     "expectedVerdict": "UNKNOWN",
     "expectedProceed": false,
-    "expectedNonPassIds": ["amount-within-cap"]
+    "expectedNonPassRows": [
+      {
+        "id": "amount-within-cap",
+        "status": "UNVERIFIED",
+        "code": "CAP_MISSING"
+      }
+    ]
   },
   {
     "id": "swap-clean-allow",
@@ -42,7 +60,7 @@
     "decidingCondition": "every swap Floor Condition (unanimous PASS required for ALLOW)",
     "expectedVerdict": "ALLOW_UNDER_POLICY",
     "expectedProceed": true,
-    "expectedNonPassIds": []
+    "expectedNonPassRows": []
   },
   {
     "id": "swap-slippage-over-ceiling-deny",
@@ -51,7 +69,13 @@
     "decidingCondition": "slippage-within-ceiling",
     "expectedVerdict": "DENY",
     "expectedProceed": false,
-    "expectedNonPassIds": ["slippage-within-ceiling"]
+    "expectedNonPassRows": [
+      {
+        "id": "slippage-within-ceiling",
+        "status": "FAIL",
+        "code": "SLIPPAGE_EXCEEDS_CEILING"
+      }
+    ]
   },
   {
     "id": "swap-stale-deadline-deny",
@@ -60,7 +84,13 @@
     "decidingCondition": "deadline-set-and-fresh",
     "expectedVerdict": "DENY",
     "expectedProceed": false,
-    "expectedNonPassIds": ["deadline-set-and-fresh"]
+    "expectedNonPassRows": [
+      {
+        "id": "deadline-set-and-fresh",
+        "status": "FAIL",
+        "code": "DEADLINE_PAST"
+      }
+    ]
   },
   {
     "id": "pay-role-required-no-fact-unknown",
@@ -69,6 +99,12 @@
     "decidingCondition": "role-requirement-met",
     "expectedVerdict": "UNKNOWN",
     "expectedProceed": false,
-    "expectedNonPassIds": ["role-requirement-met"]
+    "expectedNonPassRows": [
+      {
+        "id": "role-requirement-met",
+        "status": "UNVERIFIED",
+        "code": "ROLE_FACT_MISSING"
+      }
+    ]
   }
 ]
