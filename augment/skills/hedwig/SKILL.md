@@ -28,6 +28,8 @@ The server supplies the policy and the facts; the caller supplies only `request`
 
 From code, `consult(request, policy, facts?)` from `@hedwig/consult` returns the same response.
 
+A `pay` policy states the owner's choice for a Solana role and for an EIP-3009 authorization window. A policy that omits either field answers `UNKNOWN`, and `proceed` stays `false`.
+
 ## The verdict grammar
 
 `verdict` is one of three values: `ALLOW_UNDER_POLICY` (every row PASS, every Floor id present, policy permits),

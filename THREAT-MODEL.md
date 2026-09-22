@@ -11,7 +11,7 @@ not a substitute for one.
 
 ## Assets and security properties
 
-Hedwig protects three kinds of state:
+Hedwig holds three kinds of state:
 
 - an `Org` identifies the authority allowed to create roles in its namespace;
 - a `Role` identifies its org and the admin allowed to manage memberships or disable the role;
@@ -57,6 +57,23 @@ Member: ["member", role, holder]
 ```
 
 This layout allows one `Org` per authority and one `Role` per name within an org. It also prevents duplicate membership for the same role-holder pair while the original `Member` account exists.
+
+## The payment check's boundary
+
+`consult()` reads three inputs: the request the caller maps, the owner's
+policy file, and the facts the caller supplies as data. It makes no network
+call, reads no clock, holds no key, and signs nothing.
+
+The caller controls the request and the facts. A caller that misreports
+either gets an answer about what it reported.
+
+The owner controls the policy file: the approved recipients, the caps, the
+named chain, the role choice and the authorization window. The MCP server
+reads that file from the path in `HEDWIG_POLICY_FILE`, and reads a required
+Solana role through the RPC endpoint named in the environment.
+
+Hedwig returns `proceed`, a verdict, and one row per Condition. Acting on
+that answer is the caller's own step.
 
 ## Caller authentication is an integration requirement
 
@@ -130,7 +147,7 @@ derive the fixed devnet program ID. Every upgrade must therefore name
 `H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC` explicitly and must deploy the
 artifact whose hash was recorded by the release audit.
 
-Before mainnet, the upgrade authority will move to a 2-of-3 Squads multisig. Removing upgrade authority entirely is a later, evidence-gated decision: stable v1 interfaces, an external security review with all critical and high-severity findings closed, and at least one external production integration must exist first. Freezing earlier would prevent remediation of defects discovered during integration or review.
+The upgrade authority is one deployer-controlled key on both programs.
 
 ## Test evidence
 

@@ -1,6 +1,6 @@
 # Contributing to Hedwig
 
-Hedwig is the onchain role program in this repository. Keep changes narrow, auditable, and honest about what is built versus planned.
+Hedwig is the payment check, the MCP server and the onchain role program in this repository. Keep changes narrow, auditable, and matched to what the code does.
 
 ## Local checks
 
@@ -16,6 +16,11 @@ yarn sdk:typecheck
 yarn sdk:test
 yarn sdk:build
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
+yarn consult:typecheck
+yarn consult:test
+yarn mcp:typecheck
+yarn mcp:test
+yarn augment:verify
 ```
 
 The tests use LiteSVM and do not require a network connection. Build both SBF
@@ -26,6 +31,9 @@ install policy is resolved.
 
 ## Repo map
 
+- Payment check: `consult/`
+- MCP server: `mcp/`
+- Agent skill and evals: `augment/`
 - Program source: `programs/hedwig_sol/src/`
 - Program tests: `programs/hedwig_sol/tests/`
 - Secure consumer and tests: `programs/hedwig_consumer/`

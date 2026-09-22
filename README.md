@@ -10,16 +10,23 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-d4a574?labelColor=221e18" alt="license: MIT"></a>
 </p>
 
-Hedwig is an agent for onchain payment security, DeFi security and opsec that other agents will consult, installed as a plugin or run as an MCP server inside whatever app you already hand work to. It is built for people or agents running x402 payment tools and agent wallets. The goal is to make DeFi and autonomous onchain payments a better place for agents, x402 and agentic finance.
+Hedwig is the payment check other agents consult before they sign. Run it as an MCP server, or load the agent skill in whatever app you already hand work to. It is built for people or agents running x402 payment tools and agent wallets.
 
 ## Run it
 
-This builds the onchain role program and runs its tests. It needs Rust, Anchor CLI 1.0.2, Solana/Agave CLI 4.0.1+, Node.js 22+ and Yarn.
+The payment check has no dependencies of its own; it needs Node.js 22+ and Yarn. It answers `proceed` for a payment or a swap against the owner's policy. Any check it cannot complete answers `UNKNOWN`, and `proceed` stays `false`:
 
 ```sh
 git clone https://github.com/gabchess/hedwig.git
 cd hedwig
 yarn install
+yarn consult:typecheck
+yarn consult:test
+```
+
+The onchain role program builds and tests with Rust, Anchor CLI 1.0.2, Solana/Agave CLI 4.0.1+, Node.js 22+ and Yarn.
+
+```sh
 cargo fmt --check
 cargo build
 cargo build-sbf --manifest-path programs/hedwig_consumer/Cargo.toml
@@ -32,11 +39,4 @@ npm ci --prefix app
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 ```
 
-The payment check has no dependencies of its own. It answers `proceed` for a payment or a swap against the owner's policy. Any check it cannot complete answers `UNKNOWN`, and `proceed` stays `false`:
-
-```sh
-yarn consult:typecheck
-yarn consult:test
-```
-
-[Agent skill](augment/README.md) · [Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Agent skill](augment/README.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
