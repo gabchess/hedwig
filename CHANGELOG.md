@@ -4,6 +4,10 @@ Versions track shipped code.
 
 ## Unreleased
 
+### Removed
+
+- The honesty evals (`evals/`), the `honesty-evals.yml` workflow, and the `evals`/`evals:offline`/`evals:judge`/`evals:test` npm scripts.
+
 ## [0.3.0] - 2026-09-22
 
 A new Floor Condition is a versioned change for every policy: a policy that omits the Condition's field answers `UNKNOWN` with a code naming the field, and a policy opts out with `{ "mode": "not-required" }`.

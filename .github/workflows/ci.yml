@@ -28,11 +28,6 @@ jobs:
           PUBLIC_BOUNDARY_PRIVATE_PATTERNS_FILE: ""
         run: bash scripts/check-public-boundary.sh
 
-      - name: Test offline honesty evals
-        run: |
-          npm run evals:test
-          npm run evals:offline
-
       - name: Install workspace dependencies
         run: yarn install --frozen-lockfile
 
