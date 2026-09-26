@@ -12,7 +12,7 @@ Versions track shipped code.
 
 ### Changed
 
-- The agent skill reads the Condition catalog from `describeCatalog()` in `@hedwig/consult/introspect`. (#55)
+- The agent skill's Condition reference names `describeCatalog()` in `@hedwig/consult/introspect` as the source of each Condition's `policyFields`. (#55)
 - The demo app README installs the app with `npm ci --prefix app`, the same command CI runs. (#52)
 
 ### Fixed

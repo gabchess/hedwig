@@ -20,7 +20,8 @@ npm ci --prefix app
 npm --prefix app test
 yarn consult:typecheck
 yarn consult:test
-npm ci --prefix mcp
+yarn consult:build
+npm ci --ignore-scripts --prefix mcp
 yarn mcp:typecheck
 yarn mcp:build
 yarn mcp:test
