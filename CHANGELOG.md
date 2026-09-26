@@ -8,6 +8,7 @@ Versions track shipped code.
 
 - The honesty evals (`evals/`), the `honesty-evals.yml` workflow, and the `evals`/`evals:offline`/`evals:judge`/`evals:test` npm scripts.
 - The `public:check` and `public:test` npm scripts and their CI steps.
+- The `augment:verify` script, its CI step, and the augment data and evals fixtures. The Condition catalog is available from `describeCatalog()` in `@hedwig/consult/introspect`.
 
 ## [0.3.0] - 2026-09-22
 
