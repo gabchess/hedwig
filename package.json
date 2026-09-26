@@ -3,10 +3,6 @@
   "scripts": {
     "public:check": "bash scripts/check-public-boundary.sh",
     "public:test": "bash scripts/test-public-boundary.sh",
-    "evals": "node evals/run.js --offline",
-    "evals:offline": "node evals/run.js --offline",
-    "evals:judge": "node evals/run.js --judge",
-    "evals:test": "node --test evals/test/*.test.js",
     "lint:fix": "prettier \"**/*.{js,ts}\" --write",
     "lint": "prettier \"**/*.{js,ts}\" --check",
     "sdk:typecheck": "tsc -p sdk/tsconfig.json --noEmit && tsc -p sdk/tsconfig.test.json --noEmit",
