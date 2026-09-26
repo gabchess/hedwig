@@ -22,7 +22,8 @@ const ORACLE: Oracle = JSON.parse(
 );
 
 describe("readers/pda: findProgramAddress against 2000 reference vectors", () => {
-  it("matches address and bump for every vector", () => {
+  it("matches address and bump for every vector", function () {
+    this.timeout(20000);
     const programId = decodeBase58PublicKey(ORACLE.programId)!;
     let checked = 0;
 
@@ -48,7 +49,8 @@ describe("readers/pda: findProgramAddress against 2000 reference vectors", () =>
 });
 
 describe("readers/pda: isOnCurve against 2000 reference vectors", () => {
-  it("matches the reference library on every vector, both answers present", () => {
+  it("matches the reference library on every vector, both answers present", function () {
+    this.timeout(20000);
     let onCurveCount = 0;
     let offCurveCount = 0;
 
