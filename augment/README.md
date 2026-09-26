@@ -1,7 +1,6 @@
 # augment
 
-A skill for an agent calling Hedwig, checked into this repository so it
-never drifts from the code it describes.
+A skill for an agent calling Hedwig, checked into this repository.
 
 - [`skills/hedwig/SKILL.md`](skills/hedwig/SKILL.md): the front door. Read
   this first.
