@@ -95,10 +95,9 @@ export function realCheckedPath(candidatePath: string): string {
   return rest === "" ? realAncestorDir : path.join(realAncestorDir, rest);
 }
 
-// One denied directory name is a personal notes-vault app whose name this
-// repository's own public-boundary check keeps out of tracked text;
-// decoded at runtime so the functional check exists without a literal
-// occurrence in the source (see scripts/check-public-boundary.sh).
+// One denied directory name is a personal notes-vault app; it is kept out
+// of tracked text and decoded at runtime so the functional check exists
+// without a literal occurrence in the source.
 export const PERSONAL_NOTES_VAULT_DIR_NAME = Buffer.from(
   "T2JzaWRpYW4=",
   "base64"

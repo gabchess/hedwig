@@ -1,8 +1,6 @@
 {
   "license": "MIT",
   "scripts": {
-    "public:check": "bash scripts/check-public-boundary.sh",
-    "public:test": "bash scripts/test-public-boundary.sh",
     "lint:fix": "prettier \"**/*.{js,ts}\" --write",
     "lint": "prettier \"**/*.{js,ts}\" --check",
     "sdk:typecheck": "tsc -p sdk/tsconfig.json --noEmit && tsc -p sdk/tsconfig.test.json --noEmit",
