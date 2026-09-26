@@ -1,13 +1,13 @@
-# Hedwig Architecture
+# Role program architecture
 
-Hedwig is an onchain authorization primitive organized around three domain
-nouns: orgs, roles, and members. It has six domain actions. The repository keeps the
-conventional Anchor shell while making the authorization model visible in file
-and symbol names.
+The role program is the onchain part of Hedwig: a record of which pubkeys hold
+which roles. It is organized around three domain nouns (orgs, roles, and
+members) and has six domain actions. The repository keeps the conventional Anchor shell while
+making the authorization model visible in file and symbol names.
 
 ## Domain boundary
 
-Hedwig answers one question: does this pubkey currently hold this role?
+The role program answers one question: does this pubkey currently hold this role?
 
 | Domain term     | Onchain meaning                                            |
 | --------------- | ---------------------------------------------------------- |
@@ -18,7 +18,7 @@ Hedwig answers one question: does this pubkey currently hold this role?
 | Circuit breaker | Role-wide enabled flag managed through `set_role_enabled`  |
 | Role check      | CPI-friendly validation through `check_role`               |
 
-Hedwig does not define what a role authorizes inside another program. It does not
+The role program does not define what a role authorizes inside another program. It does not
 authenticate the actor presented by that program, create delegation chains, or
 evaluate token- or vote-based eligibility. Those policies belong to the consumer
 or to wrapper programs.

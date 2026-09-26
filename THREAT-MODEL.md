@@ -5,7 +5,7 @@ consumer. It distinguishes checks enforced by Hedwig from checks an integrating
 program must perform. The live Hedwig deployment contains all six reviewed
 instructions, including the `set_role_enabled` circuit breaker.
 
-Hedwig has not completed an external security review. The 28 core and 12
+Hedwig has not completed an external security review. The 29 core and 12
 consumer LiteSVM integration tests are evidence of the tested behaviors below,
 not a substitute for one.
 
@@ -179,7 +179,8 @@ The 12-test consumer suite covers:
 
 The TypeScript SDK has 27 tests for PDA derivation, all six builders and senders,
 IDL vectors, UTF-8 limits, expiry conversion, signer forwarding, and provider
-failure. These suites do not establish independent adoption, upgrade-key
+failure. The payment check has 500 tests, the MCP server 165, and the demo app
+51. These suites do not establish independent adoption, upgrade-key
 operations, Squads governance, external review, or mainnet safety.
 
 ## Out of scope for the current devnet program

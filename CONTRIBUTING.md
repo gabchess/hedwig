@@ -15,18 +15,22 @@ cargo test --workspace
 yarn sdk:typecheck
 yarn sdk:test
 yarn sdk:build
+npm ci --prefix app
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
+npm --prefix app test
 yarn consult:typecheck
 yarn consult:test
+yarn consult:build
+npm ci --ignore-scripts --prefix mcp
 yarn mcp:typecheck
+yarn mcp:build
 yarn mcp:test
 ```
 
 The tests use LiteSVM and do not require a network connection. Build both SBF
 artifacts before the workspace tests because the fixtures load them at compile
-time. CI enforces the Rust, SBF, and app dependency-audit gates. The SDK and app
-TypeScript checks remain required local gates until the repository's Yarn
-install policy is resolved.
+time. CI runs these checks on every push and pull request, along with the Rust,
+app and MCP dependency audits.
 
 ## Repo map
 
