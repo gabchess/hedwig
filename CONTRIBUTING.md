@@ -20,7 +20,6 @@ yarn consult:typecheck
 yarn consult:test
 yarn mcp:typecheck
 yarn mcp:test
-yarn augment:verify
 ```
 
 The tests use LiteSVM and do not require a network connection. Build both SBF
@@ -33,7 +32,7 @@ install policy is resolved.
 
 - Payment check: `consult/`
 - MCP server: `mcp/`
-- Agent skill and evals: `augment/`
+- Agent skill: `augment/`
 - Program source: `programs/hedwig_sol/src/`
 - Program tests: `programs/hedwig_sol/tests/`
 - Secure consumer and tests: `programs/hedwig_consumer/`
