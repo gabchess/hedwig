@@ -13,7 +13,6 @@ in the separate devnet reference consumer through CPI.
 - Node.js 18+
 - A funded devnet wallet at `~/.config/solana/id.json` (or set `ANCHOR_WALLET`
   to a different keypair path)
-- `socket` installed (`npm install -g socket`) for the security-gated install
 
 Fund a devnet wallet if needed:
 
@@ -31,17 +30,16 @@ yarn install --frozen-lockfile
 yarn sdk:build
 ```
 
-Then install the app dependencies through Socket:
+Then install the app dependencies with the same command CI runs:
 
 ```bash
-cd app
-socket npm install
+npm ci --prefix app
 ```
 
 ## Run
 
 ```bash
-npm run demo
+npm --prefix app run demo
 ```
 
 The app's `predemo` hook rebuilds the SDK through the root `sdk:build` script
@@ -53,7 +51,7 @@ dedicated RPC instead, set `HELIUS_RPC_URL` before running:
 
 ```bash
 export HELIUS_RPC_URL="https://devnet.helius-rpc.com/?api-key=<your-key>"
-npm run demo
+npm --prefix app run demo
 ```
 
 Never commit an API key. Pass it as an environment variable only.
@@ -80,7 +78,7 @@ own org authority and role holder, initializes a counter owned by the reference
 consumer, and increments it through Hedwig CPI:
 
 ```bash
-npm run consumer-demo
+npm --prefix app run consumer-demo
 ```
 
 It requires both live program IDs:
