@@ -10,7 +10,7 @@ in the separate devnet reference consumer through CPI.
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - A funded devnet wallet at `~/.config/solana/id.json` (or set `ANCHOR_WALLET`
   to a different keypair path)
 

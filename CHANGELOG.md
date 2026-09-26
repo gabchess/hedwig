@@ -6,9 +6,18 @@ Versions track shipped code.
 
 ### Removed
 
-- The honesty evals (`evals/`), the `honesty-evals.yml` workflow, and the `evals`/`evals:offline`/`evals:judge`/`evals:test` npm scripts.
-- The `public:check` and `public:test` npm scripts and their CI steps.
-- The `augment:verify` script, its CI step, and the augment data and evals fixtures. The Condition catalog is available from `describeCatalog()` in `@hedwig/consult/introspect`.
+- The honesty evals (`evals/`), the `honesty-evals.yml` workflow, and the `evals`, `evals:offline`, `evals:judge` and `evals:test` npm scripts. (#53)
+- The `public:check` and `public:test` npm scripts, their CI steps, the pull request template, and the matching CONTRIBUTING section. (#54)
+- The agent skill's generated data and offline evals (`augment/data`, `augment/evals`), the `augment:verify` script, its CI step, and `scripts/verify-augment.js`. (#55)
+
+### Changed
+
+- The agent skill reads the Condition catalog from `describeCatalog()` in `@hedwig/consult/introspect`. (#55)
+- The demo app README installs the app with `npm ci --prefix app`, the same command CI runs. (#52)
+
+### Fixed
+
+- The PDA vector tests run under their own timeout. (#51)
 
 ## [0.3.0] - 2026-09-22
 
