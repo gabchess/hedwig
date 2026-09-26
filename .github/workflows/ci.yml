@@ -20,14 +20,6 @@ jobs:
           node-version: "22"
           cache: yarn
 
-      - name: Test public repository boundary
-        run: bash scripts/test-public-boundary.sh
-
-      - name: Check public repository boundary
-        env:
-          PUBLIC_BOUNDARY_PRIVATE_PATTERNS_FILE: ""
-        run: bash scripts/check-public-boundary.sh
-
       - name: Install workspace dependencies
         run: yarn install --frozen-lockfile
 

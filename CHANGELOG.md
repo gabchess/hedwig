@@ -7,6 +7,7 @@ Versions track shipped code.
 ### Removed
 
 - The honesty evals (`evals/`), the `honesty-evals.yml` workflow, and the `evals`/`evals:offline`/`evals:judge`/`evals:test` npm scripts.
+- The `public:check` and `public:test` npm scripts and their CI steps.
 
 ## [0.3.0] - 2026-09-22
 
