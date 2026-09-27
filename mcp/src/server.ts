@@ -75,7 +75,7 @@ function logVerdict(result: ConsultResponse): void {
 function main(): void {
   const policyPath = requirePolicyPath();
   const server = new Server(
-    { name: "hedwig-mcp", version: "0.3.0" },
+    { name: "hedwig-mcp", version: "0.4.0" },
     { capabilities: { tools: {} } }
   );
 

@@ -34,6 +34,7 @@ The program is intended to enforce these properties:
 | Program upgrade authority       | Pubkey `8gba...HPqY` for Hedwig and the reference consumer | Can replace either live program. This is the highest current deployment risk.                            |
 | Solana runtime and Clock sysvar | Solana validator consensus                                 | Supply account ownership, transaction atomicity, signatures, and time used by expiry checks.             |
 | Integrating program             | Its own upgrade and instruction authorities                | Must authenticate the actor whose membership it asks Hedwig to check.                                    |
+| Caller's process                | The caller                                                 | Controls the globals, prototypes and signer the guard uses, so it can sign anything, guard or no guard.  |
 
 No offchain service, indexer, or cache participates in an onchain role check.
 
@@ -74,6 +75,23 @@ Solana role through the RPC endpoint named in the environment.
 
 Hedwig returns `proceed`, a verdict, and one row per Condition. Acting on
 that answer is the caller's own step.
+
+### The Trigger guard
+
+A caller can hand that step to the Trigger guard, `runTriggerGuard` in
+`@hedwig/consult/guard`. The caller passes its payment, a function that maps
+the payment to a request, the policy, an optional `gather` function for facts,
+and its own signer. The guard holds no key. It signs only through the signer
+the caller injects.
+
+The guard maps the request once. Right after the mapping returns, and before
+`gather` runs, it turns the request into its own JSON snapshot. `gather`,
+`consult()` and the signer all receive that same data, and the guard never
+reads the caller's object again.
+
+The verdict comes from `consult()`; the guard's input has no field for one.
+The guard calls the signer at most once, and only when the verdict is
+`ALLOW_UNDER_POLICY`, passing it the `action` from the frozen data.
 
 ## Caller authentication is an integration requirement
 

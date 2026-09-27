@@ -18,17 +18,27 @@ import { expect } from "chai";
 const CONSULT_ROOT = resolve(__dirname, "..");
 
 describe("package door", () => {
-  it("exports exactly the package root and the introspect subpath", () => {
+  it("exports exactly the package root, the introspect subpath and the guard subpath", () => {
     const pkg = JSON.parse(
       readFileSync(join(CONSULT_ROOT, "package.json"), "utf8")
     );
-    expect(Object.keys(pkg.exports)).to.deep.equal([".", "./introspect"]);
+    expect(Object.keys(pkg.exports)).to.deep.equal([
+      ".",
+      "./introspect",
+      "./guard",
+    ]);
   });
 
   it("the package root exports only consult at runtime", () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const door = require("../src/index");
     expect(Object.keys(door)).to.deep.equal(["consult"]);
+  });
+
+  it("the guard subpath exports only runTriggerGuard at runtime", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const door = require("../src/guard");
+    expect(Object.keys(door)).to.deep.equal(["runTriggerGuard"]);
   });
 
   describe("deep import paths", () => {
@@ -51,8 +61,10 @@ describe("package door", () => {
     const BLOCKED_PATHS = [
       "@hedwig/consult/src/internal",
       "@hedwig/consult/src/core",
+      "@hedwig/consult/src/guard-internal",
       "@hedwig/consult/internal",
       "@hedwig/consult/core",
+      "@hedwig/consult/guard-internal",
       "@hedwig/consult/package.json",
     ];
 

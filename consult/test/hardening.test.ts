@@ -23,7 +23,7 @@ import {
 // Every test below proves a NEGATIVE: a hostile input must never resolve to
 // ALLOW_UNDER_POLICY. ALLOW is the only verdict that must be earned.
 
-describe("consult hardening: B1 empty floor", () => {
+describe("consult hardening: empty floor", () => {
   it("a catalog with no Floor Condition for an action type is rejected at consultWith time (pay: [])", () => {
     const response = consultWith({ pay: [] } as Catalog)(
       makeRequest(),
@@ -80,7 +80,7 @@ describe("consult hardening: B1 empty floor", () => {
   });
 });
 
-describe("consult hardening: B2 checker result validation", () => {
+describe("consult hardening: checker result validation", () => {
   function catalogWithChecker(check: ConditionDefinition["check"]): Catalog {
     return { pay: [{ ...RECIPIENT_MATCHES_POLICY_DEFINITION, check }] };
   }
@@ -266,7 +266,7 @@ describe("consult hardening: B2 checker result validation", () => {
   });
 });
 
-describe("consult hardening: B3 amount shape", () => {
+describe("consult hardening: amount shape", () => {
   const HOSTILE_AMOUNTS: unknown[] = [
     "-5",
     "-99999999999999999999999999",
@@ -311,7 +311,7 @@ describe("consult hardening: B3 amount shape", () => {
   });
 });
 
-describe("consult hardening: B4 frozen catalog", () => {
+describe("consult hardening: frozen catalog", () => {
   it("the catalog cannot be spliced to an empty floor", () => {
     expect(() =>
       (PAY_CATALOG.pay as unknown as unknown[]).splice(0)
@@ -322,7 +322,7 @@ describe("consult hardening: B4 frozen catalog", () => {
   });
 });
 
-describe("consult hardening: B5 EVM address value comparison", () => {
+describe("consult hardening: EVM address value comparison", () => {
   it("a lowercase or checksummed form of an approved recipient still passes", () => {
     const lower = APPROVED_RECIPIENT.toLowerCase();
     const upper = "0x" + APPROVED_RECIPIENT.slice(2).toUpperCase();
@@ -417,7 +417,7 @@ describe("consult hardening: B5 EVM address value comparison", () => {
   });
 });
 
-describe("consult hardening: B6 permits strictness", () => {
+describe("consult hardening: permits strictness", () => {
   const HOSTILE_PERMITS: unknown[] = ["false", "no", 1, {}, []];
 
   it("a truthy-but-not-true permits value never resolves to ALLOW", () => {

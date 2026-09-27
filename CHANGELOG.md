@@ -4,6 +4,13 @@ Versions track shipped code.
 
 ## Unreleased
 
+## [0.4.0] - 2026-09-27
+
+### Added
+
+- The Trigger guard, `runTriggerGuard` in the new `@hedwig/consult/guard` subpath export. It runs `consult()` on the Caller's mapped request and calls the Caller's signer only when the Verdict is `ALLOW_UNDER_POLICY`. The Caller cannot pass in a Verdict of its own.
+- The revoke demo records four outcomes from one server process: an allowed payment, an over-cap payment denied, a missing role Fact answered `UNKNOWN`, and the original payment denied after the role is revoked. (#58)
+
 ### Removed
 
 - The honesty evals (`evals/`), the `honesty-evals.yml` workflow, and the `evals`, `evals:offline`, `evals:judge` and `evals:test` npm scripts. (#53)
@@ -14,6 +21,7 @@ Versions track shipped code.
 
 - The agent skill's Condition reference names `describeCatalog()` in `@hedwig/consult/introspect` as the source of each Condition's `policyFields`. (#55)
 - The demo app README installs the app with `npm ci --prefix app`, the same command CI runs. (#52)
+- The demo's `--out` record names the post-revoke ask `ask4`, renamed from `ask2`, and records the run's `commit`, `treeClean`, `startedAt` and `finishedAt`. (#58)
 
 ### Fixed
 
