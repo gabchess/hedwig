@@ -65,6 +65,6 @@ const result = await runTriggerGuard({
 
 `toRequest` maps your payment into a request. The guard turns that request into its own JSON snapshot once, then passes the same data to `gather`, `consult()` and your signer. Your signer receives its `action` field. The payment amount in that `action` is the same decimal string `consult()` checked. The frozen records have null prototypes: reading a field directly (`action.amount`) works, but use `Object.hasOwn(action, "amount")` instead of `action.hasOwnProperty("amount")`, which a null-prototype object does not have.
 
-`gather` is optional and has `gatherDeadlineMs` to finish, 800 by default. A mapping error, a `gather` error or a missed `gather` deadline returns an `UNKNOWN` response with a `trigger-guard` row, and your signer is never called. Your signer has `signerDeadlineMs`, 5000 by default. If it throws, rejects or misses that deadline, `signerOutcome` is `"unknown"` and the guard does not call it again.
+`gather` is optional and has `gatherDeadlineMs` to finish, 800 by default. A mapping error, a `gather` error or a missed `gather` deadline returns an `UNKNOWN` response with a `trigger-guard` row, and your signer is never called. Your signer has `signerDeadlineMs`, 5000 by default. If it throws, rejects or misses that deadline, `signerOutcome` is `"unknown"` and the guard does not call it again. An unknown `signerOutcome` means the signer may have acted; check the payment's state before signing again.
 
 Run `yarn consult:typecheck` and `yarn consult:test`.

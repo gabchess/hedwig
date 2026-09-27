@@ -628,8 +628,17 @@ describe("runTriggerGuard", () => {
     expect(signerCalls).to.equal(0);
   });
 
-  it("zero, negative-zero, Infinity, negative, and over-ceiling deadlines all fail closed", async () => {
-    for (const bad of [0, -0, Infinity, -1, 2147483648]) {
+  it("zero, negative-zero, sub-millisecond, Infinity, negative, and over-ceiling deadlines all fail closed", async () => {
+    for (const bad of [
+      0,
+      -0,
+      Number.MIN_VALUE,
+      1e-3,
+      0.5,
+      Infinity,
+      -1,
+      2147483648,
+    ]) {
       const result = await runTriggerGuard(
         baseInput({
           gatherDeadlineMs: bad,
@@ -658,6 +667,46 @@ describe("runTriggerGuard", () => {
       expect(signerResult.signerOutcome).to.equal("not-attempted");
       expect(signerCalls).to.equal(0);
     }
+  });
+
+  it("an invalid signerDeadlineMs fails closed before gather or consult() ever run", async () => {
+    let gatherCalls = 0;
+    let consultCalls = 0;
+    let signerCalls = 0;
+    const countingConsult: ConsultFn = () => {
+      consultCalls += 1;
+      return {
+        question: "counting",
+        proceed: true,
+        verdict: "ALLOW_UNDER_POLICY",
+        support: 1,
+        band: "green",
+        results: [],
+        floorIds: [],
+        advisory: true,
+      };
+    };
+    const result = await runTriggerGuardWith(
+      countingConsult,
+      baseInput({
+        gather: () => {
+          gatherCalls += 1;
+          return {};
+        },
+        signerDeadlineMs: 0,
+        signer: () => {
+          signerCalls += 1;
+          return "SIGNED";
+        },
+      })
+    );
+    expect(result.consult.verdict).to.equal("UNKNOWN");
+    expect(result.consult.results[0].code).to.equal(
+      "GUARD_SIGNER_DEADLINE_INVALID"
+    );
+    expect(gatherCalls).to.equal(0);
+    expect(consultCalls).to.equal(0);
+    expect(signerCalls).to.equal(0);
   });
 
   it("an action with no own recipient, while Object.prototype.recipient is set: the signer reads recipient as undefined", async () => {

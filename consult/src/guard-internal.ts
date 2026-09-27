@@ -143,17 +143,21 @@ function unknownGuardResult<TSignerResult>(
 // would sail through uncaught. A bad deadline fails the guard closed
 // instead of silently becoming "no deadline at all".
 //
-// A deadline of 0 (or -0) is rejected too, not just NaN/Infinity/negative/
-// over-ceiling ones: raceWithDeadline's own elapsed-time check
+// A deadline of 0 (or -0), or any value below 1ms (Number.MIN_VALUE, 1e-3,
+// 0.5), is rejected too, not just NaN/Infinity/negative/over-ceiling ones:
+// raceWithDeadline's own elapsed-time check
 // (performance.now() - start >= deadlineMs) is always true once deadlineMs
-// is 0, so gather or the signer runs and its result is always discarded as
-// a timeout. For the signer that means the action was already signed, then
-// reported as UNKNOWN, and a Caller that retries an UNKNOWN outcome could
-// sign the same action twice.
+// is under 1ms, so gather or the signer runs and its result is always
+// discarded as a timeout; setTimeout itself also rounds anything under 1ms
+// up to 1ms, so a fractional deadline never means what it says. For the
+// signer that means the action was already signed, then reported as
+// UNKNOWN, and a Caller that retries an UNKNOWN outcome could sign the same
+// action twice. A valid deadline is a whole millisecond count, at least 1
+// and at most MAX_TIMEOUT_MS.
 const MAX_TIMEOUT_MS = 2147483647;
 
 function isValidDeadlineMs(value: number): boolean {
-  return Number.isFinite(value) && value > 0 && value <= MAX_TIMEOUT_MS;
+  return Number.isInteger(value) && value >= 1 && value <= MAX_TIMEOUT_MS;
 }
 
 // JSON.parse reviver: gives every parsed record a null prototype, so
@@ -300,22 +304,39 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
     return unknownGuardResult("GUARD_MAPPING_FAILED", errorMessage(error));
   }
 
+  // Both deadlines are validated here, before gather or consultFn ever run,
+  // not only the one that is about to be used. signerDeadlineMs would
+  // otherwise stay unchecked until after gather and consultFn had already
+  // run for an ALLOW_UNDER_POLICY verdict, which is later than a guard-level
+  // input error should surface.
+  const doGather = input.gather;
+  const gatherDeadlineMs = doGather
+    ? input.gatherDeadlineMs ?? DEFAULT_GATHER_DEADLINE_MS
+    : undefined;
+  if (doGather && !isValidDeadlineMs(gatherDeadlineMs as number)) {
+    return unknownGuardResult(
+      "GUARD_GATHER_DEADLINE_INVALID",
+      `gatherDeadlineMs ${describeDeadline(
+        gatherDeadlineMs
+      )} is not a whole number of milliseconds from 1 to ${MAX_TIMEOUT_MS}`
+    );
+  }
+
+  const signerDeadlineMs = input.signerDeadlineMs ?? DEFAULT_SIGNER_DEADLINE_MS;
+  if (!isValidDeadlineMs(signerDeadlineMs)) {
+    return unknownGuardResult(
+      "GUARD_SIGNER_DEADLINE_INVALID",
+      `signerDeadlineMs ${describeDeadline(
+        signerDeadlineMs
+      )} is not a whole number of milliseconds from 1 to ${MAX_TIMEOUT_MS}`
+    );
+  }
+
   let facts: unknown;
-  if (input.gather) {
-    const gatherDeadlineMs =
-      input.gatherDeadlineMs ?? DEFAULT_GATHER_DEADLINE_MS;
-    if (!isValidDeadlineMs(gatherDeadlineMs)) {
-      return unknownGuardResult(
-        "GUARD_GATHER_DEADLINE_INVALID",
-        `gatherDeadlineMs ${describeDeadline(
-          gatherDeadlineMs
-        )} is not a finite number of milliseconds greater than 0 and at most ${MAX_TIMEOUT_MS}`
-      );
-    }
-    const gather = input.gather;
+  if (doGather) {
     const gathered = await raceWithDeadline(
-      () => gather(checked),
-      gatherDeadlineMs
+      () => doGather(checked),
+      gatherDeadlineMs as number
     );
     if (!gathered.ok) {
       return unknownGuardResult(
@@ -349,15 +370,6 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
   }
 
   const action = checked.action;
-  const signerDeadlineMs = input.signerDeadlineMs ?? DEFAULT_SIGNER_DEADLINE_MS;
-  if (!isValidDeadlineMs(signerDeadlineMs)) {
-    return unknownGuardResult(
-      "GUARD_SIGNER_DEADLINE_INVALID",
-      `signerDeadlineMs ${describeDeadline(
-        signerDeadlineMs
-      )} is not a finite number of milliseconds greater than 0 and at most ${MAX_TIMEOUT_MS}`
-    );
-  }
   const signed = await raceWithDeadline(
     () => input.signer(action),
     signerDeadlineMs
