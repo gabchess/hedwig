@@ -527,28 +527,28 @@ test("extractAskSummary finds the role row by id, not by array position (decoy r
   assert.equal(isAsk1Valid(ask), true);
 });
 
-// --- ask 1 / ask 2 verdict assertions, real fixtures + killing tests (H2) -
+// --- ask 1 / ask 4 verdict assertions, real fixtures + killing tests (H2) -
 
-test("ask 1 is valid on the real ALLOW_UNDER_POLICY answer; ask 2 is valid on the real DENY answer", () => {
+test("ask 1 is valid on the real ALLOW_UNDER_POLICY answer; ask 4 is valid on the real DENY answer", () => {
   assert.equal(isAsk1Valid(REAL_ASK1), true);
   assert.equal(isAsk2Valid(REAL_ASK2), true);
   assert.doesNotThrow(() => assertAsk1(REAL_ASK1));
   assert.doesNotThrow(() => assertAsk2(REAL_ASK2));
 });
 
-test("ask 1 is invalid on the real DENY answer, and ask 2 is invalid on the real allow answer", () => {
+test("ask 1 is invalid on the real DENY answer, and ask 4 is invalid on the real allow answer", () => {
   assert.equal(isAsk1Valid(REAL_ASK2), false);
   assert.equal(isAsk2Valid(REAL_ASK1), false);
   assert.throws(() => assertAsk1(REAL_ASK2));
   assert.throws(() => assertAsk2(REAL_ASK1));
 });
 
-test("ask 2: UNKNOWN with ROLE_MEMBER_MISSING is invalid", () => {
+test("ask 4: UNKNOWN with ROLE_MEMBER_MISSING is invalid", () => {
   const ask: AskSummary = { ...REAL_ASK2, verdict: "UNKNOWN" };
   assert.equal(isAsk2Valid(ask), false);
 });
 
-test("ask 2: DENY with ROLE_DISABLED is invalid", () => {
+test("ask 4: DENY with ROLE_DISABLED is invalid", () => {
   const ask: AskSummary = { ...REAL_ASK2, roleCode: "ROLE_DISABLED" };
   assert.equal(isAsk2Valid(ask), false);
 });
@@ -558,7 +558,7 @@ test("ask 1: an allow verdict with ROLE_MEMBER_MISSING is invalid", () => {
   assert.equal(isAsk1Valid(ask), false);
 });
 
-test("ask 2: DENY with proceed:true is invalid", () => {
+test("ask 4: DENY with proceed:true is invalid", () => {
   const ask: AskSummary = { ...REAL_ASK2, proceed: true };
   assert.equal(isAsk2Valid(ask), false);
 });
@@ -568,7 +568,7 @@ test("ask 1: proceed:true with ROLE_NOT_REQUIRED is invalid", () => {
   assert.equal(isAsk1Valid(ask), false);
 });
 
-test("ask 2: proceed:false with ROLE_HELD is invalid", () => {
+test("ask 4: proceed:false with ROLE_HELD is invalid", () => {
   const ask: AskSummary = { ...REAL_ASK2, roleCode: "ROLE_HELD" };
   assert.equal(isAsk2Valid(ask), false);
 });
@@ -707,7 +707,7 @@ test("withSwappedPolicyFile refuses a symlinked policy path, never writing throu
         { role: { programId: "ORIGINAL" } },
         async () => "should never run"
       ),
-    /symlink/
+    /refusing to write a policy file through a symlink/
   );
 
   assert.equal(readFileSync(outsideTarget, "utf8"), outsideContent);

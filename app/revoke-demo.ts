@@ -278,10 +278,9 @@ async function main(): Promise<void> {
       ),
     });
     const serverPid = child.pid;
-    // Narrowed once, synchronously, right after the spawn assignment: TS
-    // cannot carry `child`'s non-optional type into a closure passed to
-    // withSwappedPolicyFile, since the closure could in principle run after
-    // some later reassignment. This alias is that one non-optional value.
+    // `child` is a `let` typed with `| undefined`, and TypeScript drops its
+    // narrowing inside the closure passed to withSwappedPolicyFile. This
+    // const keeps the narrowed type.
     const serverChild = child;
 
     await initializeServer(child);
@@ -290,16 +289,15 @@ async function main(): Promise<void> {
     const ask1Message = await callConsult(child);
     const ask1 = assertAsk1(extractAskSummary(ask1Message));
 
-    // Ask 2: an amount the same live role can never buy its way past. Same
-    // server, same policy file, same role. Only the request's amount moves.
+    // Ask 2: PAY_REQUEST_OVER_CAP, above the policy's pay cap. Same server,
+    // same policy file, same role.
     assertServerProcessAlive(child, serverPid);
     const overCapMessage = await callConsult(child, PAY_REQUEST_OVER_CAP);
     const overCapAsk = assertOverCapAsk(extractAskSummary(overCapMessage));
 
-    // Ask 3: the on-disk policy is swapped, in place, to a role requirement
-    // the Solana role Reader can never resolve (see
-    // UNRECOGNIZED_ROLE_PROGRAM_ID), then swapped back before the revoke.
-    // No server restart, same process, same live role, same request.
+    // Ask 3: the on-disk policy's role programId is swapped to
+    // UNRECOGNIZED_ROLE_PROGRAM_ID for one call, then written back before the
+    // revoke. Same server process, same role, same request as Ask 1.
     const brokenPolicy = buildPolicyFileWithUnrecognizedRoleProgram({
       programId: HEDWIG_PROGRAM_ID.toBase58(),
       role: rolePda.toBase58(),

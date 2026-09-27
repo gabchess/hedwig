@@ -97,8 +97,9 @@ It is a builder-owned reference integration, not independent adoption.
 ## Run the revoke demo
 
 The revoke demo shows a policy requiring a Solana role change its answer with
-no redeploy and no server restart: only a temporary, self-restoring
-policy-file swap for one ask, and an on-chain revoke for another.
+no redeploy and no server restart. Between asks, the demo changes the
+request amount, swaps the policy file's role program id for one ask, and
+revokes the role on-chain.
 
 ```bash
 yarn consult:build && yarn mcp:build && npm --prefix app run revoke-demo

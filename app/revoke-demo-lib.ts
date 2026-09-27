@@ -397,9 +397,8 @@ export const PAY_REQUEST = Object.freeze({
   },
 });
 
-// Same request, an amount BASE_PAY_POLICY.perActionCaps.pay ("1000000")
-// can never cover. Every other field is untouched, so the only Condition
-// this can move is amount-within-cap.
+// PAY_REQUEST with an amount above BASE_PAY_POLICY.perActionCaps.pay
+// ("1000000"). Every other field is unchanged.
 export const PAY_REQUEST_OVER_CAP = Object.freeze({
   action: {
     ...PAY_REQUEST.action,
@@ -413,14 +412,11 @@ export interface RolePolicyInput {
   holder: string;
 }
 
-// Solana's System Program id: a real, well-formed base58 pubkey that is
-// never Hedwig's deployed program id on any cluster. A policy naming it as
-// the required role's programId passes every shape check a Condition runs
-// on its own, but the Solana role Reader (mcp/src/readers/solana-role.ts)
-// refuses to resolve a cluster config for an unrecognised program id, so it
-// never makes a network call and never produces a solanaRole fact. That is
-// what "a payment missing a required Fact" means here: role-requirement-met
-// answers ROLE_FACT_MISSING, UNVERIFIED, deterministically, offline.
+// Solana's System Program id: a well-formed base58 pubkey that is not
+// Hedwig's deployed program id. The Solana role Reader
+// (mcp/src/readers/solana-role.ts) returns no cluster config for a program
+// id other than the deployed one, so it makes no network call and produces
+// no solanaRole fact, and role-requirement-met answers ROLE_FACT_MISSING.
 export const UNRECOGNIZED_ROLE_PROGRAM_ID =
   "11111111111111111111111111111111";
 
@@ -454,9 +450,7 @@ export function buildPolicyFile(
   };
 }
 
-// Same role and holder, a programId the Reader will never recognise. Used
-// to swap the running server's on-disk policy file over to a shape that
-// cannot produce a solanaRole fact, then swap it back, with no restart.
+// buildPolicyFile with programId replaced by UNRECOGNIZED_ROLE_PROGRAM_ID.
 export function buildPolicyFileWithUnrecognizedRoleProgram(
   input: RolePolicyInput
 ): typeof BASE_PAY_POLICY & { role: RolePolicyBlock } {
@@ -466,14 +460,9 @@ export function buildPolicyFileWithUnrecognizedRoleProgram(
   });
 }
 
-// O_NOFOLLOW: refuses a policyPath whose final path component is itself a
-// symlink. It guards only that last component; it does not resolve or
-// check any symlinked ancestor directory, and it does not stop a hardlink
-// to a file outside the demo's own temp directory. O_TRUNC on an
-// already-open descriptor, then fchmodSync: the open's own mode argument
-// only applies when O_CREAT actually creates the file, so an existing file
-// left at a looser mode (644) would otherwise keep it; fchmodSync forces
-// 600 unconditionally, on the exact descriptor just written.
+// Opens an existing policyPath with O_NOFOLLOW, so a final path component
+// that is a symlink fails with ELOOP, reported as a symlink refusal. After
+// the write, fchmodSync sets mode 600 on the same descriptor.
 function writePolicyFileNoFollow(policyPath: string, content: string): void {
   let fd: number;
   try {
@@ -497,19 +486,11 @@ function writePolicyFileNoFollow(policyPath: string, content: string): void {
   }
 }
 
-// Writes temporaryPolicy over policyPath, runs action, and attempts
-// originalPolicy back on every path, even when action throws: a throw from
-// `action` (a bad verdict, a dead server, a timeout) is caught, the restore
-// write runs, and only then is the action's error re-thrown, so the on-disk
-// policy is not left stuck on the broken, unrecognised-programId shape. This
-// is not a `finally` block: `finally` cannot tell a restore failure from a
-// restore success, so a failed restore would either replace the action's
-// error or run silently. The catch here can distinguish the two: it throws
-// the action's own error alone when the restore succeeds, and an
-// AggregateError carrying both when the restore also fails. A SIGKILL or
-// SIGHUP between the two writes is outside any catch block's reach in Node:
-// this function cannot restore what a killed process never ran the restore
-// for.
+// Writes temporaryPolicy over policyPath, runs action, then writes
+// originalPolicy back. When action returns, the result is returned. When
+// action throws, originalPolicy is still written, then the action's error is
+// re-thrown; if that write also throws, an AggregateError carrying both
+// errors is thrown instead.
 export async function withSwappedPolicyFile<T>(
   policyPath: string,
   temporaryPolicy: unknown,
@@ -521,10 +502,7 @@ export async function withSwappedPolicyFile<T>(
   try {
     result = await action();
   } catch (actionError) {
-    // The restore still runs on a thrown action. A second error out of the
-    // restore itself must never silently replace the original, and must
-    // never be silently dropped either: both are surfaced, together, as an
-    // AggregateError, with the action's error message leading.
+    // The action's error comes first in the AggregateError and its message.
     try {
       writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
     } catch (restoreError) {
@@ -637,7 +615,7 @@ export function isAsk2Valid(ask: AskSummary | undefined): ask is AskSummary {
 export function assertAsk2(ask: AskSummary | undefined): AskSummary {
   if (!isAsk2Valid(ask)) {
     throw new Error(
-      `ask 2 expected proceed=false verdict=DENY support=0 code=ROLE_MEMBER_MISSING, got ${JSON.stringify(
+      `ask 4 (after revoke) expected proceed=false verdict=DENY support=0 code=ROLE_MEMBER_MISSING, got ${JSON.stringify(
         ask
       )}`
     );
@@ -670,8 +648,8 @@ export function assertOverCapAsk(ask: AskSummary | undefined): AskSummary {
   return ask;
 }
 
-// Missing-facts ask: the policy's role programId cannot be resolved, so the
-// role row itself is UNVERIFIED rather than PASS or FAIL.
+// Missing-fact ask: the policy's role programId is not the deployed one, so
+// the role row answers ROLE_FACT_MISSING.
 export function isMissingFactAskValid(
   ask: AskSummary | undefined
 ): ask is AskSummary {
