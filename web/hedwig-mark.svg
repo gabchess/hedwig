@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.03"/></feComponentTransfer>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+    <clipPath id="circ"><circle cx="200" cy="200" r="200"/></clipPath>
+  </defs>
+  <g clip-path="url(#circ)">
+    <rect width="400" height="400" fill="#1c1730"/>
+    <g transform="translate(200 200) scale(2.05)">
+      <circle cx="0" cy="0" r="118" fill="none" stroke="#8b85a3" stroke-opacity="0.6" stroke-width="1.5"/>
+      <path d="M -111.1 31.7 A 118 118 0 0 0 -20.5 116.2" fill="none" stroke="#8b5cf6" stroke-opacity="0.5" stroke-width="1"/>
+      <polygon points="-52,-50 -29,-70 -23,-40" fill="#8b85a3"/>
+      <polygon points="52,-50 29,-70 23,-40" fill="#8b85a3"/>
+      <polygon points="0,-68 70,42 0,82 -70,42" fill="#c9c5da"/>
+      <polygon points="0,-68 -70,42 -46,60 0,-28" fill="#8b85a3"/>
+      <polygon points="0,-68 70,42 46,60 0,-28" fill="#8b85a3" fill-opacity="0.55"/>
+      <circle cx="-27" cy="-13" r="16" fill="#3b82f6"/>
+      <circle cx="27" cy="-13" r="16" fill="#3b82f6"/>
+      <circle cx="-27" cy="-13" r="6" fill="#0d0b16"/>
+      <circle cx="27" cy="-13" r="6" fill="#0d0b16"/>
+      <polygon points="-10,4 10,4 0,24" fill="#0d0b16"/>
+      <g fill="none" stroke="#8b85a3" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="0" cy="46" r="7"/>
+        <line x1="0" y1="53" x2="0" y2="70"/>
+        <line x1="0" y1="64" x2="7" y2="64"/>
+      </g>
+    </g>
+    <rect width="400" height="400" filter="url(#grain)" opacity="1" fill="none"/>
+  </g>
+</svg>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hedwig: the policy check your payment agent has to pass before it moves money onchain</title>
+<meta name="description" content="Hedwig is the policy check your payment agent has to pass before it moves money onchain.">
+<meta property="og:title" content="Hedwig">
+<meta property="og:description" content="Hedwig is the policy check your payment agent has to pass before it moves money onchain.">
+<meta property="og:image" content="https://usehedwig.xyz/og-image.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <div class="mark">
+    <img src="hedwig-mark.svg" alt="" width="28" height="28">
+    <span class="wordmark">Hedwig</span>
+  </div>
+
+  <h1 class="statement">Hedwig is the policy check your payment agent has to pass before it moves money onchain.</h1>
+
+  <section aria-labelledby="proof-heading">
+    <h2 id="proof-heading" class="proof-label">Devnet, four asks, one role</h2>
+    <ul class="proof-list">
+      <li>
+        <span class="verdict">allow</span>
+        <span class="reason">ROLE_HELD, AMOUNT_WITHIN_CAP</span>
+      </li>
+      <li>
+        <span class="verdict">deny</span>
+        <span class="reason">AMOUNT_EXCEEDS_CAP</span>
+      </li>
+      <li>
+        <span class="verdict">unknown</span>
+        <span class="reason">ROLE_FACT_MISSING</span>
+      </li>
+      <li>
+        <span class="verdict">deny after revoke</span>
+        <span class="reason">ROLE_MEMBER_MISSING</span>
+        <a href="https://explorer.solana.com/tx/3en8dhiTnb29xVsCQnsGLCaZLtnVZJNYGNFc5hkxzZ2UUDkw3ygGQLVgJN1EsvmLDryuzgK9H5sMcuKZU3qbYE6V?cluster=devnet" class="tx-link">revoke tx</a>
+      </li>
+    </ul>
+  </section>
+
+  <nav class="links" aria-label="Project links">
+    <a href="https://github.com/gabchess/hedwig">GitHub</a>
+    <a href="https://github.com/gabchess/hedwig/blob/main/THREAT-MODEL.md">Threat model</a>
+  </nav>
+</main>
+</body>
+</html>
