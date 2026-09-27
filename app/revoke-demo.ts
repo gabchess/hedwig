@@ -1,6 +1,7 @@
 /**
  * Devnet revoke demo: one Hedwig org, one role, one MCP server process,
- * two "consult" calls either side of a real on-chain revoke_role.
+ * four "consult" calls: an allow, an over-cap DENY, a missing-fact UNKNOWN,
+ * and the original request repeated after a real on-chain revoke_role.
  *
  * Uses a throwaway keypair this script generates and funds itself; it never
  * reads the caller's own Solana wallet. Thin wiring only: every decision

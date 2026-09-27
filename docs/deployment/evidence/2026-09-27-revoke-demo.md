@@ -1,14 +1,16 @@
-# Revoke demo, devnet, 2026-09-27 (run 3 of 3)
+# Revoke demo, devnet, 2026-09-27
 
-This is the third of three planned revoke-demo runs. The demo code was
-extended first (see `app/revoke-demo.ts` and `app/revoke-demo-lib.ts` on
-this branch) to ask four questions instead of two against the same live
-role record: an allow, an over-cap payment that must DENY, a payment
-missing a required Fact that must return UNKNOWN, then a revoke and the
-original request denied. The extended flow, and its two new asks, are
-covered by `app/revoke-demo-lib.test.ts` and by two fixtures in
-`app/test/fixtures/consult-responses.json` (`overCapDeny`,
-`missingFactUnknown`), both captured by calling the built `consult()`
+The demo code was extended (see `app/revoke-demo.ts` and
+`app/revoke-demo-lib.ts` on this branch) to ask four questions instead of
+two against the same live role record: an allow, an over-cap payment that
+must DENY, a payment missing a required Fact that must return UNKNOWN,
+then a revoke and the original request denied. `app/revoke-demo-lib.ts`,
+which builds the two new asks' policy and request fixtures and formats
+the transcript, is unit tested in `app/revoke-demo-lib.test.ts`.
+`app/revoke-demo.ts` itself, the script that wires those pieces to a live
+devnet run, has no automated test; this document is its evidence. The two
+new fixtures in `app/test/fixtures/consult-responses.json` (`overCapDeny`,
+`missingFactUnknown`) were captured by calling the built `consult()`
 function directly, offline, no devnet traffic.
 
 Two attempts failed before any org, role, or consult call was made (see
@@ -33,7 +35,7 @@ npm --prefix app run revoke-demo -- --out <path>
 | Failure | `airdrop failed: Internal error` |
 | Exit code | 1 |
 
-## Attempt 2 (wrong key, the one retry)
+## Attempt 2 (wrong key)
 
 | Field | Value |
 | --- | --- |
@@ -68,9 +70,11 @@ HEDWIG_DEMO_KEYPAIR=<path to the funded throwaway admin keypair> \
 The first run of attempt 3 failed at Ask 1 itself: the Solana role Reader's
 own simulate call missed its 800 ms deadline against the public devnet
 RPC, so `consult()` correctly answered UNKNOWN with `ROLE_FACT_MISSING`
-even though the role was genuinely held (an RPC hiccup, not a defect;
-exit code 1, `process.exit(1)` from the failed assertion). It did reach
-the chain before failing:
+even though the role was genuinely held (exit code 1, `process.exit(1)`
+from the failed assertion). The demo does not read the server's error
+output, so the actual cause of the missed deadline is unknown; it is not
+a defect in `consult()`, which answered correctly given what it saw. It
+did reach the chain before failing:
 
 | Step | Transaction | UTC time |
 | --- | --- | --- |
@@ -79,9 +83,9 @@ the chain before failing:
 
 That run created and assigned role `6prPnzpxZkK5Xi1eMf8fYGKbjwBaQHiYZiFHj6gTquZd`,
 which was never revoked; it stays assigned on devnet, to a throwaway
-holder generated for that run alone. Retried once, per the one-retry
-rule, with a fresh role name (the org is reused, roles are not). The
-retry completed all four asks.
+holder generated for that run alone. The demo was run again with a fresh
+role name (the org is reused, roles are not). That run completed all four
+asks.
 
 | Field | Value |
 | --- | --- |
@@ -123,33 +127,39 @@ original policy immediately after the call, before `revoke_role`.
 
 ## Restore safety fix
 
-Review question: if the process dies between the swap and the restore,
-is the on-disk policy left modified? Originally, yes: the restore was a
-line after the assertion, not a guaranteed step, so a thrown assertion
-(a bad verdict, a dead server) would skip it. Fixed in `2c13cdc` by
-`withSwappedPolicyFile` in `app/revoke-demo-lib.ts`: a thrown error now
-restores the file, since the restore write moved into a `finally` around
-the wrapped action. That `finally` has limits a signal can still reach.
-SIGINT and SIGTERM run the demo's own handler, which deletes the whole
-temp directory instead of restoring, so the swapped file does not survive
-either signal. SIGKILL cannot be caught by any handler, so it always
-skips the restore. The demo installs no SIGHUP handler either, so a
-SIGHUP can leave the swapped, unrecognised-programId file sitting in an
-orphaned temp directory the same way. The directory is mode 0700, holds
-only public keys, and a server reading it answers UNKNOWN, so there is
-no security impact, but the finally block does not cover every exit path
-and this file does not claim that it does.
+If the process dies between the swap and the restore, the on-disk policy
+is left modified. Originally, always: the restore was a line after the
+assertion, not a guaranteed step, so a thrown assertion (a bad verdict, a
+dead server) would skip it. Fixed in `2c13cdc` by `withSwappedPolicyFile`
+in `app/revoke-demo-lib.ts`: a thrown error now restores the file, since
+the restore write moved into a `finally` around the wrapped action. That
+`finally` has limits a signal can still reach. SIGINT and SIGTERM run the
+demo's own handler, which deletes the whole temp directory instead of
+restoring, so the swapped file does not survive either signal. SIGKILL
+cannot be caught by any handler, so it always skips the restore. The demo
+installs no SIGHUP handler either, so a SIGHUP can leave the swapped,
+unrecognised-programId file sitting in an orphaned temp directory the
+same way. The directory is mode 0700 and holds only the temporary
+policy.json, itself made of public program/role/holder identifiers and
+non-secret policy fields, no private key material, and a server reading
+it answers UNKNOWN, so there is no security impact. The finally block
+does not cover every exit path and this file does not claim that it does.
 
 A separate fix, landed in `a7ea834`, closes a symlink gap: the swap and
-restore writes now open the policy path with `O_NOFOLLOW` and refuse a
-symlinked path outright, and force file mode 600 on every write rather
-than relying on `open`'s create-only mode argument. Four tests in
-`app/revoke-demo-lib.test.ts` cover this: restore after a normal return,
-restore after a throw, refusal of a symlinked policy path, and mode 600
-enforced even over a looser pre-existing mode.
+restore writes now open the policy path with `O_NOFOLLOW`, which refuses
+a policy path whose final path component is itself a symlink (it does
+not check symlinked ancestor directories or stop a hardlink to a file
+outside the demo's temp directory), and force file mode 600 on every
+write rather than relying on `open`'s create-only mode argument. Six
+tests in `app/revoke-demo-lib.test.ts` cover this: restore after a normal
+return, restore after a throw, refusal of a symlinked policy path, mode
+600 enforced even over a looser pre-existing mode, a real open error
+(missing file) reported as itself rather than as a symlink refusal, and
+the action's own error surviving a restore write that also fails.
 
 ## Verification
 
 - `npx tsc --noEmit -p app/tsconfig.json` passes.
-- `npm test --prefix app` passes, 61/61.
-- `yarn mcp:typecheck`, `yarn mcp:build`, `yarn mcp:test` all pass, 165/165.
+- `npm test --prefix app` passes, 68/68.
+- `yarn mcp:typecheck`, `yarn mcp:build` pass. `yarn mcp:test` passes,
+  165 passing, 3 pending (the opt-in live-devnet tests).

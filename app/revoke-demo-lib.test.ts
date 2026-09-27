@@ -49,6 +49,7 @@ import {
   isUnderDeniedHomeSubdirectory,
   loadOrGenerateKeypair,
   parseOutPath,
+  PAY_REQUEST,
   PAY_REQUEST_OVER_CAP,
   PERSONAL_NOTES_VAULT_DIR_NAME,
   readExistingKeypair,
@@ -575,12 +576,31 @@ test("ask 2: proceed:false with ROLE_HELD is invalid", () => {
 // --- over-cap and missing-fact asks, real fixtures ------------------------
 
 test("PAY_REQUEST_OVER_CAP keeps every field but amount, which the base cap can never cover", () => {
-  assert.notEqual(PAY_REQUEST_OVER_CAP.action.amount, "1000000");
+  assert.notEqual(PAY_REQUEST_OVER_CAP.action.amount, PAY_REQUEST.action.amount);
   assert.equal(
     BigInt(PAY_REQUEST_OVER_CAP.action.amount) > BigInt("1000000"),
     true
   );
-  assert.equal(PAY_REQUEST_OVER_CAP.action.recipient.length > 0, true);
+  assert.equal(
+    PAY_REQUEST_OVER_CAP.action.type,
+    PAY_REQUEST.action.type
+  );
+  assert.equal(
+    PAY_REQUEST_OVER_CAP.action.chainId,
+    PAY_REQUEST.action.chainId
+  );
+  assert.equal(
+    PAY_REQUEST_OVER_CAP.action.recipient,
+    PAY_REQUEST.action.recipient
+  );
+  assert.deepEqual(
+    PAY_REQUEST_OVER_CAP.action.asset,
+    PAY_REQUEST.action.asset
+  );
+  assert.equal(
+    PAY_REQUEST_OVER_CAP.action.target,
+    PAY_REQUEST.action.target
+  );
 });
 
 test("buildPolicyFileWithUnrecognizedRoleProgram keeps role and holder, swaps only programId", () => {
@@ -613,6 +633,33 @@ test("the real missing-fact fixture is a valid missing-fact ask; the real allow 
 test("over-cap ask: DENY with the role missing rather than held is invalid (must be the cap, not the role)", () => {
   const ask: AskSummary = { ...REAL_OVER_CAP_ASK, roleCode: "ROLE_MEMBER_MISSING" };
   assert.equal(isOverCapAskValid(ask), false);
+});
+
+test("over-cap ask: DENY with the role still held but no cap code is invalid (the cap check must run, not just pass by role)", () => {
+  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, capCode: undefined };
+  assert.equal(isOverCapAskValid(ask), false);
+  const wrongCapCode: AskSummary = { ...REAL_OVER_CAP_ASK, capCode: "AMOUNT_WITHIN_CAP" };
+  assert.equal(isOverCapAskValid(wrongCapCode), false);
+});
+
+test("over-cap ask: proceed:true is invalid even with a correct cap and role code", () => {
+  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, proceed: true };
+  assert.equal(isOverCapAskValid(ask), false);
+});
+
+test("over-cap ask: a verdict other than DENY is invalid even with a correct cap and role code", () => {
+  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, verdict: "UNKNOWN" };
+  assert.equal(isOverCapAskValid(ask), false);
+});
+
+test("missing-fact ask: proceed:true is invalid even with a correct role code", () => {
+  const ask: AskSummary = { ...REAL_MISSING_FACT_ASK, proceed: true };
+  assert.equal(isMissingFactAskValid(ask), false);
+});
+
+test("missing-fact ask: a verdict other than UNKNOWN is invalid even with a correct role code", () => {
+  const ask: AskSummary = { ...REAL_MISSING_FACT_ASK, verdict: "DENY" };
+  assert.equal(isMissingFactAskValid(ask), false);
 });
 
 test("missing-fact ask: UNKNOWN via a stale role fact rather than a missing one is invalid", () => {
@@ -687,6 +734,50 @@ test("withSwappedPolicyFile writes both the swap and the restore at mode 600, ev
 
   assert.equal(statSync(policyPath).mode & 0o777, 0o600);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile reports the real open error, not a symlink refusal, for a missing policy file", async () => {
+  const dir = scratchDir("hedwig-policy-missing-");
+  const policyPath = join(dir, "does-not-exist.json");
+
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(
+        policyPath,
+        { role: { programId: "TEMP" } },
+        { role: { programId: "ORIGINAL" } },
+        async () => "should never run"
+      ),
+    (err: unknown) => {
+      assert.equal(/symlink/i.test((err as Error).message), false);
+      assert.equal((err as NodeJS.ErrnoException).code, "ENOENT");
+      return true;
+    }
+  );
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile keeps the action's own error when the restore write also fails", async () => {
+  const dir = scratchDir("hedwig-policy-restore-fail-");
+  const policyPath = join(dir, "policy.json");
+  writeFileSync(policyPath, JSON.stringify({ role: { programId: "ORIGINAL" } }));
+
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(
+        policyPath,
+        { role: { programId: "TEMP" } },
+        { role: { programId: "ORIGINAL" } },
+        async () => {
+          // Remove the directory so the restore write inside `finally`
+          // fails too; the action's own error must still win.
+          rmSync(dir, { recursive: true, force: true });
+          throw new Error("action failed and the restore will too");
+        }
+      ),
+    /action failed and the restore will too/
+  );
 });
 
 test("withSwappedPolicyFile restores the original policy on disk after a normal return", async () => {
@@ -785,7 +876,7 @@ test("formatTranscript prints only public keys, signatures and the RPC host", ()
   assert.equal(output.includes(explorerTxUrl("orgSig111")), true);
   assert.equal(
     output.includes(
-      "Same server process, same policy file, same request. Only the role changed."
+      "Ask 1 and Ask 4: same server process, same policy file, same request. Only the role changed."
     ),
     true
   );
@@ -840,6 +931,8 @@ test("formatTranscript describes a retry as a lag only when the first attempt st
     ask2FirstAttempt: REAL_ASK1, // still ROLE_HELD: a genuine lag
   });
   assert.equal(lagOutput.includes("RPC lag"), true);
+  assert.equal(lagOutput.includes("retried Ask 4"), true);
+  assert.equal(lagOutput.includes("retried Ask 2"), false);
 
   const failureFirstAttempt: AskSummary = {
     ...REAL_ASK2,

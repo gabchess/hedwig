@@ -481,10 +481,13 @@ function writePolicyFileNoFollow(policyPath: string, content: string): void {
       policyPath,
       fs.constants.O_WRONLY | fs.constants.O_TRUNC | fs.constants.O_NOFOLLOW
     );
-  } catch {
-    throw new Error(
-      `refusing to write a policy file through a symlink: ${policyPath}`
-    );
+  } catch (openError) {
+    if ((openError as NodeJS.ErrnoException).code === "ELOOP") {
+      throw new Error(
+        `refusing to write a policy file through a symlink: ${policyPath}`
+      );
+    }
+    throw openError;
   }
   try {
     fs.writeSync(fd, Buffer.from(content, "utf8"));
@@ -509,11 +512,22 @@ export async function withSwappedPolicyFile<T>(
   action: () => Promise<T>
 ): Promise<T> {
   writePolicyFileNoFollow(policyPath, JSON.stringify(temporaryPolicy));
+  let result: T;
   try {
-    return await action();
-  } finally {
-    writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
+    result = await action();
+  } catch (actionError) {
+    // The restore still runs on a thrown action, but a second error out of
+    // the restore itself must never replace the original: swallow it here
+    // so the caller sees why the action failed, not why the cleanup did.
+    try {
+      writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
+    } catch {
+      // original error takes priority; restore failure is unrecoverable here
+    }
+    throw actionError;
   }
+  writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -716,7 +730,7 @@ export interface TranscriptInput {
   overCapAsk: AskSummary;
   missingFactAsk: AskSummary;
   ask2: AskSummary;
-  // Present only when ask 2's first attempt did not yet earn DENY /
+  // Present only when Ask 4's first attempt did not yet earn DENY /
   // ROLE_MEMBER_MISSING and a retry was made; absent means the first
   // attempt already succeeded.
   ask2FirstAttempt: AskSummary | undefined;
@@ -755,11 +769,11 @@ function ask2RetryLines(firstAttempt: AskSummary | undefined): string[] {
   const { verdict, roleCode } = firstAttempt;
   if (isAsk1Valid(firstAttempt)) {
     return [
-      "  retried Ask 2 once after 2s: the first answer still held the role (RPC lag).",
+      "  retried Ask 4 once after 2s: the first answer still held the role (RPC lag).",
     ];
   }
   return [
-    `  retried Ask 2 once after 2s: the first answer was verdict=${verdict} code=${
+    `  retried Ask 4 once after 2s: the first answer was verdict=${verdict} code=${
       roleCode ?? "none"
     } (not a lag).`,
   ];
@@ -821,7 +835,7 @@ export function formatTranscript(input: TranscriptInput): string {
   lines.push(...askLines("Ask 4 (original request, after revoke)", input.ask2));
   lines.push("");
   lines.push(
-    "Same server process, same policy file, same request. Only the role changed."
+    "Ask 1 and Ask 4: same server process, same policy file, same request. Only the role changed."
   );
   return lines.join("\n");
 }
