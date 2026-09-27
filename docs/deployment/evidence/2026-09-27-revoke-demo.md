@@ -9,8 +9,8 @@ to this file.
 | Field | Value |
 | --- | --- |
 | Command | `HEDWIG_DEMO_KEYPAIR=<path> npm --prefix app run revoke-demo -- --out <path>` |
-| Commit | `a7a7e176f0f77b731730c0b6c76c4985cfee09a6` |
-| Clean tree | `true` (`git status --porcelain` was empty) |
+| Source commit | `a7a7e176f0f77b731730c0b6c76c4985cfee09a6` |
+| Source tree clean | `true` (`git status --porcelain` was empty) |
 | UTC start | `2026-09-27T18:36:40.715Z` |
 | UTC end | `2026-09-27T18:36:45.334Z` |
 | Network | Solana devnet, `api.devnet.solana.com` |
@@ -20,6 +20,11 @@ to this file.
 | Org | `AFFoRYATGSsbXPvxWj9YPHhvpEbziykZHxttiKAuJods` (reused, no create_org tx) |
 | Role | `FnZuwsx9C3xgQDzCzJBsZeB6njsBg6hmirSMXGbYh31q` |
 | Holder | `AwkwCGR7hbgvx8pqn6peu9j1k7LgZpdHWYTDojoNwttZ` |
+
+The record's `commit` and `treeClean` name the source commit and whether the
+source tree had uncommitted changes. They say nothing about the built server:
+the demo runs `mcp/dist/server.js`, and `mcp/dist` and `consult/dist` are
+gitignored.
 
 | Step | Transaction |
 | --- | --- |

@@ -164,9 +164,10 @@ function waitForExit(
   });
 }
 
-// The commit this run executes and whether the tree had any uncommitted or
-// untracked change, read from git itself so the --out record, not memory,
-// says what code ran.
+// Names the source commit (git rev-parse HEAD) and whether the source tree
+// had uncommitted changes (git status --porcelain, untracked files
+// included). It says nothing about the built server: mcp/dist and
+// consult/dist are gitignored, so a stale or edited build is invisible here.
 function readGitState(): { commit: string; treeClean: boolean } {
   const git = (args: string[]): string =>
     execFileSync("git", args, { cwd: __dirname, encoding: "utf8" });

@@ -990,7 +990,8 @@ test("buildMachineRecord never includes the policy path, env, keypair path or fu
   assert.equal(serialized.includes("CANARY-PATH"), false);
   assert.equal(serialized.includes("CANARY-KEY"), false);
   assert.equal(record.rpcHost, "rpc.example.com");
-  // The provenance fields the evidence doc copies are passed through as given.
+  // The source commit, the source-tree flag, the times and the ids the
+  // evidence doc copies are passed through as given.
   assert.equal(record.commit, "0123456789abcdef0123456789abcdef01234567");
   assert.equal(record.treeClean, true);
   assert.equal(record.startedAt, "2026-01-01T00:00:00.000Z");
