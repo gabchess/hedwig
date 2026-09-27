@@ -837,7 +837,6 @@ export function formatTranscript(input: TranscriptInput): string {
 
 export interface MachineRecordContext {
   // The source commit, and whether the source tree had uncommitted changes.
-  // Neither says anything about the built server, whose dist is gitignored.
   commit: string;
   treeClean: boolean;
   // ISO 8601 UTC: when main() began, and when the record was built.

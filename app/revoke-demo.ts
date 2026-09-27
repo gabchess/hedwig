@@ -166,8 +166,7 @@ function waitForExit(
 
 // Names the source commit (git rev-parse HEAD) and whether the source tree
 // had uncommitted changes (git status --porcelain, untracked files
-// included). It says nothing about the built server: mcp/dist and
-// consult/dist are gitignored, so a stale or edited build is invisible here.
+// included).
 function readGitState(): { commit: string; treeClean: boolean } {
   const git = (args: string[]): string =>
     execFileSync("git", args, { cwd: __dirname, encoding: "utf8" });

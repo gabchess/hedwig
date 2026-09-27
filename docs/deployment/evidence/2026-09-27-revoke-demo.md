@@ -1,8 +1,8 @@
 # Revoke demo, devnet, 2026-09-27
 
-Every value below is copied from this run's `--out` record,
+The outcome and run values below are copied from this run's `--out` record,
 [`2026-09-27-revoke-demo.json`](2026-09-27-revoke-demo.json), committed next
-to this file.
+to this file. The Command row and the Reproduce block are not in the record.
 
 ## What ran
 
@@ -22,9 +22,7 @@ to this file.
 | Holder | `AwkwCGR7hbgvx8pqn6peu9j1k7LgZpdHWYTDojoNwttZ` |
 
 The record's `commit` and `treeClean` name the source commit and whether the
-source tree had uncommitted changes. They say nothing about the built server:
-the demo runs `mcp/dist/server.js`, and `mcp/dist` and `consult/dist` are
-gitignored.
+source tree had uncommitted changes.
 
 | Step | Transaction |
 | --- | --- |
