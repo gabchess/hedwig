@@ -1,4 +1,4 @@
-# Revoke demo, devnet, 2026-09-27 (blocked, run 3 of 3)
+# Revoke demo, devnet, 2026-09-27 (run 3 of 3)
 
 This is the third of three planned revoke-demo runs. The demo code was
 extended first (see `app/revoke-demo.ts` and `app/revoke-demo-lib.ts` on
@@ -11,9 +11,10 @@ covered by `app/revoke-demo-lib.test.ts` and by two fixtures in
 `missingFactUnknown`), both captured by calling the built `consult()`
 function directly, offline, no devnet traffic.
 
-The devnet run itself could not complete. Both attempts failed at the
-airdrop step, before any org, role, or consult call was made. No verdict
-rows exist for this date: none were fabricated or backfilled.
+Two attempts failed before any org, role, or consult call was made (see
+below). A third attempt, against a funded key, completed all four asks.
+No row below was fabricated or backfilled; every failed attempt is kept
+as it happened.
 
 ## Command
 
@@ -21,7 +22,7 @@ rows exist for this date: none were fabricated or backfilled.
 npm --prefix app run revoke-demo -- --out <path>
 ```
 
-## Attempt 1
+## Attempt 1 (wrong key, unfunded)
 
 | Field | Value |
 | --- | --- |
@@ -30,7 +31,7 @@ npm --prefix app run revoke-demo -- --out <path>
 | Failure | `airdrop failed: Internal error` |
 | Exit code | 1 |
 
-## Attempt 2 (the one retry)
+## Attempt 2 (wrong key, the one retry)
 
 | Field | Value |
 | --- | --- |
@@ -45,26 +46,83 @@ for attempt 2: `You've either reached your airdrop limit today or the
 airdrop faucet has run dry. Please visit https://faucet.solana.com for
 alternate sources of test SOL.`
 
-## Why the airdrop ran at all
+## Root cause of attempts 1 and 2
 
-`shouldRequestAirdrop` only fires below a 0.05 SOL balance. The demo's
-throwaway admin key (`~/.hedwig/demo-keys/revoke-demo-admin.json`, reused
-by design across runs since the org PDA it derives can only be created
-once per key) had fallen under that floor, most likely from the rent and
-fees spent by the two earlier revoke-demo runs plus a growing devnet fee
-market. The public devnet faucet (`api.devnet.solana.com`) was rate
-limited or dry at the time of both attempts.
+`shouldRequestAirdrop` only fires below a 0.05 SOL balance. Both attempts
+ran with `HEDWIG_DEMO_KEYPAIR` unset, so the demo fell back to the default
+path (`~/.hedwig/demo-keys/revoke-demo-admin.json`), a key that had never
+been funded, rather than an already-funded throwaway admin kept outside
+the repository tree (admin `Fq2NR6KBqKGUeJUR8qtY65SawLZFs1ZgnnXH27FQRWQj`,
+the same admin the 2026-09-22 run used). Pointing `HEDWIG_DEMO_KEYPAIR` at
+that key's path put the balance above the floor, so no airdrop fired.
 
-## What this means for the four-outcome extension
+## Attempt 3 (funded key)
 
-The extension itself is done and independently verified offline:
+```
+HEDWIG_DEMO_KEYPAIR=<path to the funded throwaway admin keypair> \
+  npm --prefix app run revoke-demo -- --out <path>
+```
+
+The first run of attempt 3 failed at Ask 1 itself: the Solana role Reader's
+own simulate call missed its 800 ms deadline against the public devnet
+RPC, so `consult()` correctly answered UNKNOWN with `ROLE_FACT_MISSING`
+even though the role was genuinely held (an RPC hiccup, not a defect;
+exit code 1, `process.exit(1)` from the failed assertion, no transaction
+sent past `assign_role`). Retried once, per the one-retry rule. The retry
+completed all four asks.
+
+| Field | Value |
+| --- | --- |
+| Admin | `Fq2NR6KBqKGUeJUR8qtY65SawLZFs1ZgnnXH27FQRWQj` |
+| Org | `AFFoRYATGSsbXPvxWj9YPHhvpEbziykZHxttiKAuJods` (reused, no new create_org tx) |
+| Role | `5LACWG7G1Afz94Mj3f8VMb7cEJehsd2xKPpZv43KkN8X` |
+| Holder | `EMTHqBCpKUoL5Qpk26ShK3hRrmZozbtz2koRUFcA4L1` |
+
+| Step | Transaction |
+| --- | --- |
+| create_role | [`DSg86TP7...`](https://explorer.solana.com/tx/DSg86TP7YFZFtTzvzggqevoJmHmWny53HtjCMB9hyUUF7T9q5duMNn2RQNxzCGYPENv1QEZwdwMdJgcEzxZLbcu?cluster=devnet) (blockTime 2026-09-27T16:32:19Z) |
+| assign_role | [`6mwwokSP...`](https://explorer.solana.com/tx/6mwwokSP1Fx3sZ8ncy2iHXXPeSYbcUGH6epnYzRjjyNsLaSC8hGctVuGh4qLtiSFiK53J2PkpJnyNdmxga9Dtf7?cluster=devnet) (blockTime 2026-09-27T16:32:20Z) |
+| revoke_role | [`YKFNVeYN...`](https://explorer.solana.com/tx/YKFNVeYNUeMA8xTgFK3Zx5gtPcKu5wG2ug3Xz2Z5TYz3tpufsgknVMiexS6C5DAocrXDXdMSKCmuAJQQgxQxc7J?cluster=devnet) (blockTime 2026-09-27T16:32:22Z) |
+
+Asks 1 to 3 (below) ran between the `assign_role` and `revoke_role`
+blockTimes above, so each is timestamped `~2026-09-27T16:32:21Z`
+(bounded, not printed by the script itself). Ask 4 ran immediately after
+`revoke_role`, `~2026-09-27T16:32:22Z`.
+
+| Ask | UTC time | Verdict | Proceed | Reason codes | Tx |
+| --- | --- | --- | --- | --- | --- |
+| 1, allow | ~16:32:21Z | ALLOW_UNDER_POLICY | true | `ROLE_HELD`, `AMOUNT_WITHIN_CAP` | none (read-only consult) |
+| 2, over-cap | ~16:32:21Z | DENY | false | `AMOUNT_EXCEEDS_CAP`, role still `ROLE_HELD` | none (read-only consult) |
+| 3, missing-fact | ~16:32:21Z | UNKNOWN | false | `ROLE_FACT_MISSING` | none (read-only consult) |
+| 4, after revoke | ~16:32:22Z | DENY | false | `ROLE_MEMBER_MISSING` | `revoke_role` above |
+
+## How Ask 3's UNKNOWN is produced
+
+Ask 3 uses the same running server, the same live role, and the same
+payment request as Ask 1. Immediately before the call, the demo swaps the
+on-disk policy file's `role.programId` from Hedwig's deployed program id
+to Solana's System Program id (`11111111111111111111111111111111`), a
+real, well-formed pubkey that is never Hedwig's. The Solana role Reader
+(`mcp/src/readers/solana-role.ts`) refuses to resolve a cluster config for
+a program id it does not recognise, so it makes no RPC call and produces
+no `solanaRole` fact. `role-requirement-met` then answers `ROLE_FACT_MISSING`,
+UNVERIFIED, and `consult()` folds that to UNKNOWN. The demo restores the
+original policy immediately after the call, before `revoke_role`.
+
+## Restore safety fix
+
+Review question: if the process dies between the swap and the
+restore, is the on-disk policy left modified? Originally, yes: the
+restore was a line after the assertion, not a guaranteed step, so a
+thrown assertion (a bad verdict, a dead server) would skip it. Fixed by
+`withSwappedPolicyFile` in `app/revoke-demo-lib.ts`, which writes the
+temporary policy, then always writes the original policy back in a
+`finally`, whether the wrapped action returns or throws. Covered by two
+new tests in `app/revoke-demo-lib.test.ts`: one proves the restore runs
+after a normal return, the other proves it runs after the action throws.
+
+## Independent verification
 
 - `npx tsc --noEmit -p app/tsconfig.json` passes.
-- `npm test --prefix app` passes, 57/57, including the six new tests for
-  the over-cap and missing-fact asks.
+- `npm test --prefix app` passes, 59/59.
 - `yarn mcp:typecheck`, `yarn mcp:build`, `yarn mcp:test` all pass, 165/165.
-
-A live devnet recording of the four-outcome flow still needs a funded
-throwaway key or a working faucet, and is not part of this record. No ask,
-transaction, or verdict from this attempted run is claimed above; this
-file exists to state the blocker precisely rather than skip recording it.

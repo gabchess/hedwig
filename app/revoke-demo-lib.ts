@@ -466,6 +466,29 @@ export function buildPolicyFileWithUnrecognizedRoleProgram(
   });
 }
 
+// Writes temporaryPolicy over policyPath, runs action, and always writes
+// originalPolicy back, even when action throws. The restore is a `finally`,
+// not a line after the call: a throw from `action` (a bad verdict, a dead
+// server, a timeout) still leaves the on-disk policy exactly as it was
+// before the swap, never stuck on the broken, unrecognised-programId shape.
+export async function withSwappedPolicyFile<T>(
+  policyPath: string,
+  temporaryPolicy: unknown,
+  originalPolicy: unknown,
+  action: () => Promise<T>
+): Promise<T> {
+  fs.writeFileSync(policyPath, JSON.stringify(temporaryPolicy), {
+    mode: 0o600,
+  });
+  try {
+    return await action();
+  } finally {
+    fs.writeFileSync(policyPath, JSON.stringify(originalPolicy), {
+      mode: 0o600,
+    });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Consult answer parsing and verdict assertions
 // ---------------------------------------------------------------------------

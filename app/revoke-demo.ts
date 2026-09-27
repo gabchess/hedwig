@@ -46,6 +46,7 @@ import {
   PAY_REQUEST,
   PAY_REQUEST_OVER_CAP,
   shouldRequestAirdrop,
+  withSwappedPolicyFile,
   type AskSummary,
 } from "./revoke-demo-lib";
 
@@ -276,6 +277,11 @@ async function main(): Promise<void> {
       ),
     });
     const serverPid = child.pid;
+    // Narrowed once, synchronously, right after the spawn assignment: TS
+    // cannot carry `child`'s non-optional type into a closure passed to
+    // withSwappedPolicyFile, since the closure could in principle run after
+    // some later reassignment. This alias is that one non-optional value.
+    const serverChild = child;
 
     await initializeServer(child);
 
@@ -298,15 +304,19 @@ async function main(): Promise<void> {
       role: rolePda.toBase58(),
       holder: holder.publicKey.toBase58(),
     });
-    fs.writeFileSync(policyPath, JSON.stringify(brokenPolicy), {
-      mode: 0o600,
-    });
-    assertServerProcessAlive(child, serverPid);
-    const missingFactMessage = await callConsult(child);
-    const missingFactAsk = assertMissingFactAsk(
-      extractAskSummary(missingFactMessage)
+    const { missingFactMessage, missingFactAsk } = await withSwappedPolicyFile(
+      policyPath,
+      brokenPolicy,
+      policy,
+      async () => {
+        assertServerProcessAlive(serverChild, serverPid);
+        const message = await callConsult(serverChild);
+        return {
+          missingFactMessage: message,
+          missingFactAsk: assertMissingFactAsk(extractAskSummary(message)),
+        };
+      }
     );
-    fs.writeFileSync(policyPath, JSON.stringify(policy), { mode: 0o600 });
 
     const revokeRoleSig = await sendRevokeRole(
       provider,

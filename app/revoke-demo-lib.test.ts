@@ -54,6 +54,7 @@ import {
   readExistingKeypair,
   shouldRequestAirdrop,
   UNRECOGNIZED_ROLE_PROGRAM_ID,
+  withSwappedPolicyFile,
   type AskSummary,
 } from "./revoke-demo-lib";
 
@@ -617,6 +618,48 @@ test("over-cap ask: DENY with the role missing rather than held is invalid (must
 test("missing-fact ask: UNKNOWN via a stale role fact rather than a missing one is invalid", () => {
   const ask: AskSummary = { ...REAL_MISSING_FACT_ASK, roleCode: "ROLE_FACT_STALE" };
   assert.equal(isMissingFactAskValid(ask), false);
+});
+
+test("withSwappedPolicyFile restores the original policy on disk even when action throws", async () => {
+  const dir = scratchDir("hedwig-policy-swap-");
+  const policyPath = join(dir, "policy.json");
+  const original = { role: { programId: "ORIGINAL" } };
+  const temporary = { role: { programId: "11111111111111111111111111111111" } };
+  writeFileSync(policyPath, JSON.stringify(original));
+
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(policyPath, temporary, original, async () => {
+        assert.equal(
+          JSON.parse(readFileSync(policyPath, "utf8")).role.programId,
+          temporary.role.programId
+        );
+        throw new Error("action failed mid-swap");
+      }),
+    /action failed mid-swap/
+  );
+
+  assert.deepEqual(JSON.parse(readFileSync(policyPath, "utf8")), original);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile restores the original policy on disk after a normal return", async () => {
+  const dir = scratchDir("hedwig-policy-swap-");
+  const policyPath = join(dir, "policy.json");
+  const original = { role: { programId: "ORIGINAL" } };
+  const temporary = { role: { programId: "11111111111111111111111111111111" } };
+  writeFileSync(policyPath, JSON.stringify(original));
+
+  const result = await withSwappedPolicyFile(
+    policyPath,
+    temporary,
+    original,
+    async () => "ok"
+  );
+
+  assert.equal(result, "ok");
+  assert.deepEqual(JSON.parse(readFileSync(policyPath, "utf8")), original);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 // --- one live server process, checked before each ask (H3) ---------------
