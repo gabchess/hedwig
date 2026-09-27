@@ -466,8 +466,10 @@ export function buildPolicyFileWithUnrecognizedRoleProgram(
   });
 }
 
-// O_NOFOLLOW: refuses a policyPath that is a symlink, so a write can never
-// land on a target outside the demo's own temp directory. O_TRUNC on an
+// O_NOFOLLOW: refuses a policyPath whose final path component is itself a
+// symlink. It guards only that last component; it does not resolve or
+// check any symlinked ancestor directory, and it does not stop a hardlink
+// to a file outside the demo's own temp directory. O_TRUNC on an
 // already-open descriptor, then fchmodSync: the open's own mode argument
 // only applies when O_CREAT actually creates the file, so an existing file
 // left at a looser mode (644) would otherwise keep it; fchmodSync forces

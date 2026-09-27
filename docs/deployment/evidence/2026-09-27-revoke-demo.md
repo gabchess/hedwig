@@ -13,10 +13,10 @@ function directly, offline, no devnet traffic.
 
 Two attempts failed before any org, role, or consult call was made (see
 below). A third attempt, against a funded key, completed all four asks.
-That attempt ran commit `73f0f79` (before the policy-file restore and
-symlink fixes landed in `2c13cdc`), between 2026-09-27T16:32:02Z and
-16:32:22Z. No row below was fabricated or backfilled; every failed
-attempt is kept as it happened.
+That attempt ran commit `73f0f79`, before the restore fix landed in
+`2c13cdc` and the symlink and mode-600 fix landed in `a7ea834`, between
+2026-09-27T16:32:02Z and 16:32:22Z. No row below was fabricated or
+backfilled; every failed attempt is kept as it happened.
 
 ## Command
 
@@ -126,23 +126,24 @@ original policy immediately after the call, before `revoke_role`.
 Review question: if the process dies between the swap and the restore,
 is the on-disk policy left modified? Originally, yes: the restore was a
 line after the assertion, not a guaranteed step, so a thrown assertion
-(a bad verdict, a dead server) would skip it. Fixed by
+(a bad verdict, a dead server) would skip it. Fixed in `2c13cdc` by
 `withSwappedPolicyFile` in `app/revoke-demo-lib.ts`: a thrown error now
 restores the file, since the restore write moved into a `finally` around
 the wrapped action. That `finally` has limits a signal can still reach.
 SIGINT and SIGTERM run the demo's own handler, which deletes the whole
 temp directory instead of restoring, so the swapped file does not survive
-either signal. SIGKILL or SIGHUP give the process no chance to run any
-handler at all, and can leave the swapped, unrecognised-programId file
-sitting in an orphaned temp directory. The directory is mode 0700,
-holds only public keys, and a server reading it answers UNKNOWN, so
-there is no security impact, but the finally block does not cover every
-exit path and this file does not claim that it does.
+either signal. SIGKILL cannot be caught by any handler, so it always
+skips the restore. The demo installs no SIGHUP handler either, so a
+SIGHUP can leave the swapped, unrecognised-programId file sitting in an
+orphaned temp directory the same way. The directory is mode 0700, holds
+only public keys, and a server reading it answers UNKNOWN, so there is
+no security impact, but the finally block does not cover every exit path
+and this file does not claim that it does.
 
-The same fix also closes a symlink gap: the swap and restore writes now
-open the policy path with `O_NOFOLLOW` and refuse a symlinked path
-outright, and force file mode 600 on every write rather than relying on
-`open`'s create-only mode argument. Four tests in
+A separate fix, landed in `a7ea834`, closes a symlink gap: the swap and
+restore writes now open the policy path with `O_NOFOLLOW` and refuse a
+symlinked path outright, and force file mode 600 on every write rather
+than relying on `open`'s create-only mode argument. Four tests in
 `app/revoke-demo-lib.test.ts` cover this: restore after a normal return,
 restore after a throw, refusal of a symlinked policy path, and mode 600
 enforced even over a looser pre-existing mode.
