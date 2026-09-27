@@ -144,24 +144,8 @@ function unknownGuardResult<TSignerResult>(
   };
 }
 
-// setTimeout's own ceiling (2^31 - 1 ms): Node fires a timer with a longer
-// delay, or a NaN one, after 1ms instead. A NaN or Infinity deadline also
-// disables raceWithDeadline's own elapsed-time check (elapsed >= NaN and
-// elapsed >= Infinity are both always false), so a synchronous overrun
-// would sail through uncaught. A bad deadline fails the guard closed
-// instead of silently becoming "no deadline at all".
-//
-// A deadline of 0 (or -0), or any value below 1ms (Number.MIN_VALUE, 1e-3,
-// a fraction under 1ms), is rejected too, not just NaN/Infinity/negative/
-// over-ceiling ones: the elapsed-time check cannot meaningfully time a
-// sub-millisecond deadline, and setTimeout itself rounds anything under 1ms
-// up to 1ms, so a fractional deadline never means what it says. A deadline
-// that races ahead of the call it is meant to bound can report a completed
-// call as timed out; for the signer that means the action was already
-// signed, then reported as "unknown" (signerOutcome), and a Caller that
-// retries an unknown outcome could sign the same action twice. A valid
-// deadline is a whole millisecond count, at least 1 and at most
-// MAX_TIMEOUT_MS.
+// A deadline must be a whole number of milliseconds from 1 to
+// MAX_TIMEOUT_MS. Any other value is a guard-level input error.
 const MAX_TIMEOUT_MS = 2147483647;
 
 function isValidDeadlineMs(value: number): boolean {
