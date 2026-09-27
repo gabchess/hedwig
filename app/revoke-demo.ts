@@ -1,13 +1,18 @@
 /**
  * Devnet revoke demo: one Hedwig org, one role, one MCP server process,
- * two "consult" calls either side of a real on-chain revoke_role.
+ * four "consult" calls: an allow, an over-cap DENY, a missing-fact UNKNOWN,
+ * and the original request repeated after a real on-chain revoke_role.
  *
  * Uses a throwaway keypair this script generates and funds itself; it never
  * reads the caller's own Solana wallet. Thin wiring only: every decision
  * with a security or correctness consequence lives in revoke-demo-lib.ts,
  * where it is unit tested. Usage: see app/README.md.
  */
-import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import {
+  execFileSync,
+  spawn,
+  type ChildProcessWithoutNullStreams,
+} from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -25,23 +30,28 @@ import { Connection, Keypair } from "@solana/web3.js";
 
 import {
   assertAsk1,
-  assertAsk2,
+  assertAsk4,
   assertDevnetGenesisHash,
+  assertMissingFactAsk,
+  assertOverCapAsk,
   assertServerBuilt,
   assertServerProcessAlive,
   airdropAmountLamports,
   buildConnectionOptions,
   buildMachineRecord,
   buildPolicyFile,
+  buildPolicyFileWithUnrecognizedRoleProgram,
   buildServerEnv,
   DEFAULT_KEYPAIR_PATH,
   extractAskSummary,
   formatTranscript,
-  isAsk2Valid,
+  isAsk4Valid,
   loadOrGenerateKeypair,
   parseOutPath,
   PAY_REQUEST,
+  PAY_REQUEST_OVER_CAP,
   shouldRequestAirdrop,
+  withSwappedPolicyFile,
   type AskSummary,
 } from "./revoke-demo-lib";
 
@@ -122,14 +132,15 @@ async function initializeServer(
 
 let nextCallId = 1;
 async function callConsult(
-  child: ChildProcessWithoutNullStreams
+  child: ChildProcessWithoutNullStreams,
+  request: unknown = PAY_REQUEST
 ): Promise<unknown> {
   const id = nextCallId++;
   sendLine(child, {
     jsonrpc: "2.0",
     id,
     method: "tools/call",
-    params: { name: "consult", arguments: { request: PAY_REQUEST } },
+    params: { name: "consult", arguments: { request } },
   });
   return waitForResponse(child, id, RESPONSE_TIMEOUT_MS);
 }
@@ -153,7 +164,22 @@ function waitForExit(
   });
 }
 
+// Names the source commit (git rev-parse HEAD) and whether the source tree
+// had uncommitted changes (git status --porcelain, untracked files
+// included).
+function readGitState(): { commit: string; treeClean: boolean } {
+  const git = (args: string[]): string =>
+    execFileSync("git", args, { cwd: __dirname, encoding: "utf8" });
+  return {
+    commit: git(["rev-parse", "HEAD"]).trim(),
+    treeClean: git(["status", "--porcelain"]).trim() === "",
+  };
+}
+
 async function main(): Promise<void> {
+  const startedAt = new Date().toISOString();
+  const gitState = readGitState();
+
   // B2: the cheapest possible failure, before any network call.
   assertServerBuilt(SERVER_PATH);
 
@@ -271,12 +297,44 @@ async function main(): Promise<void> {
       ),
     });
     const serverPid = child.pid;
+    // `child` is a `let` typed with `| undefined`, and TypeScript drops its
+    // narrowing inside the closure passed to withSwappedPolicyFile. This
+    // const keeps the narrowed type.
+    const serverChild = child;
 
     await initializeServer(child);
 
     assertServerProcessAlive(child, serverPid);
     const ask1Message = await callConsult(child);
     const ask1 = assertAsk1(extractAskSummary(ask1Message));
+
+    // Ask 2: PAY_REQUEST_OVER_CAP, above the policy's pay cap. Same server,
+    // same policy file, same role.
+    assertServerProcessAlive(child, serverPid);
+    const overCapMessage = await callConsult(child, PAY_REQUEST_OVER_CAP);
+    const overCapAsk = assertOverCapAsk(extractAskSummary(overCapMessage));
+
+    // Ask 3: the on-disk policy's role programId is swapped to
+    // UNRECOGNIZED_ROLE_PROGRAM_ID for one call, then written back before the
+    // revoke. Same server process, same role, same request as Ask 1.
+    const brokenPolicy = buildPolicyFileWithUnrecognizedRoleProgram({
+      programId: HEDWIG_PROGRAM_ID.toBase58(),
+      role: rolePda.toBase58(),
+      holder: holder.publicKey.toBase58(),
+    });
+    const { missingFactMessage, missingFactAsk } = await withSwappedPolicyFile(
+      policyPath,
+      brokenPolicy,
+      policy,
+      async () => {
+        assertServerProcessAlive(serverChild, serverPid);
+        const message = await callConsult(serverChild);
+        return {
+          missingFactMessage: message,
+          missingFactAsk: assertMissingFactAsk(extractAskSummary(message)),
+        };
+      }
+    );
 
     const revokeRoleSig = await sendRevokeRole(
       provider,
@@ -285,19 +343,19 @@ async function main(): Promise<void> {
     );
 
     assertServerProcessAlive(child, serverPid);
-    let ask2Message = await callConsult(child);
-    let ask2Summary = extractAskSummary(ask2Message);
-    let ask2FirstAttemptMessage: unknown;
-    let ask2FirstAttemptSummary: AskSummary | undefined;
-    if (!isAsk2Valid(ask2Summary)) {
-      ask2FirstAttemptMessage = ask2Message;
-      ask2FirstAttemptSummary = ask2Summary;
+    let ask4Message = await callConsult(child);
+    let ask4Summary = extractAskSummary(ask4Message);
+    let ask4FirstAttemptMessage: unknown;
+    let ask4FirstAttemptSummary: AskSummary | undefined;
+    if (!isAsk4Valid(ask4Summary)) {
+      ask4FirstAttemptMessage = ask4Message;
+      ask4FirstAttemptSummary = ask4Summary;
       await sleep(RETRY_WAIT_MS);
       assertServerProcessAlive(child, serverPid);
-      ask2Message = await callConsult(child);
-      ask2Summary = extractAskSummary(ask2Message);
+      ask4Message = await callConsult(child);
+      ask4Summary = extractAskSummary(ask4Message);
     }
-    const ask2: AskSummary = assertAsk2(ask2Summary);
+    const ask4: AskSummary = assertAsk4(ask4Summary);
 
     const transcript = formatTranscript({
       rpcUrl,
@@ -310,15 +368,23 @@ async function main(): Promise<void> {
       assignRoleSig,
       revokeRoleSig,
       ask1,
-      ask2,
-      ask2FirstAttempt: ask2FirstAttemptSummary,
+      overCapAsk,
+      missingFactAsk,
+      ask4,
+      ask4FirstAttempt: ask4FirstAttemptSummary,
     });
     console.log(transcript);
 
     const outPath = parseOutPath(process.argv);
     if (outPath) {
       const record = buildMachineRecord({
+        commit: gitState.commit,
+        treeClean: gitState.treeClean,
+        startedAt,
+        finishedAt: new Date().toISOString(),
         rpcUrl,
+        programId: HEDWIG_PROGRAM_ID.toBase58(),
+        admin: admin.publicKey.toBase58(),
         serverPid: serverPid as number,
         org: orgPda.toBase58(),
         role: rolePda.toBase58(),
@@ -330,9 +396,14 @@ async function main(): Promise<void> {
           revokeRole: revokeRoleSig,
         },
         ask1: { pid: serverPid as number, message: ask1Message },
-        ask2: { pid: serverPid as number, message: ask2Message },
-        ask2FirstAttempt: ask2FirstAttemptMessage
-          ? { pid: serverPid as number, message: ask2FirstAttemptMessage }
+        overCapAsk: { pid: serverPid as number, message: overCapMessage },
+        missingFactAsk: {
+          pid: serverPid as number,
+          message: missingFactMessage,
+        },
+        ask4: { pid: serverPid as number, message: ask4Message },
+        ask4FirstAttempt: ask4FirstAttemptMessage
+          ? { pid: serverPid as number, message: ask4FirstAttemptMessage }
           : undefined,
       });
       fs.writeFileSync(outPath, JSON.stringify(record, null, 2));

@@ -21,15 +21,18 @@ import {
   MIN_BALANCE_LAMPORTS,
   airdropAmountLamports,
   assertAsk1,
-  assertAsk2,
+  assertAsk4,
   assertDevnetGenesisHash,
   assertKeypairPathAllowed,
+  assertMissingFactAsk,
+  assertOverCapAsk,
   assertParentSafeForCreate,
   assertServerBuilt,
   assertServerProcessAlive,
   buildConnectionOptions,
   buildMachineRecord,
   buildPolicyFile,
+  buildPolicyFileWithUnrecognizedRoleProgram,
   buildServerEnv,
   createKeypairFile,
   DEFAULT_KEYPAIR_PATH,
@@ -39,14 +42,20 @@ import {
   formatTranscript,
   hasTargetDeploySegment,
   isAsk1Valid,
-  isAsk2Valid,
+  isAsk4Valid,
   isInsideGitWorkTree,
+  isMissingFactAskValid,
+  isOverCapAskValid,
   isUnderDeniedHomeSubdirectory,
   loadOrGenerateKeypair,
   parseOutPath,
+  PAY_REQUEST,
+  PAY_REQUEST_OVER_CAP,
   PERSONAL_NOTES_VAULT_DIR_NAME,
   readExistingKeypair,
   shouldRequestAirdrop,
+  UNRECOGNIZED_ROLE_PROGRAM_ID,
+  withSwappedPolicyFile,
   type AskSummary,
 } from "./revoke-demo-lib";
 
@@ -60,7 +69,11 @@ const FIXTURES = JSON.parse(
 // Real answers captured from the built server (see the fixture's own
 // "_source" field), never invented verdict strings.
 const REAL_ASK1 = extractAskSummary(FIXTURES.allowUnderPolicy) as AskSummary;
-const REAL_ASK2 = extractAskSummary(FIXTURES.deny) as AskSummary;
+const REAL_ASK4 = extractAskSummary(FIXTURES.deny) as AskSummary;
+const REAL_OVER_CAP_ASK = extractAskSummary(FIXTURES.overCapDeny) as AskSummary;
+const REAL_MISSING_FACT_ASK = extractAskSummary(
+  FIXTURES.missingFactUnknown
+) as AskSummary;
 
 function scratchDir(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
@@ -477,10 +490,10 @@ test("extractAskSummary reads the real ALLOW_UNDER_POLICY response verbatim", ()
 });
 
 test("extractAskSummary reads the real DENY response verbatim", () => {
-  assert.equal(REAL_ASK2.proceed, false);
-  assert.equal(REAL_ASK2.verdict, "DENY");
-  assert.equal(REAL_ASK2.support, 0);
-  assert.equal(REAL_ASK2.roleCode, "ROLE_MEMBER_MISSING");
+  assert.equal(REAL_ASK4.proceed, false);
+  assert.equal(REAL_ASK4.verdict, "DENY");
+  assert.equal(REAL_ASK4.support, 0);
+  assert.equal(REAL_ASK4.roleCode, "ROLE_MEMBER_MISSING");
 });
 
 test("extractAskSummary returns undefined for a message with no structuredContent", () => {
@@ -512,30 +525,30 @@ test("extractAskSummary finds the role row by id, not by array position (decoy r
   assert.equal(isAsk1Valid(ask), true);
 });
 
-// --- ask 1 / ask 2 verdict assertions, real fixtures + killing tests (H2) -
+// --- ask 1 / ask 4 verdict assertions, real fixtures + killing tests (H2) -
 
-test("ask 1 is valid on the real ALLOW_UNDER_POLICY answer; ask 2 is valid on the real DENY answer", () => {
+test("ask 1 is valid on the real ALLOW_UNDER_POLICY answer; ask 4 is valid on the real DENY answer", () => {
   assert.equal(isAsk1Valid(REAL_ASK1), true);
-  assert.equal(isAsk2Valid(REAL_ASK2), true);
+  assert.equal(isAsk4Valid(REAL_ASK4), true);
   assert.doesNotThrow(() => assertAsk1(REAL_ASK1));
-  assert.doesNotThrow(() => assertAsk2(REAL_ASK2));
+  assert.doesNotThrow(() => assertAsk4(REAL_ASK4));
 });
 
-test("ask 1 is invalid on the real DENY answer, and ask 2 is invalid on the real allow answer", () => {
-  assert.equal(isAsk1Valid(REAL_ASK2), false);
-  assert.equal(isAsk2Valid(REAL_ASK1), false);
-  assert.throws(() => assertAsk1(REAL_ASK2));
-  assert.throws(() => assertAsk2(REAL_ASK1));
+test("ask 1 is invalid on the real DENY answer, and ask 4 is invalid on the real allow answer", () => {
+  assert.equal(isAsk1Valid(REAL_ASK4), false);
+  assert.equal(isAsk4Valid(REAL_ASK1), false);
+  assert.throws(() => assertAsk1(REAL_ASK4));
+  assert.throws(() => assertAsk4(REAL_ASK1));
 });
 
-test("ask 2: UNKNOWN with ROLE_MEMBER_MISSING is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, verdict: "UNKNOWN" };
-  assert.equal(isAsk2Valid(ask), false);
+test("ask 4: UNKNOWN with ROLE_MEMBER_MISSING is invalid", () => {
+  const ask: AskSummary = { ...REAL_ASK4, verdict: "UNKNOWN" };
+  assert.equal(isAsk4Valid(ask), false);
 });
 
-test("ask 2: DENY with ROLE_DISABLED is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, roleCode: "ROLE_DISABLED" };
-  assert.equal(isAsk2Valid(ask), false);
+test("ask 4: DENY with ROLE_DISABLED is invalid", () => {
+  const ask: AskSummary = { ...REAL_ASK4, roleCode: "ROLE_DISABLED" };
+  assert.equal(isAsk4Valid(ask), false);
 });
 
 test("ask 1: an allow verdict with ROLE_MEMBER_MISSING is invalid", () => {
@@ -543,9 +556,9 @@ test("ask 1: an allow verdict with ROLE_MEMBER_MISSING is invalid", () => {
   assert.equal(isAsk1Valid(ask), false);
 });
 
-test("ask 2: DENY with proceed:true is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, proceed: true };
-  assert.equal(isAsk2Valid(ask), false);
+test("ask 4: DENY with proceed:true is invalid", () => {
+  const ask: AskSummary = { ...REAL_ASK4, proceed: true };
+  assert.equal(isAsk4Valid(ask), false);
 });
 
 test("ask 1: proceed:true with ROLE_NOT_REQUIRED is invalid", () => {
@@ -553,9 +566,256 @@ test("ask 1: proceed:true with ROLE_NOT_REQUIRED is invalid", () => {
   assert.equal(isAsk1Valid(ask), false);
 });
 
-test("ask 2: proceed:false with ROLE_HELD is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, roleCode: "ROLE_HELD" };
-  assert.equal(isAsk2Valid(ask), false);
+test("ask 4: proceed:false with ROLE_HELD is invalid", () => {
+  const ask: AskSummary = { ...REAL_ASK4, roleCode: "ROLE_HELD" };
+  assert.equal(isAsk4Valid(ask), false);
+});
+
+// --- over-cap and missing-fact asks, real fixtures ------------------------
+
+test("PAY_REQUEST_OVER_CAP keeps every field but amount, which the base cap can never cover", () => {
+  assert.notEqual(
+    PAY_REQUEST_OVER_CAP.action.amount,
+    PAY_REQUEST.action.amount
+  );
+  assert.equal(
+    BigInt(PAY_REQUEST_OVER_CAP.action.amount) > BigInt("1000000"),
+    true
+  );
+  assert.equal(PAY_REQUEST_OVER_CAP.action.type, PAY_REQUEST.action.type);
+  assert.equal(PAY_REQUEST_OVER_CAP.action.chainId, PAY_REQUEST.action.chainId);
+  assert.equal(
+    PAY_REQUEST_OVER_CAP.action.recipient,
+    PAY_REQUEST.action.recipient
+  );
+  assert.deepEqual(PAY_REQUEST_OVER_CAP.action.asset, PAY_REQUEST.action.asset);
+  assert.equal(PAY_REQUEST_OVER_CAP.action.target, PAY_REQUEST.action.target);
+});
+
+test("buildPolicyFileWithUnrecognizedRoleProgram keeps role and holder, swaps only programId", () => {
+  const policy = buildPolicyFileWithUnrecognizedRoleProgram({
+    programId: "H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC",
+    role: "RoLePDA111111111111111111111111111",
+    holder: "HoLdErPubKey1111111111111111111111",
+  });
+  assert.equal(policy.role.programId, UNRECOGNIZED_ROLE_PROGRAM_ID);
+  assert.equal(policy.role.role, "RoLePDA111111111111111111111111111");
+  assert.equal(policy.role.holder, "HoLdErPubKey1111111111111111111111");
+});
+
+test("the real over-cap fixture is a valid over-cap ask; the real allow and deny fixtures are not", () => {
+  assert.equal(isOverCapAskValid(REAL_OVER_CAP_ASK), true);
+  assert.doesNotThrow(() => assertOverCapAsk(REAL_OVER_CAP_ASK));
+  assert.equal(isOverCapAskValid(REAL_ASK1), false);
+  assert.equal(isOverCapAskValid(REAL_ASK4), false);
+  assert.throws(() => assertOverCapAsk(REAL_ASK1));
+});
+
+test("the real missing-fact fixture is a valid missing-fact ask; the real allow and deny fixtures are not", () => {
+  assert.equal(isMissingFactAskValid(REAL_MISSING_FACT_ASK), true);
+  assert.doesNotThrow(() => assertMissingFactAsk(REAL_MISSING_FACT_ASK));
+  assert.equal(isMissingFactAskValid(REAL_ASK1), false);
+  assert.equal(isMissingFactAskValid(REAL_ASK4), false);
+  assert.throws(() => assertMissingFactAsk(REAL_ASK4));
+});
+
+test("over-cap ask: DENY with the role missing rather than held is invalid (must be the cap, not the role)", () => {
+  const ask: AskSummary = {
+    ...REAL_OVER_CAP_ASK,
+    roleCode: "ROLE_MEMBER_MISSING",
+  };
+  assert.equal(isOverCapAskValid(ask), false);
+});
+
+test("over-cap ask: DENY with the role still held but no cap code is invalid (the cap check must run, not just pass by role)", () => {
+  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, capCode: undefined };
+  assert.equal(isOverCapAskValid(ask), false);
+  const wrongCapCode: AskSummary = {
+    ...REAL_OVER_CAP_ASK,
+    capCode: "AMOUNT_WITHIN_CAP",
+  };
+  assert.equal(isOverCapAskValid(wrongCapCode), false);
+});
+
+test("over-cap ask: proceed:true is invalid even with a correct cap and role code", () => {
+  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, proceed: true };
+  assert.equal(isOverCapAskValid(ask), false);
+});
+
+test("over-cap ask: a verdict other than DENY is invalid even with a correct cap and role code", () => {
+  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, verdict: "UNKNOWN" };
+  assert.equal(isOverCapAskValid(ask), false);
+});
+
+test("missing-fact ask: proceed:true is invalid even with a correct role code", () => {
+  const ask: AskSummary = { ...REAL_MISSING_FACT_ASK, proceed: true };
+  assert.equal(isMissingFactAskValid(ask), false);
+});
+
+test("missing-fact ask: a verdict other than UNKNOWN is invalid even with a correct role code", () => {
+  const ask: AskSummary = { ...REAL_MISSING_FACT_ASK, verdict: "DENY" };
+  assert.equal(isMissingFactAskValid(ask), false);
+});
+
+test("missing-fact ask: UNKNOWN via a stale role fact rather than a missing one is invalid", () => {
+  const ask: AskSummary = {
+    ...REAL_MISSING_FACT_ASK,
+    roleCode: "ROLE_FACT_STALE",
+  };
+  assert.equal(isMissingFactAskValid(ask), false);
+});
+
+test("withSwappedPolicyFile restores the original policy on disk even when action throws", async () => {
+  const dir = scratchDir("hedwig-policy-swap-");
+  const policyPath = join(dir, "policy.json");
+  const original = { role: { programId: "ORIGINAL" } };
+  const temporary = { role: { programId: "11111111111111111111111111111111" } };
+  writeFileSync(policyPath, JSON.stringify(original));
+
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(policyPath, temporary, original, async () => {
+        assert.equal(
+          JSON.parse(readFileSync(policyPath, "utf8")).role.programId,
+          temporary.role.programId
+        );
+        throw new Error("action failed mid-swap");
+      }),
+    /action failed mid-swap/
+  );
+
+  assert.deepEqual(JSON.parse(readFileSync(policyPath, "utf8")), original);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile refuses a symlinked policy path, never writing through it", async () => {
+  const dir = scratchDir("hedwig-policy-symlink-");
+  const outsideDir = scratchDir("hedwig-policy-outside-");
+  const outsideTarget = join(outsideDir, "real.json");
+  const outsideContent = JSON.stringify({ role: { programId: "OUTSIDE" } });
+  writeFileSync(outsideTarget, outsideContent, { mode: 0o644 });
+  const policyPath = join(dir, "policy.json");
+  symlinkSync(outsideTarget, policyPath);
+
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(
+        policyPath,
+        { role: { programId: "TEMP" } },
+        { role: { programId: "ORIGINAL" } },
+        async () => "should never run"
+      ),
+    /refusing to write a policy file through a symlink/
+  );
+
+  assert.equal(readFileSync(outsideTarget, "utf8"), outsideContent);
+  assert.equal(statSync(outsideTarget).mode & 0o777, 0o644);
+
+  rmSync(dir, { recursive: true, force: true });
+  rmSync(outsideDir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile writes both the swap and the restore at mode 600, even over a looser existing mode", async () => {
+  const dir = scratchDir("hedwig-policy-mode-");
+  const policyPath = join(dir, "policy.json");
+  writeFileSync(
+    policyPath,
+    JSON.stringify({ role: { programId: "ORIGINAL" } }),
+    {
+      mode: 0o644,
+    }
+  );
+
+  await withSwappedPolicyFile(
+    policyPath,
+    { role: { programId: "TEMP" } },
+    { role: { programId: "ORIGINAL" } },
+    async () => {
+      assert.equal(statSync(policyPath).mode & 0o777, 0o600);
+      return "ok";
+    }
+  );
+
+  assert.equal(statSync(policyPath).mode & 0o777, 0o600);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile reports the real open error, not a symlink refusal, for a missing policy file", async () => {
+  const dir = scratchDir("hedwig-policy-missing-");
+  const policyPath = join(dir, "does-not-exist.json");
+
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(
+        policyPath,
+        { role: { programId: "TEMP" } },
+        { role: { programId: "ORIGINAL" } },
+        async () => "should never run"
+      ),
+    (err: unknown) => {
+      assert.equal(/symlink/i.test((err as Error).message), false);
+      assert.equal((err as NodeJS.ErrnoException).code, "ENOENT");
+      return true;
+    }
+  );
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile surfaces both errors, action and restore, when the restore write also fails", async () => {
+  const dir = scratchDir("hedwig-policy-restore-fail-");
+  const policyPath = join(dir, "policy.json");
+  writeFileSync(
+    policyPath,
+    JSON.stringify({ role: { programId: "ORIGINAL" } })
+  );
+
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(
+        policyPath,
+        { role: { programId: "TEMP" } },
+        { role: { programId: "ORIGINAL" } },
+        async () => {
+          // Remove the directory so the catch block's restore write fails
+          // too; both the action's error and the restore's error must be
+          // visible on the thrown AggregateError, not just one of them.
+          rmSync(dir, { recursive: true, force: true });
+          throw new Error("action failed and the restore will too");
+        }
+      ),
+    (err: unknown) => {
+      assert.equal(err instanceof AggregateError, true);
+      const agg = err as AggregateError;
+      assert.equal(agg.errors.length, 2);
+      assert.match(
+        agg.errors[0].message,
+        /action failed and the restore will too/
+      );
+      assert.equal(agg.errors[1] instanceof Error, true);
+      assert.match(agg.message, /action failed and the restore will too/);
+      return true;
+    }
+  );
+});
+
+test("withSwappedPolicyFile restores the original policy on disk after a normal return", async () => {
+  const dir = scratchDir("hedwig-policy-swap-");
+  const policyPath = join(dir, "policy.json");
+  const original = { role: { programId: "ORIGINAL" } };
+  const temporary = { role: { programId: "11111111111111111111111111111111" } };
+  writeFileSync(policyPath, JSON.stringify(original));
+
+  const result = await withSwappedPolicyFile(
+    policyPath,
+    temporary,
+    original,
+    async () => "ok"
+  );
+
+  assert.equal(result, "ok");
+  assert.deepEqual(JSON.parse(readFileSync(policyPath, "utf8")), original);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 // --- one live server process, checked before each ask (H3) ---------------
@@ -616,8 +876,10 @@ test("formatTranscript prints only public keys, signatures and the RPC host", ()
     assignRoleSig: "assignSig111",
     revokeRoleSig: "revokeSig111",
     ask1: REAL_ASK1,
-    ask2: REAL_ASK2,
-    ask2FirstAttempt: undefined,
+    overCapAsk: REAL_OVER_CAP_ASK,
+    missingFactAsk: REAL_MISSING_FACT_ASK,
+    ask4: REAL_ASK4,
+    ask4FirstAttempt: undefined,
   });
 
   assert.equal(output.includes("rpc.example.com"), true);
@@ -633,7 +895,7 @@ test("formatTranscript prints only public keys, signatures and the RPC host", ()
   assert.equal(output.includes(explorerTxUrl("orgSig111")), true);
   assert.equal(
     output.includes(
-      "Same server process, same policy file, same request. Only the role changed."
+      "Ask 1 and Ask 4: same server process, same policy file, same request. Only the role changed."
     ),
     true
   );
@@ -656,8 +918,10 @@ test("formatTranscript notes an org reused from an earlier run when there is no 
     assignRoleSig: "assignSig",
     revokeRoleSig: "revokeSig",
     ask1: REAL_ASK1,
-    ask2: REAL_ASK2,
-    ask2FirstAttempt: undefined,
+    overCapAsk: REAL_OVER_CAP_ASK,
+    missingFactAsk: REAL_MISSING_FACT_ASK,
+    ask4: REAL_ASK4,
+    ask4FirstAttempt: undefined,
   });
   assert.equal(output.includes("reused the org"), true);
 });
@@ -675,25 +939,29 @@ test("formatTranscript describes a retry as a lag only when the first attempt st
     createRoleSig: "roleSig",
     assignRoleSig: "assignSig",
     revokeRoleSig: "revokeSig",
-    ask2: REAL_ASK2,
+    overCapAsk: REAL_OVER_CAP_ASK,
+    missingFactAsk: REAL_MISSING_FACT_ASK,
+    ask4: REAL_ASK4,
   };
 
   const lagOutput = formatTranscript({
     ...base,
     ask1: REAL_ASK1,
-    ask2FirstAttempt: REAL_ASK1, // still ROLE_HELD: a genuine lag
+    ask4FirstAttempt: REAL_ASK1, // still ROLE_HELD: a genuine lag
   });
   assert.equal(lagOutput.includes("RPC lag"), true);
+  assert.equal(lagOutput.includes("retried Ask 4"), true);
+  assert.equal(lagOutput.includes("retried Ask 2"), false);
 
   const failureFirstAttempt: AskSummary = {
-    ...REAL_ASK2,
+    ...REAL_ASK4,
     verdict: "UNKNOWN",
     roleCode: "ROLE_FACT_MISSING",
   };
   const failureOutput = formatTranscript({
     ...base,
     ask1: REAL_ASK1,
-    ask2FirstAttempt: failureFirstAttempt,
+    ask4FirstAttempt: failureFirstAttempt,
   });
   assert.equal(failureOutput.includes("RPC lag"), false);
   assert.equal(failureOutput.includes("not a lag"), true);
@@ -704,7 +972,13 @@ test("formatTranscript describes a retry as a lag only when the first attempt st
 
 test("buildMachineRecord never includes the policy path, env, keypair path or full RPC URL", () => {
   const record = buildMachineRecord({
+    commit: "0123456789abcdef0123456789abcdef01234567",
+    treeClean: true,
+    startedAt: "2026-01-01T00:00:00.000Z",
+    finishedAt: "2026-01-01T00:00:05.000Z",
     rpcUrl: "https://rpc.example.com/CANARY-PATH?api-key=CANARY-KEY",
+    programId: "ProgramPubkey11111111111111111111111",
+    admin: "AdminPubkey111111111111111111111111",
     serverPid: 111,
     org: "OrgPubkey1111111111111111111111111",
     role: "RolePubkey111111111111111111111111",
@@ -715,13 +989,23 @@ test("buildMachineRecord never includes the policy path, env, keypair path or fu
       revokeRole: "sig3",
     },
     ask1: { pid: 111, message: { CANARY: "CANARY-ASK1" } },
-    ask2: { pid: 111, message: { CANARY: "CANARY-ASK2" } },
-    ask2FirstAttempt: undefined,
+    overCapAsk: { pid: 111, message: { CANARY: "CANARY-OVERCAP" } },
+    missingFactAsk: { pid: 111, message: { CANARY: "CANARY-MISSINGFACT" } },
+    ask4: { pid: 111, message: { CANARY: "CANARY-ASK4" } },
+    ask4FirstAttempt: undefined,
   });
   const serialized = JSON.stringify(record);
   assert.equal(serialized.includes("CANARY-PATH"), false);
   assert.equal(serialized.includes("CANARY-KEY"), false);
   assert.equal(record.rpcHost, "rpc.example.com");
+  // The source commit, the source-tree flag, the times and the ids the
+  // evidence doc copies are passed through as given.
+  assert.equal(record.commit, "0123456789abcdef0123456789abcdef01234567");
+  assert.equal(record.treeClean, true);
+  assert.equal(record.startedAt, "2026-01-01T00:00:00.000Z");
+  assert.equal(record.finishedAt, "2026-01-01T00:00:05.000Z");
+  assert.equal(record.programId, "ProgramPubkey11111111111111111111111");
+  assert.equal(record.admin, "AdminPubkey111111111111111111111111");
   assert.equal("policyPath" in record, false);
   assert.equal("env" in record, false);
   assert.equal("keypairPath" in record, false);

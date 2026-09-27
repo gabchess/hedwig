@@ -397,11 +397,27 @@ export const PAY_REQUEST = Object.freeze({
   },
 });
 
+// PAY_REQUEST with an amount above BASE_PAY_POLICY.perActionCaps.pay
+// ("1000000"). Every other field is unchanged.
+export const PAY_REQUEST_OVER_CAP = Object.freeze({
+  action: {
+    ...PAY_REQUEST.action,
+    amount: "2000000000",
+  },
+});
+
 export interface RolePolicyInput {
   programId: string;
   role: string;
   holder: string;
 }
+
+// Solana's System Program id: a well-formed base58 pubkey that is not
+// Hedwig's deployed program id. The Solana role Reader
+// (mcp/src/readers/solana-role.ts) returns no cluster config for a program
+// id other than the deployed one, so it makes no network call and produces
+// no solanaRole fact, and role-requirement-met answers ROLE_FACT_MISSING.
+export const UNRECOGNIZED_ROLE_PROGRAM_ID = "11111111111111111111111111111111";
 
 export interface RolePolicyBlock {
   mode: "required";
@@ -433,6 +449,79 @@ export function buildPolicyFile(
   };
 }
 
+// buildPolicyFile with programId replaced by UNRECOGNIZED_ROLE_PROGRAM_ID.
+export function buildPolicyFileWithUnrecognizedRoleProgram(
+  input: RolePolicyInput
+): typeof BASE_PAY_POLICY & { role: RolePolicyBlock } {
+  return buildPolicyFile({
+    ...input,
+    programId: UNRECOGNIZED_ROLE_PROGRAM_ID,
+  });
+}
+
+// Opens an existing policyPath with O_NOFOLLOW, so a final path component
+// that is a symlink fails with ELOOP, reported as a symlink refusal. After
+// the write, fchmodSync sets mode 600 on the same descriptor.
+function writePolicyFileNoFollow(policyPath: string, content: string): void {
+  let fd: number;
+  try {
+    fd = fs.openSync(
+      policyPath,
+      fs.constants.O_WRONLY | fs.constants.O_TRUNC | fs.constants.O_NOFOLLOW
+    );
+  } catch (openError) {
+    if ((openError as NodeJS.ErrnoException).code === "ELOOP") {
+      throw new Error(
+        `refusing to write a policy file through a symlink: ${policyPath}`
+      );
+    }
+    throw openError;
+  }
+  try {
+    fs.writeSync(fd, Buffer.from(content, "utf8"));
+    fs.fchmodSync(fd, 0o600);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+// Writes temporaryPolicy over policyPath, runs action, then writes
+// originalPolicy back. When action returns, originalPolicy is written and
+// the result is returned; if that write throws, its error is thrown and the
+// result is dropped. When action throws, originalPolicy is still written,
+// then the action's error is re-thrown; if that write also throws, an
+// AggregateError carrying both errors is thrown instead.
+export async function withSwappedPolicyFile<T>(
+  policyPath: string,
+  temporaryPolicy: unknown,
+  originalPolicy: unknown,
+  action: () => Promise<T>
+): Promise<T> {
+  writePolicyFileNoFollow(policyPath, JSON.stringify(temporaryPolicy));
+  let result: T;
+  try {
+    result = await action();
+  } catch (actionError) {
+    // The AggregateError lists the action's error first, then the restore
+    // error; its message quotes only the action's error message.
+    try {
+      writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
+    } catch (restoreError) {
+      const actionMessage =
+        actionError instanceof Error
+          ? actionError.message
+          : String(actionError);
+      throw new AggregateError(
+        [actionError, restoreError],
+        `action failed, and the policy restore that followed also failed: ${actionMessage}`
+      );
+    }
+    throw actionError;
+  }
+  writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Consult answer parsing and verdict assertions
 // ---------------------------------------------------------------------------
@@ -444,6 +533,8 @@ export interface AskSummary {
   band: string;
   roleCode: string | undefined;
   roleEvidence: string | undefined;
+  capCode: string | undefined;
+  capEvidence: string | undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
@@ -473,9 +564,9 @@ export function extractAskSummary(message: unknown): AskSummary | undefined {
   ) {
     return undefined;
   }
-  const roleRow = results
-    .map(asRecord)
-    .find((row) => row?.id === "role-requirement-met");
+  const rows = results.map(asRecord);
+  const roleRow = rows.find((row) => row?.id === "role-requirement-met");
+  const capRow = rows.find((row) => row?.id === "amount-within-cap");
   return {
     proceed,
     verdict,
@@ -484,6 +575,9 @@ export function extractAskSummary(message: unknown): AskSummary | undefined {
     roleCode: typeof roleRow?.code === "string" ? roleRow.code : undefined,
     roleEvidence:
       typeof roleRow?.evidence === "string" ? roleRow.evidence : undefined,
+    capCode: typeof capRow?.code === "string" ? capRow.code : undefined,
+    capEvidence:
+      typeof capRow?.evidence === "string" ? capRow.evidence : undefined,
   };
 }
 
@@ -511,7 +605,7 @@ export function assertAsk1(ask: AskSummary | undefined): AskSummary {
   return ask;
 }
 
-export function isAsk2Valid(ask: AskSummary | undefined): ask is AskSummary {
+export function isAsk4Valid(ask: AskSummary | undefined): ask is AskSummary {
   return (
     ask !== undefined &&
     ask.proceed === false &&
@@ -521,10 +615,59 @@ export function isAsk2Valid(ask: AskSummary | undefined): ask is AskSummary {
   );
 }
 
-export function assertAsk2(ask: AskSummary | undefined): AskSummary {
-  if (!isAsk2Valid(ask)) {
+export function assertAsk4(ask: AskSummary | undefined): AskSummary {
+  if (!isAsk4Valid(ask)) {
     throw new Error(
-      `ask 2 expected proceed=false verdict=DENY support=0 code=ROLE_MEMBER_MISSING, got ${JSON.stringify(
+      `ask 4 (after revoke) expected proceed=false verdict=DENY support=0 code=ROLE_MEMBER_MISSING, got ${JSON.stringify(
+        ask
+      )}`
+    );
+  }
+  return ask;
+}
+
+// Over-cap ask: the role is still held (this runs before revoke), so the
+// deny must come from the cap, never from the role row.
+export function isOverCapAskValid(
+  ask: AskSummary | undefined
+): ask is AskSummary {
+  return (
+    ask !== undefined &&
+    ask.proceed === false &&
+    ask.verdict === "DENY" &&
+    ask.capCode === "AMOUNT_EXCEEDS_CAP" &&
+    ask.roleCode === "ROLE_HELD"
+  );
+}
+
+export function assertOverCapAsk(ask: AskSummary | undefined): AskSummary {
+  if (!isOverCapAskValid(ask)) {
+    throw new Error(
+      `over-cap ask expected proceed=false verdict=DENY capCode=AMOUNT_EXCEEDS_CAP roleCode=ROLE_HELD, got ${JSON.stringify(
+        ask
+      )}`
+    );
+  }
+  return ask;
+}
+
+// Missing-fact ask: the policy's role programId is not the deployed one, so
+// the role row answers ROLE_FACT_MISSING.
+export function isMissingFactAskValid(
+  ask: AskSummary | undefined
+): ask is AskSummary {
+  return (
+    ask !== undefined &&
+    ask.proceed === false &&
+    ask.verdict === "UNKNOWN" &&
+    ask.roleCode === "ROLE_FACT_MISSING"
+  );
+}
+
+export function assertMissingFactAsk(ask: AskSummary | undefined): AskSummary {
+  if (!isMissingFactAskValid(ask)) {
+    throw new Error(
+      `missing-fact ask expected proceed=false verdict=UNKNOWN roleCode=ROLE_FACT_MISSING, got ${JSON.stringify(
         ask
       )}`
     );
@@ -576,11 +719,13 @@ export interface TranscriptInput {
   assignRoleSig: string;
   revokeRoleSig: string;
   ask1: AskSummary;
-  ask2: AskSummary;
-  // Present only when ask 2's first attempt did not yet earn DENY /
+  overCapAsk: AskSummary;
+  missingFactAsk: AskSummary;
+  ask4: AskSummary;
+  // Present only when Ask 4's first attempt did not yet earn DENY /
   // ROLE_MEMBER_MISSING and a retry was made; absent means the first
   // attempt already succeeded.
-  ask2FirstAttempt: AskSummary | undefined;
+  ask4FirstAttempt: AskSummary | undefined;
 }
 
 export function explorerTxUrl(signature: string): string {
@@ -588,7 +733,7 @@ export function explorerTxUrl(signature: string): string {
 }
 
 function askLines(label: string, ask: AskSummary): string[] {
-  return [
+  const lines = [
     `${label}:`,
     `  proceed: ${ask.proceed}`,
     `  verdict: ${ask.verdict}`,
@@ -598,23 +743,29 @@ function askLines(label: string, ask: AskSummary): string[] {
       ask.roleEvidence ?? "none"
     }`,
   ];
+  if (ask.capCode !== undefined) {
+    lines.push(
+      `  cap check: code=${ask.capCode} evidence=${ask.capEvidence ?? "none"}`
+    );
+  }
+  return lines;
 }
 
 // A retry is only described as a lag when the first attempt still showed
 // the still-held role (the same shape ask 1 earned): any other first
 // answer is a genuine failure, not a lag, and is described as what it was.
-function ask2RetryLines(firstAttempt: AskSummary | undefined): string[] {
+function ask4RetryLines(firstAttempt: AskSummary | undefined): string[] {
   if (!firstAttempt) {
     return [];
   }
   const { verdict, roleCode } = firstAttempt;
   if (isAsk1Valid(firstAttempt)) {
     return [
-      "  retried Ask 2 once after 2s: the first answer still held the role (RPC lag).",
+      "  retried Ask 4 once after 2s: the first answer still held the role (RPC lag).",
     ];
   }
   return [
-    `  retried Ask 2 once after 2s: the first answer was verdict=${verdict} code=${
+    `  retried Ask 4 once after 2s: the first answer was verdict=${verdict} code=${
       roleCode ?? "none"
     } (not a lag).`,
   ];
@@ -656,18 +807,29 @@ export function formatTranscript(input: TranscriptInput): string {
   lines.push("");
   lines.push(...askLines("Ask 1", input.ask1));
   lines.push("");
+  lines.push(
+    ...askLines("Ask 2 (over-cap payment, same role)", input.overCapAsk)
+  );
+  lines.push("");
+  lines.push(
+    ...askLines(
+      "Ask 3 (payment missing a required Fact, same role)",
+      input.missingFactAsk
+    )
+  );
+  lines.push("");
   lines.push("Revoke:");
   lines.push(
     `  revoke_role tx: ${input.revokeRoleSig} ${explorerTxUrl(
       input.revokeRoleSig
     )}`
   );
-  lines.push(...ask2RetryLines(input.ask2FirstAttempt));
+  lines.push(...ask4RetryLines(input.ask4FirstAttempt));
   lines.push("");
-  lines.push(...askLines("Ask 2", input.ask2));
+  lines.push(...askLines("Ask 4 (original request, after revoke)", input.ask4));
   lines.push("");
   lines.push(
-    "Same server process, same policy file, same request. Only the role changed."
+    "Ask 1 and Ask 4: same server process, same policy file, same request. Only the role changed."
   );
   return lines.join("\n");
 }
@@ -677,8 +839,16 @@ export function formatTranscript(input: TranscriptInput): string {
 // ---------------------------------------------------------------------------
 
 export interface MachineRecordContext {
+  // The source commit, and whether the source tree had uncommitted changes.
+  commit: string;
+  treeClean: boolean;
+  // ISO 8601 UTC: when main() began, and when the record was built.
+  startedAt: string;
+  finishedAt: string;
   // Full RPC URL in, but only its host ever reaches the returned object.
   rpcUrl: string;
+  programId: string;
+  admin: string;
   serverPid: number;
   org: string;
   role: string;
@@ -690,8 +860,10 @@ export interface MachineRecordContext {
     revokeRole: string;
   };
   ask1: { pid: number; message: unknown };
-  ask2: { pid: number; message: unknown };
-  ask2FirstAttempt: { pid: number; message: unknown } | undefined;
+  overCapAsk: { pid: number; message: unknown };
+  missingFactAsk: { pid: number; message: unknown };
+  ask4: { pid: number; message: unknown };
+  ask4FirstAttempt: { pid: number; message: unknown } | undefined;
 }
 
 // Takes no policy path, no keypair path and no environment: those fields
@@ -701,15 +873,23 @@ export function buildMachineRecord(
   context: MachineRecordContext
 ): Record<string, unknown> {
   return {
-    serverPid: context.serverPid,
+    commit: context.commit,
+    treeClean: context.treeClean,
+    startedAt: context.startedAt,
+    finishedAt: context.finishedAt,
     rpcHost: new URL(context.rpcUrl).host,
+    programId: context.programId,
+    admin: context.admin,
+    serverPid: context.serverPid,
     org: context.org,
     role: context.role,
     holder: context.holder,
     signatures: context.signatures,
     ask1: context.ask1,
-    ask2: context.ask2,
-    ask2FirstAttempt: context.ask2FirstAttempt,
+    overCapAsk: context.overCapAsk,
+    missingFactAsk: context.missingFactAsk,
+    ask4: context.ask4,
+    ask4FirstAttempt: context.ask4FirstAttempt,
   };
 }
 
