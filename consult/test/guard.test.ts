@@ -628,8 +628,8 @@ describe("runTriggerGuard", () => {
     expect(signerCalls).to.equal(0);
   });
 
-  it("Infinity, negative, and over-ceiling deadlines all fail closed", async () => {
-    for (const bad of [Infinity, -1, 2147483648]) {
+  it("zero, negative-zero, Infinity, negative, and over-ceiling deadlines all fail closed", async () => {
+    for (const bad of [0, -0, Infinity, -1, 2147483648]) {
       const result = await runTriggerGuard(
         baseInput({
           gatherDeadlineMs: bad,

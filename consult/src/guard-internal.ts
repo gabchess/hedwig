@@ -142,10 +142,18 @@ function unknownGuardResult<TSignerResult>(
 // elapsed >= Infinity are both always false), so a synchronous overrun
 // would sail through uncaught. A bad deadline fails the guard closed
 // instead of silently becoming "no deadline at all".
+//
+// A deadline of 0 (or -0) is rejected too, not just NaN/Infinity/negative/
+// over-ceiling ones: raceWithDeadline's own elapsed-time check
+// (performance.now() - start >= deadlineMs) is always true once deadlineMs
+// is 0, so gather or the signer runs and its result is always discarded as
+// a timeout. For the signer that means the action was already signed, then
+// reported as UNKNOWN, and a Caller that retries an UNKNOWN outcome could
+// sign the same action twice.
 const MAX_TIMEOUT_MS = 2147483647;
 
 function isValidDeadlineMs(value: number): boolean {
-  return Number.isFinite(value) && value >= 0 && value <= MAX_TIMEOUT_MS;
+  return Number.isFinite(value) && value > 0 && value <= MAX_TIMEOUT_MS;
 }
 
 // JSON.parse reviver: gives every parsed record a null prototype, so
@@ -301,7 +309,7 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
         "GUARD_GATHER_DEADLINE_INVALID",
         `gatherDeadlineMs ${describeDeadline(
           gatherDeadlineMs
-        )} is not a finite number of milliseconds from 0 to ${MAX_TIMEOUT_MS}`
+        )} is not a finite number of milliseconds greater than 0 and at most ${MAX_TIMEOUT_MS}`
       );
     }
     const gather = input.gather;
@@ -347,7 +355,7 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
       "GUARD_SIGNER_DEADLINE_INVALID",
       `signerDeadlineMs ${describeDeadline(
         signerDeadlineMs
-      )} is not a finite number of milliseconds from 0 to ${MAX_TIMEOUT_MS}`
+      )} is not a finite number of milliseconds greater than 0 and at most ${MAX_TIMEOUT_MS}`
     );
   }
   const signed = await raceWithDeadline(
