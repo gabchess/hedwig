@@ -64,6 +64,9 @@ export interface TriggerGuardInput<TPayment, TSignerResult> {
   // throw or a miss of gatherDeadlineMs both count as a guard-level
   // failure: no consult() call, no signer call, an UNKNOWN-shaped result.
   readonly gather?: (request: ConsultRequest) => unknown;
+  // A whole number of milliseconds from 1 to 2147483647. Any other value
+  // (0, a fraction, NaN, Infinity, negative, or over that ceiling) is a
+  // guard-level input error: GUARD_GATHER_DEADLINE_INVALID, no gather call.
   readonly gatherDeadlineMs?: number;
   // Called at most once, only on ALLOW_UNDER_POLICY, with the action field
   // of the same frozen JSON snapshot the guard passed to gather and consult(),
@@ -73,6 +76,9 @@ export interface TriggerGuardInput<TPayment, TSignerResult> {
   readonly signer: (
     action: ConsultAction
   ) => TSignerResult | Promise<TSignerResult>;
+  // A whole number of milliseconds from 1 to 2147483647. Any other value
+  // (0, a fraction, NaN, Infinity, negative, or over that ceiling) is a
+  // guard-level input error: GUARD_SIGNER_DEADLINE_INVALID, no signer call.
   readonly signerDeadlineMs?: number;
 }
 

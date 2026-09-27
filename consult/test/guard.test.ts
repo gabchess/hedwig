@@ -635,6 +635,8 @@ describe("runTriggerGuard", () => {
       Number.MIN_VALUE,
       1e-3,
       0.5,
+      1.5,
+      800.5,
       Infinity,
       -1,
       2147483648,
