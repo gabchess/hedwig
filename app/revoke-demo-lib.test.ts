@@ -643,6 +643,52 @@ test("withSwappedPolicyFile restores the original policy on disk even when actio
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("withSwappedPolicyFile refuses a symlinked policy path, never writing through it", async () => {
+  const dir = scratchDir("hedwig-policy-symlink-");
+  const outsideDir = scratchDir("hedwig-policy-outside-");
+  const outsideTarget = join(outsideDir, "real.json");
+  const outsideContent = JSON.stringify({ role: { programId: "OUTSIDE" } });
+  writeFileSync(outsideTarget, outsideContent, { mode: 0o644 });
+  const policyPath = join(dir, "policy.json");
+  symlinkSync(outsideTarget, policyPath);
+
+  await assert.rejects(() =>
+    withSwappedPolicyFile(
+      policyPath,
+      { role: { programId: "TEMP" } },
+      { role: { programId: "ORIGINAL" } },
+      async () => "should never run"
+    )
+  );
+
+  assert.equal(readFileSync(outsideTarget, "utf8"), outsideContent);
+  assert.equal(statSync(outsideTarget).mode & 0o777, 0o644);
+
+  rmSync(dir, { recursive: true, force: true });
+  rmSync(outsideDir, { recursive: true, force: true });
+});
+
+test("withSwappedPolicyFile writes both the swap and the restore at mode 600, even over a looser existing mode", async () => {
+  const dir = scratchDir("hedwig-policy-mode-");
+  const policyPath = join(dir, "policy.json");
+  writeFileSync(policyPath, JSON.stringify({ role: { programId: "ORIGINAL" } }), {
+    mode: 0o644,
+  });
+
+  await withSwappedPolicyFile(
+    policyPath,
+    { role: { programId: "TEMP" } },
+    { role: { programId: "ORIGINAL" } },
+    async () => {
+      assert.equal(statSync(policyPath).mode & 0o777, 0o600);
+      return "ok";
+    }
+  );
+
+  assert.equal(statSync(policyPath).mode & 0o777, 0o600);
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("withSwappedPolicyFile restores the original policy on disk after a normal return", async () => {
   const dir = scratchDir("hedwig-policy-swap-");
   const policyPath = join(dir, "policy.json");

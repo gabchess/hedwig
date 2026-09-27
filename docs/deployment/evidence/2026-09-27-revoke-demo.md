@@ -13,8 +13,10 @@ function directly, offline, no devnet traffic.
 
 Two attempts failed before any org, role, or consult call was made (see
 below). A third attempt, against a funded key, completed all four asks.
-No row below was fabricated or backfilled; every failed attempt is kept
-as it happened.
+That attempt ran commit `73f0f79` (before the policy-file restore and
+symlink fixes landed in `2c13cdc`), between 2026-09-27T16:32:02Z and
+16:32:22Z. No row below was fabricated or backfilled; every failed
+attempt is kept as it happened.
 
 ## Command
 
@@ -67,9 +69,19 @@ The first run of attempt 3 failed at Ask 1 itself: the Solana role Reader's
 own simulate call missed its 800 ms deadline against the public devnet
 RPC, so `consult()` correctly answered UNKNOWN with `ROLE_FACT_MISSING`
 even though the role was genuinely held (an RPC hiccup, not a defect;
-exit code 1, `process.exit(1)` from the failed assertion, no transaction
-sent past `assign_role`). Retried once, per the one-retry rule. The retry
-completed all four asks.
+exit code 1, `process.exit(1)` from the failed assertion). It did reach
+the chain before failing:
+
+| Step | Transaction | UTC time |
+| --- | --- | --- |
+| create_role | [`4hhwT3aq...`](https://explorer.solana.com/tx/4hhwT3aqEQFi6LEfTHM569WXjoRuFCgVp8ZTTPSq7uLnNe5mePfpPH1SuytoT137HphgMjARw3UZGLYpwQmzZFKn?cluster=devnet) | 2026-09-27T16:32:02Z |
+| assign_role | [`5XtcKrxE...`](https://explorer.solana.com/tx/5XtcKrxE5iQ9qTLHmWxEYT2TMYhCM3NFZNx8JHTjAfyCnG6WXLhCMxXckDevW6gdrrqSyPE9XMPKXnwRfCp4nmGR?cluster=devnet) | 2026-09-27T16:32:03Z |
+
+That run created and assigned role `6prPnzpxZkK5Xi1eMf8fYGKbjwBaQHiYZiFHj6gTquZd`,
+which was never revoked; it stays assigned on devnet, to a throwaway
+holder generated for that run alone. Retried once, per the one-retry
+rule, with a fresh role name (the org is reused, roles are not). The
+retry completed all four asks.
 
 | Field | Value |
 | --- | --- |
@@ -111,18 +123,32 @@ original policy immediately after the call, before `revoke_role`.
 
 ## Restore safety fix
 
-Review question: if the process dies between the swap and the
-restore, is the on-disk policy left modified? Originally, yes: the
-restore was a line after the assertion, not a guaranteed step, so a
-thrown assertion (a bad verdict, a dead server) would skip it. Fixed by
-`withSwappedPolicyFile` in `app/revoke-demo-lib.ts`, which writes the
-temporary policy, then always writes the original policy back in a
-`finally`, whether the wrapped action returns or throws. Covered by two
-new tests in `app/revoke-demo-lib.test.ts`: one proves the restore runs
-after a normal return, the other proves it runs after the action throws.
+Review question: if the process dies between the swap and the restore,
+is the on-disk policy left modified? Originally, yes: the restore was a
+line after the assertion, not a guaranteed step, so a thrown assertion
+(a bad verdict, a dead server) would skip it. Fixed by
+`withSwappedPolicyFile` in `app/revoke-demo-lib.ts`: a thrown error now
+restores the file, since the restore write moved into a `finally` around
+the wrapped action. That `finally` has limits a signal can still reach.
+SIGINT and SIGTERM run the demo's own handler, which deletes the whole
+temp directory instead of restoring, so the swapped file does not survive
+either signal. SIGKILL or SIGHUP give the process no chance to run any
+handler at all, and can leave the swapped, unrecognised-programId file
+sitting in an orphaned temp directory. The directory is mode 0700,
+holds only public keys, and a server reading it answers UNKNOWN, so
+there is no security impact, but the finally block does not cover every
+exit path and this file does not claim that it does.
 
-## Independent verification
+The same fix also closes a symlink gap: the swap and restore writes now
+open the policy path with `O_NOFOLLOW` and refuse a symlinked path
+outright, and force file mode 600 on every write rather than relying on
+`open`'s create-only mode argument. Four tests in
+`app/revoke-demo-lib.test.ts` cover this: restore after a normal return,
+restore after a throw, refusal of a symlinked policy path, and mode 600
+enforced even over a looser pre-existing mode.
+
+## Verification
 
 - `npx tsc --noEmit -p app/tsconfig.json` passes.
-- `npm test --prefix app` passes, 59/59.
+- `npm test --prefix app` passes, 61/61.
 - `yarn mcp:typecheck`, `yarn mcp:build`, `yarn mcp:test` all pass, 165/165.

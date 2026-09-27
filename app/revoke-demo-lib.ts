@@ -466,26 +466,51 @@ export function buildPolicyFileWithUnrecognizedRoleProgram(
   });
 }
 
+// O_NOFOLLOW: refuses a policyPath that is a symlink, so a write can never
+// land on a target outside the demo's own temp directory. O_TRUNC on an
+// already-open descriptor, then fchmodSync: the open's own mode argument
+// only applies when O_CREAT actually creates the file, so an existing file
+// left at a looser mode (644) would otherwise keep it; fchmodSync forces
+// 600 unconditionally, on the exact descriptor just written.
+function writePolicyFileNoFollow(policyPath: string, content: string): void {
+  let fd: number;
+  try {
+    fd = fs.openSync(
+      policyPath,
+      fs.constants.O_WRONLY | fs.constants.O_TRUNC | fs.constants.O_NOFOLLOW
+    );
+  } catch {
+    throw new Error(
+      `refusing to write a policy file through a symlink: ${policyPath}`
+    );
+  }
+  try {
+    fs.writeSync(fd, Buffer.from(content, "utf8"));
+    fs.fchmodSync(fd, 0o600);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 // Writes temporaryPolicy over policyPath, runs action, and always writes
 // originalPolicy back, even when action throws. The restore is a `finally`,
 // not a line after the call: a throw from `action` (a bad verdict, a dead
 // server, a timeout) still leaves the on-disk policy exactly as it was
 // before the swap, never stuck on the broken, unrecognised-programId shape.
+// A SIGKILL or SIGHUP between the two writes is outside any finally block's
+// reach in Node: this function cannot restore what a killed process never
+// ran the restore for.
 export async function withSwappedPolicyFile<T>(
   policyPath: string,
   temporaryPolicy: unknown,
   originalPolicy: unknown,
   action: () => Promise<T>
 ): Promise<T> {
-  fs.writeFileSync(policyPath, JSON.stringify(temporaryPolicy), {
-    mode: 0o600,
-  });
+  writePolicyFileNoFollow(policyPath, JSON.stringify(temporaryPolicy));
   try {
     return await action();
   } finally {
-    fs.writeFileSync(policyPath, JSON.stringify(originalPolicy), {
-      mode: 0o600,
-    });
+    writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
   }
 }
 
