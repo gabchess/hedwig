@@ -70,9 +70,7 @@ const FIXTURES = JSON.parse(
 // "_source" field), never invented verdict strings.
 const REAL_ASK1 = extractAskSummary(FIXTURES.allowUnderPolicy) as AskSummary;
 const REAL_ASK4 = extractAskSummary(FIXTURES.deny) as AskSummary;
-const REAL_OVER_CAP_ASK = extractAskSummary(
-  FIXTURES.overCapDeny
-) as AskSummary;
+const REAL_OVER_CAP_ASK = extractAskSummary(FIXTURES.overCapDeny) as AskSummary;
 const REAL_MISSING_FACT_ASK = extractAskSummary(
   FIXTURES.missingFactUnknown
 ) as AskSummary;
@@ -576,31 +574,22 @@ test("ask 4: proceed:false with ROLE_HELD is invalid", () => {
 // --- over-cap and missing-fact asks, real fixtures ------------------------
 
 test("PAY_REQUEST_OVER_CAP keeps every field but amount, which the base cap can never cover", () => {
-  assert.notEqual(PAY_REQUEST_OVER_CAP.action.amount, PAY_REQUEST.action.amount);
+  assert.notEqual(
+    PAY_REQUEST_OVER_CAP.action.amount,
+    PAY_REQUEST.action.amount
+  );
   assert.equal(
     BigInt(PAY_REQUEST_OVER_CAP.action.amount) > BigInt("1000000"),
     true
   );
-  assert.equal(
-    PAY_REQUEST_OVER_CAP.action.type,
-    PAY_REQUEST.action.type
-  );
-  assert.equal(
-    PAY_REQUEST_OVER_CAP.action.chainId,
-    PAY_REQUEST.action.chainId
-  );
+  assert.equal(PAY_REQUEST_OVER_CAP.action.type, PAY_REQUEST.action.type);
+  assert.equal(PAY_REQUEST_OVER_CAP.action.chainId, PAY_REQUEST.action.chainId);
   assert.equal(
     PAY_REQUEST_OVER_CAP.action.recipient,
     PAY_REQUEST.action.recipient
   );
-  assert.deepEqual(
-    PAY_REQUEST_OVER_CAP.action.asset,
-    PAY_REQUEST.action.asset
-  );
-  assert.equal(
-    PAY_REQUEST_OVER_CAP.action.target,
-    PAY_REQUEST.action.target
-  );
+  assert.deepEqual(PAY_REQUEST_OVER_CAP.action.asset, PAY_REQUEST.action.asset);
+  assert.equal(PAY_REQUEST_OVER_CAP.action.target, PAY_REQUEST.action.target);
 });
 
 test("buildPolicyFileWithUnrecognizedRoleProgram keeps role and holder, swaps only programId", () => {
@@ -631,14 +620,20 @@ test("the real missing-fact fixture is a valid missing-fact ask; the real allow 
 });
 
 test("over-cap ask: DENY with the role missing rather than held is invalid (must be the cap, not the role)", () => {
-  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, roleCode: "ROLE_MEMBER_MISSING" };
+  const ask: AskSummary = {
+    ...REAL_OVER_CAP_ASK,
+    roleCode: "ROLE_MEMBER_MISSING",
+  };
   assert.equal(isOverCapAskValid(ask), false);
 });
 
 test("over-cap ask: DENY with the role still held but no cap code is invalid (the cap check must run, not just pass by role)", () => {
   const ask: AskSummary = { ...REAL_OVER_CAP_ASK, capCode: undefined };
   assert.equal(isOverCapAskValid(ask), false);
-  const wrongCapCode: AskSummary = { ...REAL_OVER_CAP_ASK, capCode: "AMOUNT_WITHIN_CAP" };
+  const wrongCapCode: AskSummary = {
+    ...REAL_OVER_CAP_ASK,
+    capCode: "AMOUNT_WITHIN_CAP",
+  };
   assert.equal(isOverCapAskValid(wrongCapCode), false);
 });
 
@@ -663,7 +658,10 @@ test("missing-fact ask: a verdict other than UNKNOWN is invalid even with a corr
 });
 
 test("missing-fact ask: UNKNOWN via a stale role fact rather than a missing one is invalid", () => {
-  const ask: AskSummary = { ...REAL_MISSING_FACT_ASK, roleCode: "ROLE_FACT_STALE" };
+  const ask: AskSummary = {
+    ...REAL_MISSING_FACT_ASK,
+    roleCode: "ROLE_FACT_STALE",
+  };
   assert.equal(isMissingFactAskValid(ask), false);
 });
 
@@ -720,9 +718,13 @@ test("withSwappedPolicyFile refuses a symlinked policy path, never writing throu
 test("withSwappedPolicyFile writes both the swap and the restore at mode 600, even over a looser existing mode", async () => {
   const dir = scratchDir("hedwig-policy-mode-");
   const policyPath = join(dir, "policy.json");
-  writeFileSync(policyPath, JSON.stringify({ role: { programId: "ORIGINAL" } }), {
-    mode: 0o644,
-  });
+  writeFileSync(
+    policyPath,
+    JSON.stringify({ role: { programId: "ORIGINAL" } }),
+    {
+      mode: 0o644,
+    }
+  );
 
   await withSwappedPolicyFile(
     policyPath,
@@ -763,7 +765,10 @@ test("withSwappedPolicyFile reports the real open error, not a symlink refusal, 
 test("withSwappedPolicyFile surfaces both errors, action and restore, when the restore write also fails", async () => {
   const dir = scratchDir("hedwig-policy-restore-fail-");
   const policyPath = join(dir, "policy.json");
-  writeFileSync(policyPath, JSON.stringify({ role: { programId: "ORIGINAL" } }));
+  writeFileSync(
+    policyPath,
+    JSON.stringify({ role: { programId: "ORIGINAL" } })
+  );
 
   await assert.rejects(
     () =>
@@ -783,7 +788,10 @@ test("withSwappedPolicyFile surfaces both errors, action and restore, when the r
       assert.equal(err instanceof AggregateError, true);
       const agg = err as AggregateError;
       assert.equal(agg.errors.length, 2);
-      assert.match(agg.errors[0].message, /action failed and the restore will too/);
+      assert.match(
+        agg.errors[0].message,
+        /action failed and the restore will too/
+      );
       assert.equal(agg.errors[1] instanceof Error, true);
       assert.match(agg.message, /action failed and the restore will too/);
       return true;

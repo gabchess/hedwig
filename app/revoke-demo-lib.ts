@@ -417,8 +417,7 @@ export interface RolePolicyInput {
 // (mcp/src/readers/solana-role.ts) returns no cluster config for a program
 // id other than the deployed one, so it makes no network call and produces
 // no solanaRole fact, and role-requirement-met answers ROLE_FACT_MISSING.
-export const UNRECOGNIZED_ROLE_PROGRAM_ID =
-  "11111111111111111111111111111111";
+export const UNRECOGNIZED_ROLE_PROGRAM_ID = "11111111111111111111111111111111";
 
 export interface RolePolicyBlock {
   mode: "required";
@@ -509,7 +508,9 @@ export async function withSwappedPolicyFile<T>(
       writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
     } catch (restoreError) {
       const actionMessage =
-        actionError instanceof Error ? actionError.message : String(actionError);
+        actionError instanceof Error
+          ? actionError.message
+          : String(actionError);
       throw new AggregateError(
         [actionError, restoreError],
         `action failed, and the policy restore that followed also failed: ${actionMessage}`
@@ -806,7 +807,9 @@ export function formatTranscript(input: TranscriptInput): string {
   lines.push("");
   lines.push(...askLines("Ask 1", input.ask1));
   lines.push("");
-  lines.push(...askLines("Ask 2 (over-cap payment, same role)", input.overCapAsk));
+  lines.push(
+    ...askLines("Ask 2 (over-cap payment, same role)", input.overCapAsk)
+  );
   lines.push("");
   lines.push(
     ...askLines(
