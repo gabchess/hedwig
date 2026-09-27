@@ -497,14 +497,19 @@ function writePolicyFileNoFollow(policyPath: string, content: string): void {
   }
 }
 
-// Writes temporaryPolicy over policyPath, runs action, and always writes
-// originalPolicy back, even when action throws. The restore is a `finally`,
-// not a line after the call: a throw from `action` (a bad verdict, a dead
-// server, a timeout) still leaves the on-disk policy exactly as it was
-// before the swap, never stuck on the broken, unrecognised-programId shape.
-// A SIGKILL or SIGHUP between the two writes is outside any finally block's
-// reach in Node: this function cannot restore what a killed process never
-// ran the restore for.
+// Writes temporaryPolicy over policyPath, runs action, and attempts
+// originalPolicy back on every path, even when action throws: a throw from
+// `action` (a bad verdict, a dead server, a timeout) is caught, the restore
+// write runs, and only then is the action's error re-thrown, so the on-disk
+// policy is not left stuck on the broken, unrecognised-programId shape. This
+// is not a `finally` block: `finally` cannot tell a restore failure from a
+// restore success, so a failed restore would either replace the action's
+// error or run silently. The catch here can distinguish the two: it throws
+// the action's own error alone when the restore succeeds, and an
+// AggregateError carrying both when the restore also fails. A SIGKILL or
+// SIGHUP between the two writes is outside any catch block's reach in Node:
+// this function cannot restore what a killed process never ran the restore
+// for.
 export async function withSwappedPolicyFile<T>(
   policyPath: string,
   temporaryPolicy: unknown,
@@ -516,13 +521,19 @@ export async function withSwappedPolicyFile<T>(
   try {
     result = await action();
   } catch (actionError) {
-    // The restore still runs on a thrown action, but a second error out of
-    // the restore itself must never replace the original: swallow it here
-    // so the caller sees why the action failed, not why the cleanup did.
+    // The restore still runs on a thrown action. A second error out of the
+    // restore itself must never silently replace the original, and must
+    // never be silently dropped either: both are surfaced, together, as an
+    // AggregateError, with the action's error message leading.
     try {
       writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
-    } catch {
-      // original error takes priority; restore failure is unrecoverable here
+    } catch (restoreError) {
+      const actionMessage =
+        actionError instanceof Error ? actionError.message : String(actionError);
+      throw new AggregateError(
+        [actionError, restoreError],
+        `action failed, and the policy restore that followed also failed: ${actionMessage}`
+      );
     }
     throw actionError;
   }

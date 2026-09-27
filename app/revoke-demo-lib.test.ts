@@ -699,13 +699,15 @@ test("withSwappedPolicyFile refuses a symlinked policy path, never writing throu
   const policyPath = join(dir, "policy.json");
   symlinkSync(outsideTarget, policyPath);
 
-  await assert.rejects(() =>
-    withSwappedPolicyFile(
-      policyPath,
-      { role: { programId: "TEMP" } },
-      { role: { programId: "ORIGINAL" } },
-      async () => "should never run"
-    )
+  await assert.rejects(
+    () =>
+      withSwappedPolicyFile(
+        policyPath,
+        { role: { programId: "TEMP" } },
+        { role: { programId: "ORIGINAL" } },
+        async () => "should never run"
+      ),
+    /symlink/
   );
 
   assert.equal(readFileSync(outsideTarget, "utf8"), outsideContent);
@@ -758,7 +760,7 @@ test("withSwappedPolicyFile reports the real open error, not a symlink refusal, 
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("withSwappedPolicyFile keeps the action's own error when the restore write also fails", async () => {
+test("withSwappedPolicyFile surfaces both errors, action and restore, when the restore write also fails", async () => {
   const dir = scratchDir("hedwig-policy-restore-fail-");
   const policyPath = join(dir, "policy.json");
   writeFileSync(policyPath, JSON.stringify({ role: { programId: "ORIGINAL" } }));
@@ -770,13 +772,22 @@ test("withSwappedPolicyFile keeps the action's own error when the restore write 
         { role: { programId: "TEMP" } },
         { role: { programId: "ORIGINAL" } },
         async () => {
-          // Remove the directory so the restore write inside `finally`
-          // fails too; the action's own error must still win.
+          // Remove the directory so the catch block's restore write fails
+          // too; both the action's error and the restore's error must be
+          // visible on the thrown AggregateError, not just one of them.
           rmSync(dir, { recursive: true, force: true });
           throw new Error("action failed and the restore will too");
         }
       ),
-    /action failed and the restore will too/
+    (err: unknown) => {
+      assert.equal(err instanceof AggregateError, true);
+      const agg = err as AggregateError;
+      assert.equal(agg.errors.length, 2);
+      assert.match(agg.errors[0].message, /action failed and the restore will too/);
+      assert.equal(agg.errors[1] instanceof Error, true);
+      assert.match(agg.message, /action failed and the restore will too/);
+      return true;
+    }
   );
 });
 

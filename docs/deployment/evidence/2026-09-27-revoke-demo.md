@@ -131,10 +131,14 @@ If the process dies between the swap and the restore, the on-disk policy
 is left modified. Originally, always: the restore was a line after the
 assertion, not a guaranteed step, so a thrown assertion (a bad verdict, a
 dead server) would skip it. Fixed in `2c13cdc` by `withSwappedPolicyFile`
-in `app/revoke-demo-lib.ts`: a thrown error now restores the file, since
-the restore write moved into a `finally` around the wrapped action. That
-`finally` has limits a signal can still reach. SIGINT and SIGTERM run the
-demo's own handler, which deletes the whole temp directory instead of
+in `app/revoke-demo-lib.ts`: a thrown action error is now caught, the
+restore write runs, and only then is the error re-thrown. This is a
+catch block, not a `finally`, because a `finally` cannot tell a restore
+failure from a restore success; the catch here can, and when the restore
+write itself also fails, it throws an AggregateError carrying both the
+action's error and the restore's, rather than losing one silently. This
+still has limits a signal can reach. SIGINT and SIGTERM run the demo's
+own handler, which deletes the whole temp directory instead of
 restoring, so the swapped file does not survive either signal. SIGKILL
 cannot be caught by any handler, so it always skips the restore. The demo
 installs no SIGHUP handler either, so a SIGHUP can leave the swapped,
@@ -142,7 +146,7 @@ unrecognised-programId file sitting in an orphaned temp directory the
 same way. The directory is mode 0700 and holds only the temporary
 policy.json, itself made of public program/role/holder identifiers and
 non-secret policy fields, no private key material, and a server reading
-it answers UNKNOWN, so there is no security impact. The finally block
+it answers UNKNOWN, so there is no security impact. The catch-and-restore
 does not cover every exit path and this file does not claim that it does.
 
 A separate fix, landed in `a7ea834`, closes a symlink gap: the swap and
@@ -152,10 +156,11 @@ not check symlinked ancestor directories or stop a hardlink to a file
 outside the demo's temp directory), and force file mode 600 on every
 write rather than relying on `open`'s create-only mode argument. Six
 tests in `app/revoke-demo-lib.test.ts` cover this: restore after a normal
-return, restore after a throw, refusal of a symlinked policy path, mode
-600 enforced even over a looser pre-existing mode, a real open error
-(missing file) reported as itself rather than as a symlink refusal, and
-the action's own error surviving a restore write that also fails.
+return, restore after a throw, refusal of a symlinked policy path with a
+message naming the symlink, mode 600 enforced even over a looser
+pre-existing mode, a real open error (missing file) reported as itself
+rather than as a symlink refusal, and both the action's and the
+restore's errors surfacing together when a restore write also fails.
 
 ## Verification
 
