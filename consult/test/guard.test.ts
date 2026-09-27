@@ -864,7 +864,7 @@ describe("runTriggerGuard", () => {
     expect(signerCalls).to.equal(0);
   });
 
-  it("a Map in a named array property, rewritten by a gather timer: gather and the signer receive the same frozen snapshot, with no Map in it", async () => {
+  it("a Map in a named array property, rewritten by a gather timer: gather receives the frozen snapshot and the signer receives its action field, with no Map in it", async () => {
     const base = makeRequest();
     const meta = new Map([["to", "orig"]]);
     const extra = Object.assign([], { meta });
@@ -899,7 +899,7 @@ describe("runTriggerGuard", () => {
     expect(Object.hasOwn(signedExtra, "meta")).to.equal(false);
   });
 
-  it("a SharedArrayBuffer in the request: the signer receives the frozen snapshot consult() checked, which shares no memory with the caller's buffer", async () => {
+  it("a SharedArrayBuffer in the request: the signer receives the action field of the frozen snapshot passed to consult(), which shares no memory with the caller's buffer", async () => {
     const base = makeRequest();
     const shared = new SharedArrayBuffer(4);
     const signed: ConsultAction[] = [];

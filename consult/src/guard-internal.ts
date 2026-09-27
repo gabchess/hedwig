@@ -281,9 +281,10 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
 
   // The guard turns the mapped request into its own JSON snapshot once,
   // synchronously, right after toRequest returns and before gather runs.
-  // gather, consultFn and the signer all receive that same data, and the
-  // guard never reads `request` again. A request with no JSON form is a
-  // guard-level mapping failure: no gather, consultFn or signer call.
+  // gather and consultFn receive that same data; the signer receives only
+  // its action field. The guard never reads `request` again. A request
+  // with no JSON form is a guard-level mapping failure: no gather,
+  // consultFn or signer call.
   let checked: ConsultRequest;
   try {
     checked = toSnapshotData(request);
