@@ -24,12 +24,15 @@ import {
   assertAsk2,
   assertDevnetGenesisHash,
   assertKeypairPathAllowed,
+  assertMissingFactAsk,
+  assertOverCapAsk,
   assertParentSafeForCreate,
   assertServerBuilt,
   assertServerProcessAlive,
   buildConnectionOptions,
   buildMachineRecord,
   buildPolicyFile,
+  buildPolicyFileWithUnrecognizedRoleProgram,
   buildServerEnv,
   createKeypairFile,
   DEFAULT_KEYPAIR_PATH,
@@ -41,12 +44,16 @@ import {
   isAsk1Valid,
   isAsk2Valid,
   isInsideGitWorkTree,
+  isMissingFactAskValid,
+  isOverCapAskValid,
   isUnderDeniedHomeSubdirectory,
   loadOrGenerateKeypair,
   parseOutPath,
+  PAY_REQUEST_OVER_CAP,
   PERSONAL_NOTES_VAULT_DIR_NAME,
   readExistingKeypair,
   shouldRequestAirdrop,
+  UNRECOGNIZED_ROLE_PROGRAM_ID,
   type AskSummary,
 } from "./revoke-demo-lib";
 
@@ -61,6 +68,12 @@ const FIXTURES = JSON.parse(
 // "_source" field), never invented verdict strings.
 const REAL_ASK1 = extractAskSummary(FIXTURES.allowUnderPolicy) as AskSummary;
 const REAL_ASK2 = extractAskSummary(FIXTURES.deny) as AskSummary;
+const REAL_OVER_CAP_ASK = extractAskSummary(
+  FIXTURES.overCapDeny
+) as AskSummary;
+const REAL_MISSING_FACT_ASK = extractAskSummary(
+  FIXTURES.missingFactUnknown
+) as AskSummary;
 
 function scratchDir(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
@@ -558,6 +571,54 @@ test("ask 2: proceed:false with ROLE_HELD is invalid", () => {
   assert.equal(isAsk2Valid(ask), false);
 });
 
+// --- over-cap and missing-fact asks, real fixtures ------------------------
+
+test("PAY_REQUEST_OVER_CAP keeps every field but amount, which the base cap can never cover", () => {
+  assert.notEqual(PAY_REQUEST_OVER_CAP.action.amount, "1000000");
+  assert.equal(
+    BigInt(PAY_REQUEST_OVER_CAP.action.amount) > BigInt("1000000"),
+    true
+  );
+  assert.equal(PAY_REQUEST_OVER_CAP.action.recipient.length > 0, true);
+});
+
+test("buildPolicyFileWithUnrecognizedRoleProgram keeps role and holder, swaps only programId", () => {
+  const policy = buildPolicyFileWithUnrecognizedRoleProgram({
+    programId: "H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC",
+    role: "RoLePDA111111111111111111111111111",
+    holder: "HoLdErPubKey1111111111111111111111",
+  });
+  assert.equal(policy.role.programId, UNRECOGNIZED_ROLE_PROGRAM_ID);
+  assert.equal(policy.role.role, "RoLePDA111111111111111111111111111");
+  assert.equal(policy.role.holder, "HoLdErPubKey1111111111111111111111");
+});
+
+test("the real over-cap fixture is a valid over-cap ask; the real allow and deny fixtures are not", () => {
+  assert.equal(isOverCapAskValid(REAL_OVER_CAP_ASK), true);
+  assert.doesNotThrow(() => assertOverCapAsk(REAL_OVER_CAP_ASK));
+  assert.equal(isOverCapAskValid(REAL_ASK1), false);
+  assert.equal(isOverCapAskValid(REAL_ASK2), false);
+  assert.throws(() => assertOverCapAsk(REAL_ASK1));
+});
+
+test("the real missing-fact fixture is a valid missing-fact ask; the real allow and deny fixtures are not", () => {
+  assert.equal(isMissingFactAskValid(REAL_MISSING_FACT_ASK), true);
+  assert.doesNotThrow(() => assertMissingFactAsk(REAL_MISSING_FACT_ASK));
+  assert.equal(isMissingFactAskValid(REAL_ASK1), false);
+  assert.equal(isMissingFactAskValid(REAL_ASK2), false);
+  assert.throws(() => assertMissingFactAsk(REAL_ASK2));
+});
+
+test("over-cap ask: DENY with the role missing rather than held is invalid (must be the cap, not the role)", () => {
+  const ask: AskSummary = { ...REAL_OVER_CAP_ASK, roleCode: "ROLE_MEMBER_MISSING" };
+  assert.equal(isOverCapAskValid(ask), false);
+});
+
+test("missing-fact ask: UNKNOWN via a stale role fact rather than a missing one is invalid", () => {
+  const ask: AskSummary = { ...REAL_MISSING_FACT_ASK, roleCode: "ROLE_FACT_STALE" };
+  assert.equal(isMissingFactAskValid(ask), false);
+});
+
 // --- one live server process, checked before each ask (H3) ---------------
 
 test("assertServerProcessAlive accepts a live, unsignalled, matching-pid child", () => {
@@ -616,6 +677,8 @@ test("formatTranscript prints only public keys, signatures and the RPC host", ()
     assignRoleSig: "assignSig111",
     revokeRoleSig: "revokeSig111",
     ask1: REAL_ASK1,
+    overCapAsk: REAL_OVER_CAP_ASK,
+    missingFactAsk: REAL_MISSING_FACT_ASK,
     ask2: REAL_ASK2,
     ask2FirstAttempt: undefined,
   });
@@ -656,6 +719,8 @@ test("formatTranscript notes an org reused from an earlier run when there is no 
     assignRoleSig: "assignSig",
     revokeRoleSig: "revokeSig",
     ask1: REAL_ASK1,
+    overCapAsk: REAL_OVER_CAP_ASK,
+    missingFactAsk: REAL_MISSING_FACT_ASK,
     ask2: REAL_ASK2,
     ask2FirstAttempt: undefined,
   });
@@ -675,6 +740,8 @@ test("formatTranscript describes a retry as a lag only when the first attempt st
     createRoleSig: "roleSig",
     assignRoleSig: "assignSig",
     revokeRoleSig: "revokeSig",
+    overCapAsk: REAL_OVER_CAP_ASK,
+    missingFactAsk: REAL_MISSING_FACT_ASK,
     ask2: REAL_ASK2,
   };
 
@@ -715,6 +782,8 @@ test("buildMachineRecord never includes the policy path, env, keypair path or fu
       revokeRole: "sig3",
     },
     ask1: { pid: 111, message: { CANARY: "CANARY-ASK1" } },
+    overCapAsk: { pid: 111, message: { CANARY: "CANARY-OVERCAP" } },
+    missingFactAsk: { pid: 111, message: { CANARY: "CANARY-MISSINGFACT" } },
     ask2: { pid: 111, message: { CANARY: "CANARY-ASK2" } },
     ask2FirstAttempt: undefined,
   });

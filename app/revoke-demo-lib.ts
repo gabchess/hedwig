@@ -397,11 +397,32 @@ export const PAY_REQUEST = Object.freeze({
   },
 });
 
+// Same request, an amount BASE_PAY_POLICY.perActionCaps.pay ("1000000")
+// can never cover. Every other field is untouched, so the only Condition
+// this can move is amount-within-cap.
+export const PAY_REQUEST_OVER_CAP = Object.freeze({
+  action: {
+    ...PAY_REQUEST.action,
+    amount: "2000000000",
+  },
+});
+
 export interface RolePolicyInput {
   programId: string;
   role: string;
   holder: string;
 }
+
+// Solana's System Program id: a real, well-formed base58 pubkey that is
+// never Hedwig's deployed program id on any cluster. A policy naming it as
+// the required role's programId passes every shape check a Condition runs
+// on its own, but the Solana role Reader (mcp/src/readers/solana-role.ts)
+// refuses to resolve a cluster config for an unrecognised program id, so it
+// never makes a network call and never produces a solanaRole fact. That is
+// what "a payment missing a required Fact" means here: role-requirement-met
+// answers ROLE_FACT_MISSING, UNVERIFIED, deterministically, offline.
+export const UNRECOGNIZED_ROLE_PROGRAM_ID =
+  "11111111111111111111111111111111";
 
 export interface RolePolicyBlock {
   mode: "required";
@@ -433,6 +454,18 @@ export function buildPolicyFile(
   };
 }
 
+// Same role and holder, a programId the Reader will never recognise. Used
+// to swap the running server's on-disk policy file over to a shape that
+// cannot produce a solanaRole fact, then swap it back, with no restart.
+export function buildPolicyFileWithUnrecognizedRoleProgram(
+  input: RolePolicyInput
+): typeof BASE_PAY_POLICY & { role: RolePolicyBlock } {
+  return buildPolicyFile({
+    ...input,
+    programId: UNRECOGNIZED_ROLE_PROGRAM_ID,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Consult answer parsing and verdict assertions
 // ---------------------------------------------------------------------------
@@ -444,6 +477,8 @@ export interface AskSummary {
   band: string;
   roleCode: string | undefined;
   roleEvidence: string | undefined;
+  capCode: string | undefined;
+  capEvidence: string | undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
@@ -473,9 +508,9 @@ export function extractAskSummary(message: unknown): AskSummary | undefined {
   ) {
     return undefined;
   }
-  const roleRow = results
-    .map(asRecord)
-    .find((row) => row?.id === "role-requirement-met");
+  const rows = results.map(asRecord);
+  const roleRow = rows.find((row) => row?.id === "role-requirement-met");
+  const capRow = rows.find((row) => row?.id === "amount-within-cap");
   return {
     proceed,
     verdict,
@@ -484,6 +519,9 @@ export function extractAskSummary(message: unknown): AskSummary | undefined {
     roleCode: typeof roleRow?.code === "string" ? roleRow.code : undefined,
     roleEvidence:
       typeof roleRow?.evidence === "string" ? roleRow.evidence : undefined,
+    capCode: typeof capRow?.code === "string" ? capRow.code : undefined,
+    capEvidence:
+      typeof capRow?.evidence === "string" ? capRow.evidence : undefined,
   };
 }
 
@@ -525,6 +563,55 @@ export function assertAsk2(ask: AskSummary | undefined): AskSummary {
   if (!isAsk2Valid(ask)) {
     throw new Error(
       `ask 2 expected proceed=false verdict=DENY support=0 code=ROLE_MEMBER_MISSING, got ${JSON.stringify(
+        ask
+      )}`
+    );
+  }
+  return ask;
+}
+
+// Over-cap ask: the role is still held (this runs before revoke), so the
+// deny must come from the cap, never from the role row.
+export function isOverCapAskValid(
+  ask: AskSummary | undefined
+): ask is AskSummary {
+  return (
+    ask !== undefined &&
+    ask.proceed === false &&
+    ask.verdict === "DENY" &&
+    ask.capCode === "AMOUNT_EXCEEDS_CAP" &&
+    ask.roleCode === "ROLE_HELD"
+  );
+}
+
+export function assertOverCapAsk(ask: AskSummary | undefined): AskSummary {
+  if (!isOverCapAskValid(ask)) {
+    throw new Error(
+      `over-cap ask expected proceed=false verdict=DENY capCode=AMOUNT_EXCEEDS_CAP roleCode=ROLE_HELD, got ${JSON.stringify(
+        ask
+      )}`
+    );
+  }
+  return ask;
+}
+
+// Missing-facts ask: the policy's role programId cannot be resolved, so the
+// role row itself is UNVERIFIED rather than PASS or FAIL.
+export function isMissingFactAskValid(
+  ask: AskSummary | undefined
+): ask is AskSummary {
+  return (
+    ask !== undefined &&
+    ask.proceed === false &&
+    ask.verdict === "UNKNOWN" &&
+    ask.roleCode === "ROLE_FACT_MISSING"
+  );
+}
+
+export function assertMissingFactAsk(ask: AskSummary | undefined): AskSummary {
+  if (!isMissingFactAskValid(ask)) {
+    throw new Error(
+      `missing-fact ask expected proceed=false verdict=UNKNOWN roleCode=ROLE_FACT_MISSING, got ${JSON.stringify(
         ask
       )}`
     );
@@ -576,6 +663,8 @@ export interface TranscriptInput {
   assignRoleSig: string;
   revokeRoleSig: string;
   ask1: AskSummary;
+  overCapAsk: AskSummary;
+  missingFactAsk: AskSummary;
   ask2: AskSummary;
   // Present only when ask 2's first attempt did not yet earn DENY /
   // ROLE_MEMBER_MISSING and a retry was made; absent means the first
@@ -588,7 +677,7 @@ export function explorerTxUrl(signature: string): string {
 }
 
 function askLines(label: string, ask: AskSummary): string[] {
-  return [
+  const lines = [
     `${label}:`,
     `  proceed: ${ask.proceed}`,
     `  verdict: ${ask.verdict}`,
@@ -598,6 +687,12 @@ function askLines(label: string, ask: AskSummary): string[] {
       ask.roleEvidence ?? "none"
     }`,
   ];
+  if (ask.capCode !== undefined) {
+    lines.push(
+      `  cap check: code=${ask.capCode} evidence=${ask.capEvidence ?? "none"}`
+    );
+  }
+  return lines;
 }
 
 // A retry is only described as a lag when the first attempt still showed
@@ -656,6 +751,15 @@ export function formatTranscript(input: TranscriptInput): string {
   lines.push("");
   lines.push(...askLines("Ask 1", input.ask1));
   lines.push("");
+  lines.push(...askLines("Ask 2 (over-cap payment, same role)", input.overCapAsk));
+  lines.push("");
+  lines.push(
+    ...askLines(
+      "Ask 3 (payment missing a required Fact, same role)",
+      input.missingFactAsk
+    )
+  );
+  lines.push("");
   lines.push("Revoke:");
   lines.push(
     `  revoke_role tx: ${input.revokeRoleSig} ${explorerTxUrl(
@@ -664,7 +768,7 @@ export function formatTranscript(input: TranscriptInput): string {
   );
   lines.push(...ask2RetryLines(input.ask2FirstAttempt));
   lines.push("");
-  lines.push(...askLines("Ask 2", input.ask2));
+  lines.push(...askLines("Ask 4 (original request, after revoke)", input.ask2));
   lines.push("");
   lines.push(
     "Same server process, same policy file, same request. Only the role changed."
@@ -690,6 +794,8 @@ export interface MachineRecordContext {
     revokeRole: string;
   };
   ask1: { pid: number; message: unknown };
+  overCapAsk: { pid: number; message: unknown };
+  missingFactAsk: { pid: number; message: unknown };
   ask2: { pid: number; message: unknown };
   ask2FirstAttempt: { pid: number; message: unknown } | undefined;
 }
@@ -708,6 +814,8 @@ export function buildMachineRecord(
     holder: context.holder,
     signatures: context.signatures,
     ask1: context.ask1,
+    overCapAsk: context.overCapAsk,
+    missingFactAsk: context.missingFactAsk,
     ask2: context.ask2,
     ask2FirstAttempt: context.ask2FirstAttempt,
   };

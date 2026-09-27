@@ -27,12 +27,15 @@ import {
   assertAsk1,
   assertAsk2,
   assertDevnetGenesisHash,
+  assertMissingFactAsk,
+  assertOverCapAsk,
   assertServerBuilt,
   assertServerProcessAlive,
   airdropAmountLamports,
   buildConnectionOptions,
   buildMachineRecord,
   buildPolicyFile,
+  buildPolicyFileWithUnrecognizedRoleProgram,
   buildServerEnv,
   DEFAULT_KEYPAIR_PATH,
   extractAskSummary,
@@ -41,6 +44,7 @@ import {
   loadOrGenerateKeypair,
   parseOutPath,
   PAY_REQUEST,
+  PAY_REQUEST_OVER_CAP,
   shouldRequestAirdrop,
   type AskSummary,
 } from "./revoke-demo-lib";
@@ -122,14 +126,15 @@ async function initializeServer(
 
 let nextCallId = 1;
 async function callConsult(
-  child: ChildProcessWithoutNullStreams
+  child: ChildProcessWithoutNullStreams,
+  request: unknown = PAY_REQUEST
 ): Promise<unknown> {
   const id = nextCallId++;
   sendLine(child, {
     jsonrpc: "2.0",
     id,
     method: "tools/call",
-    params: { name: "consult", arguments: { request: PAY_REQUEST } },
+    params: { name: "consult", arguments: { request } },
   });
   return waitForResponse(child, id, RESPONSE_TIMEOUT_MS);
 }
@@ -278,6 +283,31 @@ async function main(): Promise<void> {
     const ask1Message = await callConsult(child);
     const ask1 = assertAsk1(extractAskSummary(ask1Message));
 
+    // Ask 2: an amount the same live role can never buy its way past. Same
+    // server, same policy file, same role. Only the request's amount moves.
+    assertServerProcessAlive(child, serverPid);
+    const overCapMessage = await callConsult(child, PAY_REQUEST_OVER_CAP);
+    const overCapAsk = assertOverCapAsk(extractAskSummary(overCapMessage));
+
+    // Ask 3: the on-disk policy is swapped, in place, to a role requirement
+    // the Solana role Reader can never resolve (see
+    // UNRECOGNIZED_ROLE_PROGRAM_ID), then swapped back before the revoke.
+    // No server restart, same process, same live role, same request.
+    const brokenPolicy = buildPolicyFileWithUnrecognizedRoleProgram({
+      programId: HEDWIG_PROGRAM_ID.toBase58(),
+      role: rolePda.toBase58(),
+      holder: holder.publicKey.toBase58(),
+    });
+    fs.writeFileSync(policyPath, JSON.stringify(brokenPolicy), {
+      mode: 0o600,
+    });
+    assertServerProcessAlive(child, serverPid);
+    const missingFactMessage = await callConsult(child);
+    const missingFactAsk = assertMissingFactAsk(
+      extractAskSummary(missingFactMessage)
+    );
+    fs.writeFileSync(policyPath, JSON.stringify(policy), { mode: 0o600 });
+
     const revokeRoleSig = await sendRevokeRole(
       provider,
       { role: rolePda, holder: holder.publicKey, admin: admin.publicKey },
@@ -310,6 +340,8 @@ async function main(): Promise<void> {
       assignRoleSig,
       revokeRoleSig,
       ask1,
+      overCapAsk,
+      missingFactAsk,
       ask2,
       ask2FirstAttempt: ask2FirstAttemptSummary,
     });
@@ -330,6 +362,11 @@ async function main(): Promise<void> {
           revokeRole: revokeRoleSig,
         },
         ask1: { pid: serverPid as number, message: ask1Message },
+        overCapAsk: { pid: serverPid as number, message: overCapMessage },
+        missingFactAsk: {
+          pid: serverPid as number,
+          message: missingFactMessage,
+        },
         ask2: { pid: serverPid as number, message: ask2Message },
         ask2FirstAttempt: ask2FirstAttemptMessage
           ? { pid: serverPid as number, message: ask2FirstAttemptMessage }
