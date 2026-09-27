@@ -12,6 +12,8 @@
 
 Hedwig is the payment check other agents consult before they sign. Run it as an MCP server, or load the agent skill in whatever app you already hand work to. It is built for people or agents running x402 payment tools and agent wallets.
 
+To put the check in front of your own signer in code, use the [Trigger guard](consult/README.md#trigger-guard).
+
 ## Run it
 
 The payment check has no dependencies of its own; it needs Node.js 22+ and Yarn. It answers `proceed` for a payment or a swap against the owner's policy. Any check it cannot complete answers `UNKNOWN`, and `proceed` stays `false`:

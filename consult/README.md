@@ -44,4 +44,27 @@ const swapResponse = consult(
 );
 ```
 
+## Trigger guard
+
+`@hedwig/consult/guard` exports `runTriggerGuard`. You pass it your payment and your signer. It runs `consult()` and calls your signer only when the Verdict is `ALLOW_UNDER_POLICY`.
+
+```ts
+import { runTriggerGuard } from "@hedwig/consult/guard";
+
+const result = await runTriggerGuard({
+  payment,
+  toRequest: (payment) => ({ action: payment.action }),
+  policy,
+  gather: async (request) => ({ now: Math.floor(Date.now() / 1000) }),
+  signer: (action) => mySigner(action),
+});
+// result.consult: the consult() response
+// result.signerOutcome: "not-attempted" | "settled" | "unknown"
+// result.signerResult: the signer's return value, when "settled"
+```
+
+`toRequest` maps your payment into a request. The guard turns that request into its own JSON snapshot once, then passes the same data to `gather`, `consult()` and your signer. Your signer receives its `action` field. The payment amount in that `action` is the same decimal string `consult()` checked. The frozen records have null prototypes: reading a field directly (`action.amount`) works, but use `Object.hasOwn(action, "amount")` instead of `action.hasOwnProperty("amount")`, which a null-prototype object does not have.
+
+`gather` is optional and has `gatherDeadlineMs` to finish, 800 by default. A mapping error, a `gather` error or a missed `gather` deadline returns an `UNKNOWN` response with a `trigger-guard` row, and your signer is never called. Your signer has `signerDeadlineMs`, 5000 by default. Each deadline must be a whole number of milliseconds from 1 to 2147483647. An invalid `signerDeadlineMs` fails closed with no signer call. `gatherDeadlineMs` is only checked when `gather` is passed; an invalid value there fails closed with no gather call. If the signer throws, rejects or misses its deadline, `signerOutcome` is `"unknown"` and the guard does not call it again, but a missed deadline does not stop the signer itself: it may still be running. An unknown `signerOutcome` means the signer may have acted or may still be acting; wait for the payment to reach a final state before signing again.
+
 Run `yarn consult:typecheck` and `yarn consult:test`.
