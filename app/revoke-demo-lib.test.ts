@@ -21,7 +21,7 @@ import {
   MIN_BALANCE_LAMPORTS,
   airdropAmountLamports,
   assertAsk1,
-  assertAsk2,
+  assertAsk4,
   assertDevnetGenesisHash,
   assertKeypairPathAllowed,
   assertMissingFactAsk,
@@ -42,7 +42,7 @@ import {
   formatTranscript,
   hasTargetDeploySegment,
   isAsk1Valid,
-  isAsk2Valid,
+  isAsk4Valid,
   isInsideGitWorkTree,
   isMissingFactAskValid,
   isOverCapAskValid,
@@ -69,7 +69,7 @@ const FIXTURES = JSON.parse(
 // Real answers captured from the built server (see the fixture's own
 // "_source" field), never invented verdict strings.
 const REAL_ASK1 = extractAskSummary(FIXTURES.allowUnderPolicy) as AskSummary;
-const REAL_ASK2 = extractAskSummary(FIXTURES.deny) as AskSummary;
+const REAL_ASK4 = extractAskSummary(FIXTURES.deny) as AskSummary;
 const REAL_OVER_CAP_ASK = extractAskSummary(
   FIXTURES.overCapDeny
 ) as AskSummary;
@@ -492,10 +492,10 @@ test("extractAskSummary reads the real ALLOW_UNDER_POLICY response verbatim", ()
 });
 
 test("extractAskSummary reads the real DENY response verbatim", () => {
-  assert.equal(REAL_ASK2.proceed, false);
-  assert.equal(REAL_ASK2.verdict, "DENY");
-  assert.equal(REAL_ASK2.support, 0);
-  assert.equal(REAL_ASK2.roleCode, "ROLE_MEMBER_MISSING");
+  assert.equal(REAL_ASK4.proceed, false);
+  assert.equal(REAL_ASK4.verdict, "DENY");
+  assert.equal(REAL_ASK4.support, 0);
+  assert.equal(REAL_ASK4.roleCode, "ROLE_MEMBER_MISSING");
 });
 
 test("extractAskSummary returns undefined for a message with no structuredContent", () => {
@@ -531,26 +531,26 @@ test("extractAskSummary finds the role row by id, not by array position (decoy r
 
 test("ask 1 is valid on the real ALLOW_UNDER_POLICY answer; ask 4 is valid on the real DENY answer", () => {
   assert.equal(isAsk1Valid(REAL_ASK1), true);
-  assert.equal(isAsk2Valid(REAL_ASK2), true);
+  assert.equal(isAsk4Valid(REAL_ASK4), true);
   assert.doesNotThrow(() => assertAsk1(REAL_ASK1));
-  assert.doesNotThrow(() => assertAsk2(REAL_ASK2));
+  assert.doesNotThrow(() => assertAsk4(REAL_ASK4));
 });
 
 test("ask 1 is invalid on the real DENY answer, and ask 4 is invalid on the real allow answer", () => {
-  assert.equal(isAsk1Valid(REAL_ASK2), false);
-  assert.equal(isAsk2Valid(REAL_ASK1), false);
-  assert.throws(() => assertAsk1(REAL_ASK2));
-  assert.throws(() => assertAsk2(REAL_ASK1));
+  assert.equal(isAsk1Valid(REAL_ASK4), false);
+  assert.equal(isAsk4Valid(REAL_ASK1), false);
+  assert.throws(() => assertAsk1(REAL_ASK4));
+  assert.throws(() => assertAsk4(REAL_ASK1));
 });
 
 test("ask 4: UNKNOWN with ROLE_MEMBER_MISSING is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, verdict: "UNKNOWN" };
-  assert.equal(isAsk2Valid(ask), false);
+  const ask: AskSummary = { ...REAL_ASK4, verdict: "UNKNOWN" };
+  assert.equal(isAsk4Valid(ask), false);
 });
 
 test("ask 4: DENY with ROLE_DISABLED is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, roleCode: "ROLE_DISABLED" };
-  assert.equal(isAsk2Valid(ask), false);
+  const ask: AskSummary = { ...REAL_ASK4, roleCode: "ROLE_DISABLED" };
+  assert.equal(isAsk4Valid(ask), false);
 });
 
 test("ask 1: an allow verdict with ROLE_MEMBER_MISSING is invalid", () => {
@@ -559,8 +559,8 @@ test("ask 1: an allow verdict with ROLE_MEMBER_MISSING is invalid", () => {
 });
 
 test("ask 4: DENY with proceed:true is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, proceed: true };
-  assert.equal(isAsk2Valid(ask), false);
+  const ask: AskSummary = { ...REAL_ASK4, proceed: true };
+  assert.equal(isAsk4Valid(ask), false);
 });
 
 test("ask 1: proceed:true with ROLE_NOT_REQUIRED is invalid", () => {
@@ -569,8 +569,8 @@ test("ask 1: proceed:true with ROLE_NOT_REQUIRED is invalid", () => {
 });
 
 test("ask 4: proceed:false with ROLE_HELD is invalid", () => {
-  const ask: AskSummary = { ...REAL_ASK2, roleCode: "ROLE_HELD" };
-  assert.equal(isAsk2Valid(ask), false);
+  const ask: AskSummary = { ...REAL_ASK4, roleCode: "ROLE_HELD" };
+  assert.equal(isAsk4Valid(ask), false);
 });
 
 // --- over-cap and missing-fact asks, real fixtures ------------------------
@@ -618,7 +618,7 @@ test("the real over-cap fixture is a valid over-cap ask; the real allow and deny
   assert.equal(isOverCapAskValid(REAL_OVER_CAP_ASK), true);
   assert.doesNotThrow(() => assertOverCapAsk(REAL_OVER_CAP_ASK));
   assert.equal(isOverCapAskValid(REAL_ASK1), false);
-  assert.equal(isOverCapAskValid(REAL_ASK2), false);
+  assert.equal(isOverCapAskValid(REAL_ASK4), false);
   assert.throws(() => assertOverCapAsk(REAL_ASK1));
 });
 
@@ -626,8 +626,8 @@ test("the real missing-fact fixture is a valid missing-fact ask; the real allow 
   assert.equal(isMissingFactAskValid(REAL_MISSING_FACT_ASK), true);
   assert.doesNotThrow(() => assertMissingFactAsk(REAL_MISSING_FACT_ASK));
   assert.equal(isMissingFactAskValid(REAL_ASK1), false);
-  assert.equal(isMissingFactAskValid(REAL_ASK2), false);
-  assert.throws(() => assertMissingFactAsk(REAL_ASK2));
+  assert.equal(isMissingFactAskValid(REAL_ASK4), false);
+  assert.throws(() => assertMissingFactAsk(REAL_ASK4));
 });
 
 test("over-cap ask: DENY with the role missing rather than held is invalid (must be the cap, not the role)", () => {
@@ -870,8 +870,8 @@ test("formatTranscript prints only public keys, signatures and the RPC host", ()
     ask1: REAL_ASK1,
     overCapAsk: REAL_OVER_CAP_ASK,
     missingFactAsk: REAL_MISSING_FACT_ASK,
-    ask2: REAL_ASK2,
-    ask2FirstAttempt: undefined,
+    ask4: REAL_ASK4,
+    ask4FirstAttempt: undefined,
   });
 
   assert.equal(output.includes("rpc.example.com"), true);
@@ -912,8 +912,8 @@ test("formatTranscript notes an org reused from an earlier run when there is no 
     ask1: REAL_ASK1,
     overCapAsk: REAL_OVER_CAP_ASK,
     missingFactAsk: REAL_MISSING_FACT_ASK,
-    ask2: REAL_ASK2,
-    ask2FirstAttempt: undefined,
+    ask4: REAL_ASK4,
+    ask4FirstAttempt: undefined,
   });
   assert.equal(output.includes("reused the org"), true);
 });
@@ -933,27 +933,27 @@ test("formatTranscript describes a retry as a lag only when the first attempt st
     revokeRoleSig: "revokeSig",
     overCapAsk: REAL_OVER_CAP_ASK,
     missingFactAsk: REAL_MISSING_FACT_ASK,
-    ask2: REAL_ASK2,
+    ask4: REAL_ASK4,
   };
 
   const lagOutput = formatTranscript({
     ...base,
     ask1: REAL_ASK1,
-    ask2FirstAttempt: REAL_ASK1, // still ROLE_HELD: a genuine lag
+    ask4FirstAttempt: REAL_ASK1, // still ROLE_HELD: a genuine lag
   });
   assert.equal(lagOutput.includes("RPC lag"), true);
   assert.equal(lagOutput.includes("retried Ask 4"), true);
   assert.equal(lagOutput.includes("retried Ask 2"), false);
 
   const failureFirstAttempt: AskSummary = {
-    ...REAL_ASK2,
+    ...REAL_ASK4,
     verdict: "UNKNOWN",
     roleCode: "ROLE_FACT_MISSING",
   };
   const failureOutput = formatTranscript({
     ...base,
     ask1: REAL_ASK1,
-    ask2FirstAttempt: failureFirstAttempt,
+    ask4FirstAttempt: failureFirstAttempt,
   });
   assert.equal(failureOutput.includes("RPC lag"), false);
   assert.equal(failureOutput.includes("not a lag"), true);
@@ -964,7 +964,13 @@ test("formatTranscript describes a retry as a lag only when the first attempt st
 
 test("buildMachineRecord never includes the policy path, env, keypair path or full RPC URL", () => {
   const record = buildMachineRecord({
+    commit: "0123456789abcdef0123456789abcdef01234567",
+    treeClean: true,
+    startedAt: "2026-01-01T00:00:00.000Z",
+    finishedAt: "2026-01-01T00:00:05.000Z",
     rpcUrl: "https://rpc.example.com/CANARY-PATH?api-key=CANARY-KEY",
+    programId: "ProgramPubkey11111111111111111111111",
+    admin: "AdminPubkey111111111111111111111111",
     serverPid: 111,
     org: "OrgPubkey1111111111111111111111111",
     role: "RolePubkey111111111111111111111111",
@@ -977,13 +983,20 @@ test("buildMachineRecord never includes the policy path, env, keypair path or fu
     ask1: { pid: 111, message: { CANARY: "CANARY-ASK1" } },
     overCapAsk: { pid: 111, message: { CANARY: "CANARY-OVERCAP" } },
     missingFactAsk: { pid: 111, message: { CANARY: "CANARY-MISSINGFACT" } },
-    ask2: { pid: 111, message: { CANARY: "CANARY-ASK2" } },
-    ask2FirstAttempt: undefined,
+    ask4: { pid: 111, message: { CANARY: "CANARY-ASK4" } },
+    ask4FirstAttempt: undefined,
   });
   const serialized = JSON.stringify(record);
   assert.equal(serialized.includes("CANARY-PATH"), false);
   assert.equal(serialized.includes("CANARY-KEY"), false);
   assert.equal(record.rpcHost, "rpc.example.com");
+  // The provenance fields the evidence doc copies are passed through as given.
+  assert.equal(record.commit, "0123456789abcdef0123456789abcdef01234567");
+  assert.equal(record.treeClean, true);
+  assert.equal(record.startedAt, "2026-01-01T00:00:00.000Z");
+  assert.equal(record.finishedAt, "2026-01-01T00:00:05.000Z");
+  assert.equal(record.programId, "ProgramPubkey11111111111111111111111");
+  assert.equal(record.admin, "AdminPubkey111111111111111111111111");
   assert.equal("policyPath" in record, false);
   assert.equal("env" in record, false);
   assert.equal("keypairPath" in record, false);

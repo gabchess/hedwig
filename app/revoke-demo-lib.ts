@@ -487,10 +487,11 @@ function writePolicyFileNoFollow(policyPath: string, content: string): void {
 }
 
 // Writes temporaryPolicy over policyPath, runs action, then writes
-// originalPolicy back. When action returns, the result is returned. When
-// action throws, originalPolicy is still written, then the action's error is
-// re-thrown; if that write also throws, an AggregateError carrying both
-// errors is thrown instead.
+// originalPolicy back. When action returns, originalPolicy is written and
+// the result is returned; if that write throws, its error is thrown and the
+// result is dropped. When action throws, originalPolicy is still written,
+// then the action's error is re-thrown; if that write also throws, an
+// AggregateError carrying both errors is thrown instead.
 export async function withSwappedPolicyFile<T>(
   policyPath: string,
   temporaryPolicy: unknown,
@@ -502,7 +503,8 @@ export async function withSwappedPolicyFile<T>(
   try {
     result = await action();
   } catch (actionError) {
-    // The action's error comes first in the AggregateError and its message.
+    // The AggregateError lists the action's error first, then the restore
+    // error; its message quotes only the action's error message.
     try {
       writePolicyFileNoFollow(policyPath, JSON.stringify(originalPolicy));
     } catch (restoreError) {
@@ -602,7 +604,7 @@ export function assertAsk1(ask: AskSummary | undefined): AskSummary {
   return ask;
 }
 
-export function isAsk2Valid(ask: AskSummary | undefined): ask is AskSummary {
+export function isAsk4Valid(ask: AskSummary | undefined): ask is AskSummary {
   return (
     ask !== undefined &&
     ask.proceed === false &&
@@ -612,8 +614,8 @@ export function isAsk2Valid(ask: AskSummary | undefined): ask is AskSummary {
   );
 }
 
-export function assertAsk2(ask: AskSummary | undefined): AskSummary {
-  if (!isAsk2Valid(ask)) {
+export function assertAsk4(ask: AskSummary | undefined): AskSummary {
+  if (!isAsk4Valid(ask)) {
     throw new Error(
       `ask 4 (after revoke) expected proceed=false verdict=DENY support=0 code=ROLE_MEMBER_MISSING, got ${JSON.stringify(
         ask
@@ -718,11 +720,11 @@ export interface TranscriptInput {
   ask1: AskSummary;
   overCapAsk: AskSummary;
   missingFactAsk: AskSummary;
-  ask2: AskSummary;
+  ask4: AskSummary;
   // Present only when Ask 4's first attempt did not yet earn DENY /
   // ROLE_MEMBER_MISSING and a retry was made; absent means the first
   // attempt already succeeded.
-  ask2FirstAttempt: AskSummary | undefined;
+  ask4FirstAttempt: AskSummary | undefined;
 }
 
 export function explorerTxUrl(signature: string): string {
@@ -751,7 +753,7 @@ function askLines(label: string, ask: AskSummary): string[] {
 // A retry is only described as a lag when the first attempt still showed
 // the still-held role (the same shape ask 1 earned): any other first
 // answer is a genuine failure, not a lag, and is described as what it was.
-function ask2RetryLines(firstAttempt: AskSummary | undefined): string[] {
+function ask4RetryLines(firstAttempt: AskSummary | undefined): string[] {
   if (!firstAttempt) {
     return [];
   }
@@ -819,9 +821,9 @@ export function formatTranscript(input: TranscriptInput): string {
       input.revokeRoleSig
     )}`
   );
-  lines.push(...ask2RetryLines(input.ask2FirstAttempt));
+  lines.push(...ask4RetryLines(input.ask4FirstAttempt));
   lines.push("");
-  lines.push(...askLines("Ask 4 (original request, after revoke)", input.ask2));
+  lines.push(...askLines("Ask 4 (original request, after revoke)", input.ask4));
   lines.push("");
   lines.push(
     "Ask 1 and Ask 4: same server process, same policy file, same request. Only the role changed."
@@ -834,8 +836,15 @@ export function formatTranscript(input: TranscriptInput): string {
 // ---------------------------------------------------------------------------
 
 export interface MachineRecordContext {
+  commit: string;
+  treeClean: boolean;
+  // ISO 8601 UTC: when main() began, and when the record was built.
+  startedAt: string;
+  finishedAt: string;
   // Full RPC URL in, but only its host ever reaches the returned object.
   rpcUrl: string;
+  programId: string;
+  admin: string;
   serverPid: number;
   org: string;
   role: string;
@@ -849,8 +858,8 @@ export interface MachineRecordContext {
   ask1: { pid: number; message: unknown };
   overCapAsk: { pid: number; message: unknown };
   missingFactAsk: { pid: number; message: unknown };
-  ask2: { pid: number; message: unknown };
-  ask2FirstAttempt: { pid: number; message: unknown } | undefined;
+  ask4: { pid: number; message: unknown };
+  ask4FirstAttempt: { pid: number; message: unknown } | undefined;
 }
 
 // Takes no policy path, no keypair path and no environment: those fields
@@ -860,8 +869,14 @@ export function buildMachineRecord(
   context: MachineRecordContext
 ): Record<string, unknown> {
   return {
-    serverPid: context.serverPid,
+    commit: context.commit,
+    treeClean: context.treeClean,
+    startedAt: context.startedAt,
+    finishedAt: context.finishedAt,
     rpcHost: new URL(context.rpcUrl).host,
+    programId: context.programId,
+    admin: context.admin,
+    serverPid: context.serverPid,
     org: context.org,
     role: context.role,
     holder: context.holder,
@@ -869,8 +884,8 @@ export function buildMachineRecord(
     ask1: context.ask1,
     overCapAsk: context.overCapAsk,
     missingFactAsk: context.missingFactAsk,
-    ask2: context.ask2,
-    ask2FirstAttempt: context.ask2FirstAttempt,
+    ask4: context.ask4,
+    ask4FirstAttempt: context.ask4FirstAttempt,
   };
 }
 

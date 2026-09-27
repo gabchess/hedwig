@@ -8,7 +8,11 @@
  * with a security or correctness consequence lives in revoke-demo-lib.ts,
  * where it is unit tested. Usage: see app/README.md.
  */
-import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import {
+  execFileSync,
+  spawn,
+  type ChildProcessWithoutNullStreams,
+} from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -26,7 +30,7 @@ import { Connection, Keypair } from "@solana/web3.js";
 
 import {
   assertAsk1,
-  assertAsk2,
+  assertAsk4,
   assertDevnetGenesisHash,
   assertMissingFactAsk,
   assertOverCapAsk,
@@ -41,7 +45,7 @@ import {
   DEFAULT_KEYPAIR_PATH,
   extractAskSummary,
   formatTranscript,
-  isAsk2Valid,
+  isAsk4Valid,
   loadOrGenerateKeypair,
   parseOutPath,
   PAY_REQUEST,
@@ -160,7 +164,22 @@ function waitForExit(
   });
 }
 
+// The commit this run executes and whether the tree had any uncommitted or
+// untracked change, read from git itself so the --out record, not memory,
+// says what code ran.
+function readGitState(): { commit: string; treeClean: boolean } {
+  const git = (args: string[]): string =>
+    execFileSync("git", args, { cwd: __dirname, encoding: "utf8" });
+  return {
+    commit: git(["rev-parse", "HEAD"]).trim(),
+    treeClean: git(["status", "--porcelain"]).trim() === "",
+  };
+}
+
 async function main(): Promise<void> {
+  const startedAt = new Date().toISOString();
+  const gitState = readGitState();
+
   // B2: the cheapest possible failure, before any network call.
   assertServerBuilt(SERVER_PATH);
 
@@ -324,19 +343,19 @@ async function main(): Promise<void> {
     );
 
     assertServerProcessAlive(child, serverPid);
-    let ask2Message = await callConsult(child);
-    let ask2Summary = extractAskSummary(ask2Message);
-    let ask2FirstAttemptMessage: unknown;
-    let ask2FirstAttemptSummary: AskSummary | undefined;
-    if (!isAsk2Valid(ask2Summary)) {
-      ask2FirstAttemptMessage = ask2Message;
-      ask2FirstAttemptSummary = ask2Summary;
+    let ask4Message = await callConsult(child);
+    let ask4Summary = extractAskSummary(ask4Message);
+    let ask4FirstAttemptMessage: unknown;
+    let ask4FirstAttemptSummary: AskSummary | undefined;
+    if (!isAsk4Valid(ask4Summary)) {
+      ask4FirstAttemptMessage = ask4Message;
+      ask4FirstAttemptSummary = ask4Summary;
       await sleep(RETRY_WAIT_MS);
       assertServerProcessAlive(child, serverPid);
-      ask2Message = await callConsult(child);
-      ask2Summary = extractAskSummary(ask2Message);
+      ask4Message = await callConsult(child);
+      ask4Summary = extractAskSummary(ask4Message);
     }
-    const ask2: AskSummary = assertAsk2(ask2Summary);
+    const ask4: AskSummary = assertAsk4(ask4Summary);
 
     const transcript = formatTranscript({
       rpcUrl,
@@ -351,15 +370,21 @@ async function main(): Promise<void> {
       ask1,
       overCapAsk,
       missingFactAsk,
-      ask2,
-      ask2FirstAttempt: ask2FirstAttemptSummary,
+      ask4,
+      ask4FirstAttempt: ask4FirstAttemptSummary,
     });
     console.log(transcript);
 
     const outPath = parseOutPath(process.argv);
     if (outPath) {
       const record = buildMachineRecord({
+        commit: gitState.commit,
+        treeClean: gitState.treeClean,
+        startedAt,
+        finishedAt: new Date().toISOString(),
         rpcUrl,
+        programId: HEDWIG_PROGRAM_ID.toBase58(),
+        admin: admin.publicKey.toBase58(),
         serverPid: serverPid as number,
         org: orgPda.toBase58(),
         role: rolePda.toBase58(),
@@ -376,9 +401,9 @@ async function main(): Promise<void> {
           pid: serverPid as number,
           message: missingFactMessage,
         },
-        ask2: { pid: serverPid as number, message: ask2Message },
-        ask2FirstAttempt: ask2FirstAttemptMessage
-          ? { pid: serverPid as number, message: ask2FirstAttemptMessage }
+        ask4: { pid: serverPid as number, message: ask4Message },
+        ask4FirstAttempt: ask4FirstAttemptMessage
+          ? { pid: serverPid as number, message: ask4FirstAttemptMessage }
           : undefined,
       });
       fs.writeFileSync(outPath, JSON.stringify(record, null, 2));
