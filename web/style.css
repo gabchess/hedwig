@@ -47,6 +47,8 @@ main {
 .statement {
   font-size: 28px;
   font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: normal;
   max-width: 600px;
   margin: 0 0 72px;
 }
