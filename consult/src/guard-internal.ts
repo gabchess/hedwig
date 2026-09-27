@@ -64,9 +64,11 @@ export interface TriggerGuardInput<TPayment, TSignerResult> {
   // throw or a miss of gatherDeadlineMs both count as a guard-level
   // failure: no consult() call, no signer call, an UNKNOWN-shaped result.
   readonly gather?: (request: ConsultRequest) => unknown;
-  // A whole number of milliseconds from 1 to 2147483647. Any other value
-  // (0, a fraction, NaN, Infinity, negative, or over that ceiling) is a
-  // guard-level input error: GUARD_GATHER_DEADLINE_INVALID, no gather call.
+  // Used, and validated, only when `gather` is passed; unused otherwise.
+  // When gather is passed, this must be a whole number of milliseconds from
+  // 1 to 2147483647. Any other value (0, a fraction, NaN, Infinity,
+  // negative, or over that ceiling) is a guard-level input error:
+  // GUARD_GATHER_DEADLINE_INVALID, no gather call.
   readonly gatherDeadlineMs?: number;
   // Called at most once, only on ALLOW_UNDER_POLICY, with the action field
   // of the same frozen JSON snapshot the guard passed to gather and consult(),
@@ -150,16 +152,16 @@ function unknownGuardResult<TSignerResult>(
 // instead of silently becoming "no deadline at all".
 //
 // A deadline of 0 (or -0), or any value below 1ms (Number.MIN_VALUE, 1e-3,
-// 0.5), is rejected too, not just NaN/Infinity/negative/over-ceiling ones:
-// raceWithDeadline's own elapsed-time check
-// (performance.now() - start >= deadlineMs) is always true once deadlineMs
-// is under 1ms, so gather or the signer runs and its result is always
-// discarded as a timeout; setTimeout itself also rounds anything under 1ms
-// up to 1ms, so a fractional deadline never means what it says. For the
-// signer that means the action was already signed, then reported as
-// UNKNOWN, and a Caller that retries an UNKNOWN outcome could sign the same
-// action twice. A valid deadline is a whole millisecond count, at least 1
-// and at most MAX_TIMEOUT_MS.
+// a fraction under 1ms), is rejected too, not just NaN/Infinity/negative/
+// over-ceiling ones: the elapsed-time check cannot meaningfully time a
+// sub-millisecond deadline, and setTimeout itself rounds anything under 1ms
+// up to 1ms, so a fractional deadline never means what it says. A deadline
+// that races ahead of the call it is meant to bound can report a completed
+// call as timed out; for the signer that means the action was already
+// signed, then reported as "unknown" (signerOutcome), and a Caller that
+// retries an unknown outcome could sign the same action twice. A valid
+// deadline is a whole millisecond count, at least 1 and at most
+// MAX_TIMEOUT_MS.
 const MAX_TIMEOUT_MS = 2147483647;
 
 function isValidDeadlineMs(value: number): boolean {
@@ -310,11 +312,12 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
     return unknownGuardResult("GUARD_MAPPING_FAILED", errorMessage(error));
   }
 
-  // Both deadlines are validated here, before gather or consultFn ever run,
-  // not only the one that is about to be used. signerDeadlineMs would
-  // otherwise stay unchecked until after gather and consultFn had already
-  // run for an ALLOW_UNDER_POLICY verdict, which is later than a guard-level
-  // input error should surface.
+  // signerDeadlineMs is validated here, before gather or consultFn ever run,
+  // regardless of whether gather is even passed: it would otherwise stay
+  // unchecked until after gather and consultFn had already run for an
+  // ALLOW_UNDER_POLICY verdict, which is later than a guard-level input
+  // error should surface. gatherDeadlineMs is validated here too, but only
+  // when gather is passed; it is unused, and left unchecked, otherwise.
   const doGather = input.gather;
   const gatherDeadlineMs = doGather
     ? input.gatherDeadlineMs ?? DEFAULT_GATHER_DEADLINE_MS
