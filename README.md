@@ -6,8 +6,10 @@
 
 <p align="center"><strong>The safety trigger onchain agents check before they pay.</strong></p>
 
+<p align="center"><a href="https://usehedwig.xyz">usehedwig.xyz</a></p>
+
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-d4a574?labelColor=221e18" alt="license: MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?labelColor=0d0b16" alt="license: MIT"></a>
 </p>
 
 Hedwig is the payment check other agents consult before they sign. Run it as an MCP server, or load the agent skill in whatever app you already hand work to. It is built for people or agents running x402 payment tools and agent wallets.
