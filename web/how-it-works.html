@@ -39,7 +39,7 @@
   <div class="panel">
     <h1>How it works</h1>
 
-      <p>Your agent sends Hedwig the payment it wants to make. Hedwig reads the owner's policy from a file the owner controls, and the caller can't send a policy of its own. It also reads the facts it needs from the chain, like whether the agent still holds its role on Solana.</p>
+      <p>Your agent sends Hedwig the payment it wants to make. The MCP server reads the owner's policy from a file the owner controls, so the caller can't send a policy of its own. It also reads from the chain whether the agent still holds its role on Solana.</p>
       <p>Each check answers PASS, FAIL or UNVERIFIED, with a reason code. A check that can't finish says UNVERIFIED and names what's missing.</p>
       <p>The verdict is ALLOW_UNDER_POLICY, DENY or UNKNOWN. Next to it, Hedwig reports a support score from 0 to 1, in a green, amber or red band. Green starts at 0.80, and only a request that passes every check gets there.</p>
       <p>The role check reads a role record on Solana that the owner can revoke. Revoke it, and the very next payment is denied, with no redeploy. You can <a href="/proof">see that run on devnet</a>.</p>

@@ -229,7 +229,7 @@ a:focus-visible {
 }
 
 /* --- pixel owl --- */
-.owl-cell.glow {
+.cell.glow {
   animation: owl-breathe 6s ease-in-out infinite;
 }
 
@@ -239,7 +239,7 @@ a:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .owl-cell.glow {
+  .cell.glow {
     animation: none;
     opacity: 1;
   }
