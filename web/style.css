@@ -246,7 +246,7 @@ a:focus-visible {
 }
 
 /* --- mobile, single column --- */
-@media (max-width: 640px) {
+@media (max-width: 959px) {
   .frame,
   .frame.has-panel {
     display: flex;
