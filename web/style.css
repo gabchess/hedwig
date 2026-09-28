@@ -101,6 +101,10 @@ a:focus-visible {
   margin: 0 0 6px;
 }
 
+.rail-name a {
+  text-decoration: none;
+}
+
 .rail-intro {
   font-size: 14px;
   color: var(--text);
