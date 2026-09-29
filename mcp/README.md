@@ -1,7 +1,10 @@
 # @hedwig/mcp
 
 A stdio MCP server exposing one tool, `consult`, backed by `@hedwig/consult`.
+Run these from the repo root, with Node.js 22+ and Yarn. `mcp/test/fixtures/policy.json` is a policy file you can start with.
 ```sh
+yarn install --frozen-lockfile
+npm ci --ignore-scripts --prefix mcp
 yarn consult:build && yarn mcp:build
 HEDWIG_POLICY_FILE=/path/to/policy.json node mcp/dist/server.js
 ```
@@ -9,13 +12,13 @@ HEDWIG_POLICY_FILE=/path/to/policy.json node mcp/dist/server.js
 The policy file is a regular JSON file of at most 256 KB; when a key appears twice, the last one applies.
 A `pay` policy states the owner's authorization-window choice. Without an `authorizationWindow` field, that row answers UNVERIFIED and `proceed` stays false.
 A policy requiring a Solana role reads it through `HEDWIG_SOLANA_RPC_URL_DEVNET` / `_MAINNET` and `HEDWIG_SOLANA_FEE_PAYER_DEVNET` / `_MAINNET`, one pair per cluster. Without the pair set for the cluster a policy names, that role check answers UNVERIFIED. The policy's `role.member` field is optional: the server derives the member address itself from `role` and `holder`.
-Add it to your MCP client as a stdio server:
+Add it to your MCP client as a stdio server. Put the absolute path to `server.js` in `args`: a relative path resolves against the client's working directory, not this repo.
 ```json
 {
   "mcpServers": {
     "hedwig": {
       "command": "node",
-      "args": ["mcp/dist/server.js"],
+      "args": ["/path/to/hedwig/mcp/dist/server.js"],
       "env": { "HEDWIG_POLICY_FILE": "/path/to/policy.json" }
     }
   }
