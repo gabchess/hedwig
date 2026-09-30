@@ -200,6 +200,45 @@ a:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.panel h2,
+.panel h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--text);
+}
+
+.panel ol,
+.panel ul {
+  font-size: 15px;
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.panel li {
+  margin: 0 0 6px;
+}
+
+.panel li a {
+  color: var(--blue);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.panel pre {
+  background: var(--surface);
+  margin: 0 0 12px;
+  padding: 12px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.panel code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
 .panel-table {
   width: 100%;
   border-collapse: collapse;

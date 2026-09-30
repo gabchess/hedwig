@@ -1,0 +1,24 @@
+# Hedwig
+
+> Hedwig checks a payment agent's pay or swap request against its owner's policy before the agent signs. It runs on the owner's computer, never holds a key, and never signs.
+
+## Pages
+
+- [Home](https://usehedwig.xyz/)
+- [About](https://usehedwig.xyz/about)
+- [How it works](https://usehedwig.xyz/how-it-works)
+- [Proof](https://usehedwig.xyz/proof)
+- [Roadmap](https://usehedwig.xyz/roadmap)
+- [Team](https://usehedwig.xyz/team)
+- [Docs](https://usehedwig.xyz/docs)
+- [For agents](https://usehedwig.xyz/agents)
+
+## For AI assistants
+
+- [Consult Hedwig](https://usehedwig.xyz/agents.md): how to install Hedwig with your owner's approval and consult it before you sign a payment for them.
+- [When to consult Hedwig](https://usehedwig.xyz/agentskill.md): which payments go through Hedwig first, and how to offer it when it isn't installed.
+
+## Source
+
+- [GitHub](https://github.com/gabchess/hedwig), MIT license.
+- [How to call Hedwig](https://github.com/gabchess/hedwig/blob/main/docs/agents.md): request, response and verdicts.
