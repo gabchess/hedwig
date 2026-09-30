@@ -1,6 +1,7 @@
 // Drives the built server over real stdio: one consult, then the named
 // change to the policy file, then a second consult on the same server
-// process. Returns both results and everything the server wrote to stderr.
+// process. With a seventh argument of "beforeFirst" the change comes right
+// after the connection is up and before the first consult. Returns both results and everything the server wrote to stderr.
 // Not run by ts-mocha: plain CommonJS, loaded by the parent test via a
 // child process.
 const {
@@ -15,7 +16,7 @@ const {
   getDefaultEnvironment,
 } = require("@modelcontextprotocol/sdk/client/stdio.js");
 
-const [, , serverPath, policyPath, mode, replacementPath] = process.argv;
+const [, , serverPath, policyPath, mode, replacementPath, when] = process.argv;
 
 const request = {
   action: {
@@ -60,11 +61,12 @@ async function main() {
   });
   await client.connect(transport);
 
+  if (when === "beforeFirst") mutate();
   const before = await client.callTool({
     name: "consult",
     arguments: { request },
   });
-  mutate();
+  if (when !== "beforeFirst") mutate();
   const after = await client.callTool({
     name: "consult",
     arguments: { request },

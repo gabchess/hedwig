@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs";
 
 // The owner's policy file is read fresh on every tool call: no cache, no
 // watcher. Its exact bytes are also hashed once at server start (see
@@ -25,14 +25,17 @@ export interface PolicyPin {
 // A path can name a FIFO, a character device, or a directory instead of a
 // file, and any of those can turn a read into a hang or an unbounded copy
 // (a FIFO blocks until a writer connects, a device like /dev/zero never
-// ends). Stat is metadata only and never opens what it describes, so this
-// check rules those out before readFileSync would touch any of them.
+// ends). The file is opened once, without blocking, and every check and the
+// read itself go through that one descriptor, so a swap of the path after
+// the open changes nothing this code sees. O_NONBLOCK keeps the open of a
+// FIFO from waiting; the type check then refuses it before any read.
 const MAX_POLICY_BYTES = 256 * 1024;
 const UNREADABLE = "policy file is missing or unreadable";
-const CHANGED =
-  "policy file changed since the server started; restart the server to accept it";
+// What an agent sees. The restart advice for the owner goes to stderr only
+// (handler.ts): an agent that is told to restart the server can cause it.
+const CHANGED = "policy file changed since the server started";
 const UNREADABLE_AT_START =
-  "policy file was not readable when the server started; restart the server once it is";
+  "policy file was not readable when the server started";
 
 function unreadable(reason: string): PolicyReadResult {
   return { ok: false, code: "ADAPTER_POLICY_UNREADABLE", reason };
@@ -41,19 +44,36 @@ function unreadable(reason: string): PolicyReadResult {
 type BytesResult = { ok: true; raw: Buffer } | { ok: false };
 
 function readPolicyBytes(path: string): BytesResult {
-  let stats;
+  let fd: number;
   try {
-    stats = statSync(path);
+    fd = openSync(path, constants.O_RDONLY | constants.O_NONBLOCK);
   } catch {
     return { ok: false };
   }
-  if (!stats.isFile() || stats.size > MAX_POLICY_BYTES) {
-    return { ok: false };
-  }
   try {
-    return { ok: true, raw: readFileSync(path) };
+    const stats = fstatSync(fd);
+    if (!stats.isFile() || stats.size > MAX_POLICY_BYTES) {
+      return { ok: false };
+    }
+    // One byte more than the cap: enough to see that the file outgrew it,
+    // never enough to copy a file that keeps growing.
+    const buffer = Buffer.alloc(MAX_POLICY_BYTES + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const read = readSync(fd, buffer, length, buffer.length - length, null);
+      if (read === 0) {
+        break;
+      }
+      length += read;
+    }
+    if (length > MAX_POLICY_BYTES) {
+      return { ok: false };
+    }
+    return { ok: true, raw: buffer.subarray(0, length) };
   } catch {
     return { ok: false };
+  } finally {
+    closeSync(fd);
   }
 }
 

@@ -75,9 +75,10 @@ function logVerdict(result: ConsultResponse): void {
 
 function main(): void {
   const policyPath = requirePolicyPath();
-  // The policy's bytes are hashed once, here. Every later call must read the
-  // same bytes, so an agent that can write the file cannot change what this
-  // process enforces; the owner restarts the server to accept an edit.
+  // The policy's bytes are hashed once, here. Every later call in this run
+  // must read the same bytes, so an agent that can write the file cannot
+  // change what this process enforces. The pin lasts only as long as the
+  // process: the next start pins whatever the file holds, with no warning.
   const policyPin = pinPolicyFile(policyPath);
   const server = new Server(
     { name: "hedwig-mcp", version: "0.4.0" },

@@ -20,10 +20,15 @@ interface Probe {
   stderr: string;
 }
 
-function probe(policyPath: string, mode: string, replacement = ""): Probe {
+function probe(
+  policyPath: string,
+  mode: string,
+  replacement = "",
+  when = "betweenCalls"
+): Probe {
   const raw = execFileSync(
     process.execPath,
-    [CLIENT_SCRIPT, SERVER_PATH, policyPath, mode, replacement],
+    [CLIENT_SCRIPT, SERVER_PATH, policyPath, mode, replacement, when],
     { encoding: "utf8", timeout: 15000 }
   );
   const output = JSON.parse(raw);
@@ -74,6 +79,20 @@ describe("the policy file is pinned at server start, driven over real stdio", fu
     expect(output.stderr).to.include("changed since");
     expect(output.stderr).to.not.include(policyPath);
     expect(output.stderr).to.not.include("999999999");
+  });
+
+  it("an edit after the server is up but before the first call answers UNKNOWN: the pin is taken at start, not at the first call", () => {
+    const output = probe(policyPath, "edit", changedPolicyPath, "beforeFirst");
+
+    expect(output.before.verdict).to.equal("UNKNOWN");
+    expect(output.before.results[0].code).to.equal("ADAPTER_POLICY_CHANGED");
+    expect(output.after.verdict).to.equal("UNKNOWN");
+  });
+
+  it("the reply the agent receives does not tell it to restart the server", () => {
+    const output = probe(policyPath, "edit", changedPolicyPath);
+
+    expect(JSON.stringify(output.after)).to.not.match(/restart/i);
   });
 
   it("a deletion after the first call answers UNKNOWN with ADAPTER_POLICY_UNREADABLE", () => {

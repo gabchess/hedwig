@@ -101,9 +101,11 @@ export async function handleConsult(
   const policyResult = readPolicyFile(policyPath, pin);
   if (!policyResult.ok) {
     if (policyResult.code === "ADAPTER_POLICY_CHANGED") {
-      // Names the variable, never its value or the policy's contents.
+      // Names the variable, never its value or the policy's contents. This
+      // line is for the owner: the restart advice stays out of the reply
+      // the agent reads.
       console.error(
-        "hedwig-mcp: the file named by HEDWIG_POLICY_FILE changed since the server started; answering UNKNOWN until it restarts"
+        "hedwig-mcp: the file named by HEDWIG_POLICY_FILE changed since the server started; answering UNKNOWN until it restarts. A restart accepts whatever the file holds then, so review it first"
       );
     }
     return unknownAdapterResponse(policyResult.code, policyResult.reason);
