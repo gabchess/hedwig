@@ -4,11 +4,26 @@ Versions track what ships, code or docs.
 
 ## Unreleased
 
+## [0.4.2] - 2026-09-30
+
+### Added
+
+- The usehedwig.xyz pages `/agents` and `/docs`. `/agents` gives an owner one line to paste into an AI agent that can run commands on their computer. `/docs` covers connecting an agent, installing Hedwig yourself, the policy file, the request and response, and calling the check from your own code. (#65)
+- `/agents.md`, `/agentskill.md` and `/llms.txt`, for AI agents. `agents.md` walks an agent through asking its owner, installing Hedwig and registering the server. `agentskill.md` says which payments to consult Hedwig on and how to offer it when it is not installed. `llms.txt` indexes the site. The three files are served with explicit `text/markdown` and `text/plain` content types. (#65)
+- `docs/agents.md`, a reference for the `consult` request and response. (#65)
+- A `Docs` and a `For agents` link in the nav of every site page. (#65)
+
 ### Changed
 
-- The MCP server pins the owner's policy file when it starts. Within one server run, if the file's bytes differ on a later call, `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED`. The pin ends with the process: each server start pins whatever the file holds then, so review the file before restarting, or keep it out of the agent's write reach. A file that is deleted, unreadable, or grew past 256 KB answers `ADAPTER_POLICY_UNREADABLE`.
-- The MCP server opens the policy file once, checks its type and size on that open descriptor, and reads at most 256 KB from it, so a swap of the path between the check and the read changes nothing.
-- The revoke demo runs Ask 3, the missing-Fact case, on a second server process started on the swapped policy file. Asks 1, 2 and 4 still share one process.
+- The MCP server pins the owner's policy file when it starts. It hashes the file's bytes at start. Within one server run, if the bytes differ on a later call, `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` and the server writes one line to stderr naming `HEDWIG_POLICY_FILE`. The pin ends with the process: each server start pins whatever the file holds then, with no warning, so review the file before restarting, or keep it out of the agent's write reach. (#64)
+- A policy file that is deleted, unreadable, not a regular file, or larger than 256 KB answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. A file that could not be read at start stays refused for that run, even if it is fixed later. (#64)
+- The MCP server opens the policy file once, without blocking, checks its type and size on that open descriptor, and reads at most 256 KB plus one byte from it. The extra byte shows that the file outgrew the cap. A swap of the path between the check and the read changes nothing. (#64)
+- The revoke demo runs Ask 3, the missing-Fact case, on a second server process started on the swapped policy file, because a swap under a running server now answers `ADAPTER_POLICY_CHANGED`. Asks 1, 2 and 4 still share one process. (#64)
+- `THREAT-MODEL.md`, the MCP server README and the demo README describe the pin. (#64)
+- The roadmap lists v0.4.1 as the newest release. (#65)
+- On desktop, the site frame is one screen tall and the panel scrolls. The phone layout is unchanged. (#65)
+- The agent install on `/docs`, in `agents.md` and in `docs/agents.md` fetches the commit published as v0.4.1 by its full hash, into a new `hedwig` folder, and stops at the first failed step. That commit does not include the policy pin. (#65)
+- The MCP server reports version 0.4.2 to clients. It reported 0.4.0 through v0.4.1.
 
 ## [0.4.1] - 2026-09-30
 
