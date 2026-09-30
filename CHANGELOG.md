@@ -23,6 +23,7 @@ Versions track what ships, code or docs.
 - The roadmap lists v0.4.1 as the newest release. (#65)
 - On desktop, the site frame is one screen tall and the panel scrolls. The phone layout is unchanged. (#65)
 - The agent install on `/docs`, in `agents.md` and in `docs/agents.md` fetches the commit published as v0.4.1 by its full hash, into a new `hedwig` folder, and stops at the first failed step. That commit does not include the policy pin. (#65)
+- The MCP server reports version 0.4.2 to clients. It reported 0.4.0 through v0.4.1.
 
 ## [0.4.1] - 2026-09-30
 

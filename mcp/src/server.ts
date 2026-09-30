@@ -81,7 +81,7 @@ function main(): void {
   // process: the next start pins whatever the file holds, with no warning.
   const policyPin = pinPolicyFile(policyPath);
   const server = new Server(
-    { name: "hedwig-mcp", version: "0.4.0" },
+    { name: "hedwig-mcp", version: "0.4.2" },
     { capabilities: { tools: {} } }
   );
 
