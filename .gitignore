@@ -30,3 +30,4 @@ test-ledger/
 *.swp
 .vercel
 .env*
+!.env.example
