@@ -1,8 +1,23 @@
 # Changelog
 
-Versions track shipped code.
+Versions track what ships, code or docs.
 
 ## Unreleased
+
+## [0.4.1] - 2026-09-30
+
+The code in `@hedwig/consult` and `@hedwig/mcp` is identical to v0.4.0. Only the MCP server README changed in the packages.
+
+### Added
+
+- The usehedwig.xyz site source, under `web/`. The root README links the live site, not the `web/` source. (#60, #61)
+
+### Changed
+
+- The root README's license badge changes color to match the site. (#60)
+- The MCP server README lists the install steps a clean clone needs: `yarn install --frozen-lockfile` and `npm ci --ignore-scripts --prefix mcp`, before the build. (#62)
+- The MCP server README asks for absolute paths in `args` and in `HEDWIG_POLICY_FILE`. A relative path resolves against the MCP client's working directory, not the repo. (#62)
+- The MCP server README's response list names the `question` field. (#62)
 
 ## [0.4.0] - 2026-09-27
 
