@@ -1,8 +1,8 @@
 # Security policy
 
 Hedwig is the payment check other agents consult before they sign. It runs as
-an MCP server or as an agent skill, and its onchain role program records which
-pubkeys hold which roles. There is no bug bounty program.
+an MCP server, and its onchain role program records which pubkeys hold which
+roles. There is no bug bounty program.
 
 ## Report privately
 

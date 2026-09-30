@@ -12,7 +12,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?labelColor=0d0b16" alt="license: MIT"></a>
 </p>
 
-Hedwig is the payment check other agents consult before they sign. Run it as an MCP server, or load the agent skill in whatever app you already hand work to. It is built for people or agents running x402 payment tools and agent wallets.
+Hedwig is the payment check other agents consult before they sign. Run it as an MCP server in whatever app you already hand work to, or point an agent at the [agent guide](docs/agents.md). It is built for people or agents running x402 payment tools and agent wallets.
 
 To put the check in front of your own signer in code, use the [Trigger guard](consult/README.md#trigger-guard).
 
@@ -43,4 +43,4 @@ npm ci --prefix app
 ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
 ```
 
-[Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Agent skill](augment/README.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Agent guide](docs/agents.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
