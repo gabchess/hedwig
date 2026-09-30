@@ -19,8 +19,8 @@ quote changed since your last consult.
 ## If Hedwig is installed
 
 Call the `consult` tool without asking first, then report the verdict to
-your owner in one line. Sign only when `proceed` is `true`. The full steps
-are at https://usehedwig.xyz/agents.md.
+your owner in one line. Sign only when `proceed` is `true`. Read
+https://usehedwig.xyz/agents.md for the full steps.
 
 ## If Hedwig isn't installed
 

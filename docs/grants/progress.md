@@ -29,7 +29,7 @@ Public delivery review:
 
 ## Verification totals
 
-- 42 Rust tests passed: 28 core integration tests, 12 consumer integration
+- 43 Rust tests passed: 29 core integration tests, 12 consumer integration
   tests, and two program-ID tests.
 - 27 TypeScript SDK tests passed.
 - Both SBF programs built from the reviewed source.

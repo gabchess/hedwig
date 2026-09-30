@@ -77,8 +77,10 @@ The server hashes the policy file's bytes when it starts and compares every
 later read to that hash. Within one server run, a caller that can write the
 file cannot add its own recipient and get the next request approved: any change
 to the file's bytes, by an edit, a replacement or a symlink swap, answers
-`UNKNOWN` with `ADAPTER_POLICY_CHANGED`. A deleted file, or one that grew
-past 256 KB, answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. The reply says only that the file
+`UNKNOWN` with `ADAPTER_POLICY_CHANGED`. A deleted file, a file larger than
+256 KB (262,144 bytes), or a directory or FIFO in the file's place answers
+`UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. So does every call in a run that
+started while the file could not be read. The reply says only that the file
 changed; the restart advice goes to stderr, for the Owner.
 
 The pin lasts as long as the server process. Every server start, which means
