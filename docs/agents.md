@@ -24,12 +24,12 @@ You need git, Node.js 22 or newer, and Yarn.
 
 ```sh
 mkdir hedwig && cd ./hedwig && git init &&
-git fetch --depth 1 https://github.com/gabchess/hedwig.git a73cbd657834c31b8419485a8791780e0799c3ab &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 git checkout FETCH_HEAD &&
 yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-This fetches the exact commit published as v0.4.1, by its full hash, and
+This fetches the exact commit published as v0.4.2, by its full hash, and
 stops if any step fails. A wrong hash fails at the fetch, before the
 install runs. If a step fails, stop and fix the error before you run
 anything else. If an earlier attempt left a `hedwig` folder, ask your
@@ -65,7 +65,7 @@ working directory, not the repo.
 ## Write the policy
 
 The policy is the owner's file. Keep it outside the repo. It's a JSON file
-of at most 256 KB, and when a key appears twice, the last one applies.
+of at most 256 KB, and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it.
 
 ```json
 {

@@ -46,14 +46,14 @@
       <p>Paste this into an agent that can run commands on your computer:</p>
       <pre><code>Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md</code></pre>
       <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig never asks for keys, seed phrases or funds.</p>
-      <p>Your agent asks you before it installs anything. Then it asks for your policy, fetches the exact commit published as v0.4.1 and installs it, shows you the policy to save, registers the <code>consult</code> tool, and consults Hedwig before each payment or swap. You save the policy file yourself, and the agent never writes or edits it. The agent continues only when the answer is <code>proceed: true</code>.</p>
+      <p>Your agent asks you before it installs anything. Then it asks for your policy, fetches the exact commit published as v0.4.2 and installs it, shows you the policy to save, registers the <code>consult</code> tool, and consults Hedwig before each payment or swap. You save the policy file yourself, and the agent never writes or edits it. The agent continues only when the answer is <code>proceed: true</code>.</p>
       <h2>Install it yourself</h2>
       <p>You need git, Node.js 22 or newer, and Yarn.</p>
       <pre><code>mkdir hedwig &amp;&amp; cd ./hedwig &amp;&amp; git init &amp;&amp;
-git fetch --depth 1 https://github.com/gabchess/hedwig.git a73cbd657834c31b8419485a8791780e0799c3ab &amp;&amp;
+git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
 git checkout FETCH_HEAD &amp;&amp;
 yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &amp;&amp; yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
-      <p>This fetches the exact commit published as v0.4.1, by its full hash, and stops if any step fails. A wrong hash fails at the fetch, before the install runs. If a step fails, fix the error before you run anything else. If an earlier attempt left a <code>hedwig</code> folder, delete it before you retry.</p>
+      <p>This fetches the exact commit published as v0.4.2, by its full hash, and stops if any step fails. A wrong hash fails at the fetch, before the install runs. If a step fails, fix the error before you run anything else. If an earlier attempt left a <code>hedwig</code> folder, delete it before you retry.</p>
       <p>Add it to your MCP client as a stdio server, with absolute paths for both the server and your policy file:</p>
       <pre><code>{
   "mcpServers": {
@@ -74,7 +74,7 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }</code></pre>
-      <p>It names the chain you allow, the recipients you approve, a cap per action, and your choices about a Solana role and an EIP-3009 authorization window. A swap policy also sets a slippage ceiling, a deadline ceiling and your own addresses.</p>
+      <p>It names the chain you allow, the recipients you approve, a cap per action, and your choices about a Solana role and an EIP-3009 authorization window. A swap policy also sets a slippage ceiling, a deadline ceiling and your own addresses. Hedwig pins the file's bytes when the server starts: <code>consult</code> answers UNKNOWN while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where your agent can't write it.</p>
       <h2>What your agent sends</h2>
       <p>One argument, <code>request</code>, holding the payment it's about to sign:</p>
       <pre><code>{

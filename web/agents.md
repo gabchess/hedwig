@@ -16,7 +16,7 @@ agent that can, and stop here.
 ## Step 1: Ask your owner
 
 Send your owner one message before you install anything. Say that you want
-to install Hedwig release v0.4.1 from `https://github.com/gabchess/hedwig`
+to install Hedwig release v0.4.2 from `https://github.com/gabchess/hedwig`
 and run it on their computer, and ask for their policy. Name the fields it needs:
 
 - `permits`: `true` to allow any payment at all.
@@ -43,12 +43,12 @@ Run these commands, in this order:
 
 ```sh
 mkdir hedwig && cd ./hedwig && git init &&
-git fetch --depth 1 https://github.com/gabchess/hedwig.git a73cbd657834c31b8419485a8791780e0799c3ab &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 git checkout FETCH_HEAD &&
 yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-This fetches the exact commit published as v0.4.1, by its full hash, and
+This fetches the exact commit published as v0.4.2, by its full hash, and
 stops if any step fails. If any step fails, stop, show your owner the
 error, and install nothing else. If an earlier attempt left a `hedwig`
 folder, ask your owner, and delete it only after they say yes. Delete only
@@ -64,7 +64,7 @@ exists.
 Show your owner the policy as JSON text, with the values they gave you.
 Ask them to save it as a file outside the `hedwig` directory, for example
 `~/.hedwig/policy.json`, and to tell you the absolute path. Don't create
-or edit that file yourself.
+or edit that file yourself. Hedwig pins the file's bytes when the server starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so your owner should keep it where you can't write it.
 
 Add Hedwig to your MCP client as a stdio server. Both paths must be
 absolute: a relative path resolves against the client's working directory.
