@@ -51,7 +51,8 @@ yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn c
 This fetches the exact commit published as v0.4.1, by its full hash, and
 stops if any step fails. If any step fails, stop, show your owner the
 error, and install nothing else. If an earlier attempt left a `hedwig`
-folder, ask your owner, then delete it before you retry.
+folder, ask your owner, and delete it only after they say yes. Delete only
+the `hedwig` folder in the directory where you ran these commands.
 
 Run `pwd` in the `hedwig` directory and keep the absolute path it prints.
 

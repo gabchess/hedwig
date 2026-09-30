@@ -32,8 +32,9 @@ yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn c
 This fetches the exact commit published as v0.4.1, by its full hash, and
 stops if any step fails. A wrong hash fails at the fetch, before the
 install runs. If a step fails, stop and fix the error before you run
-anything else. If an earlier attempt left a `hedwig` folder, delete it
-before you retry.
+anything else. If an earlier attempt left a `hedwig` folder, ask your
+owner, and delete it only after they say yes. Delete only the `hedwig`
+folder in the directory where you ran these commands.
 
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it
