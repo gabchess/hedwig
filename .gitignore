@@ -11,6 +11,8 @@ consult/dist/
 mcp/dist/
 
 # Environment and secrets
+.env*
+!.env.example
 *.pem
 id.json
 *-keypair.json
@@ -26,5 +28,3 @@ test-ledger/
 .idea/
 *.swp
 .vercel
-.env*
-!.env.example

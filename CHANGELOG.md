@@ -23,7 +23,7 @@ Versions track what ships, code or docs.
 
 ### Fixed
 
-- The 0.4.2 entry says the MCP server opens the policy file once. The server opens and reads the file on every call and compares its bytes to the hash taken at start.
+- In the 0.4.2 entry, "opens the policy file once" means once per read. The server opens and reads the file on every call and compares its bytes to the hash taken at start.
 - The grant progress doc gives the Rust test total as 43 (29 core integration, 12 consumer integration, two program-ID), matching `cargo test --workspace`.
 
 ## [0.4.2] - 2026-09-30
