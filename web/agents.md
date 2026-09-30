@@ -42,7 +42,7 @@ you every field.
 Run these commands, in this order:
 
 ```sh
-git init hedwig && cd hedwig &&
+mkdir hedwig && cd ./hedwig && git init &&
 git fetch --depth 1 https://github.com/gabchess/hedwig.git a73cbd657834c31b8419485a8791780e0799c3ab &&
 git checkout FETCH_HEAD &&
 yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
@@ -50,7 +50,8 @@ yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn c
 
 This fetches the exact commit published as v0.4.1, by its full hash, and
 stops if any step fails. If any step fails, stop, show your owner the
-error, and install nothing else.
+error, and install nothing else. If an earlier attempt left a `hedwig`
+folder, ask your owner, then delete it before you retry.
 
 Run `pwd` in the `hedwig` directory and keep the absolute path it prints.
 

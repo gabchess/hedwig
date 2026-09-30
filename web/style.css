@@ -284,6 +284,13 @@ a:focus-visible {
   }
 }
 
+/* --- desktop, frame fills the viewport; the panel scrolls on its own --- */
+@media (min-width: 960px) {
+  .frame {
+    height: 100vh;
+  }
+}
+
 /* --- mobile, single column --- */
 @media (max-width: 959px) {
   .frame,
