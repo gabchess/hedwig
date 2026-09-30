@@ -28,3 +28,6 @@ test-ledger/
 .vscode/
 .idea/
 *.swp
+.vercel
+.env*
+!.env.example

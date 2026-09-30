@@ -4,6 +4,10 @@ Versions track what ships, code or docs.
 
 ## Unreleased
 
+### Changed
+
+- The agent install, on `/docs`, in `agents.md` and in `docs/agents.md`, fetches the commit published as v0.4.2, which includes the policy pin.
+
 ## [0.4.2] - 2026-09-30
 
 ### Added
