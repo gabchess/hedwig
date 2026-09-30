@@ -23,16 +23,16 @@ yourself, and the agent never writes or edits it.
 You need git, Node.js 22 or newer, and Yarn.
 
 ```sh
-git clone --branch v0.4.1 --depth 1 https://github.com/gabchess/hedwig.git
-test "$(git -C hedwig rev-parse HEAD)" = 0424f8ab318d646c327ea97bdf97161a1bf87c2a
-cd hedwig
-yarn install --frozen-lockfile
-npm ci --ignore-scripts --prefix mcp
-yarn consult:build && yarn mcp:build
+git init hedwig && cd hedwig &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git a73cbd657834c31b8419485a8791780e0799c3ab &&
+git checkout FETCH_HEAD &&
+yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-The second line checks that the download is the commit published for
-v0.4.1. If the check fails, stop and don't run the commands after it.
+This fetches the exact commit published as v0.4.1, by its full hash, and
+stops if any step fails. A wrong hash fails at the fetch, before the
+install runs. If a step fails, stop and fix the error before you run
+anything else.
 
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it

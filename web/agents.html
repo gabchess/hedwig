@@ -50,7 +50,7 @@
       <h3>What your agent does</h3>
       <ol>
         <li>It asks you before it installs anything.</li>
-        <li>It installs Hedwig v0.4.1 from GitHub and checks that the download is the commit published for that release. If the check fails, it stops and tells you.</li>
+        <li>It fetches the exact commit published as v0.4.1 and installs it. If any step fails, it stops, shows you the error, and installs nothing else.</li>
         <li>It shows you the policy it wrote down from your answers. You save the file yourself, and the agent never writes or edits it.</li>
         <li>Before each payment or swap, it consults Hedwig. It stops unless the answer is proceed.</li>
       </ol>

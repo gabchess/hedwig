@@ -42,17 +42,15 @@ you every field.
 Run these commands, in this order:
 
 ```sh
-git clone --branch v0.4.1 --depth 1 https://github.com/gabchess/hedwig.git
-test "$(git -C hedwig rev-parse HEAD)" = 0424f8ab318d646c327ea97bdf97161a1bf87c2a
-cd hedwig
-yarn install --frozen-lockfile
-npm ci --ignore-scripts --prefix mcp
-yarn consult:build && yarn mcp:build
+git init hedwig && cd hedwig &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git a73cbd657834c31b8419485a8791780e0799c3ab &&
+git checkout FETCH_HEAD &&
+yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-The second line checks that the download is the commit published for
-v0.4.1. If the check fails, stop and tell your owner. Don't run the
-commands after it.
+This fetches the exact commit published as v0.4.1, by its full hash, and
+stops if any step fails. If any step fails, stop, show your owner the
+error, and install nothing else.
 
 Run `pwd` in the `hedwig` directory and keep the absolute path it prints.
 
