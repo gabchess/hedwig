@@ -9,6 +9,7 @@ import {
 import type { ConsultResponse } from "@hedwig/consult";
 
 import { handleConsult, unknownAdapterResponse } from "./handler";
+import { pinPolicyFile } from "./policy";
 
 const POLICY_PATH_ENV = "HEDWIG_POLICY_FILE";
 const TOOL_NAME = "consult";
@@ -74,6 +75,10 @@ function logVerdict(result: ConsultResponse): void {
 
 function main(): void {
   const policyPath = requirePolicyPath();
+  // The policy's bytes are hashed once, here. Every later call must read the
+  // same bytes, so an agent that can write the file cannot change what this
+  // process enforces; the owner restarts the server to accept an edit.
+  const policyPin = pinPolicyFile(policyPath);
   const server = new Server(
     { name: "hedwig-mcp", version: "0.4.0" },
     { capabilities: { tools: {} } }
@@ -105,7 +110,7 @@ function main(): void {
     // from becoming anything other than an UNKNOWN answer.
     let result: ConsultResponse;
     try {
-      result = await handleConsult(args, policyPath);
+      result = await handleConsult(args, policyPath, policyPin);
     } catch {
       result = unknownAdapterResponse(
         "ADAPTER_FAILED",

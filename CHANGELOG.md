@@ -4,6 +4,10 @@ Versions track what ships, code or docs.
 
 ## Unreleased
 
+### Changed
+
+- The MCP server pins the owner's policy file when it starts. If the file's bytes differ on a later call, `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED`; restart the server to accept a new policy. A file that is deleted or unreadable still answers `ADAPTER_POLICY_UNREADABLE`.
+
 ## [0.4.1] - 2026-09-30
 
 The code in `@hedwig/consult` and `@hedwig/mcp` is identical to v0.4.0. Only the MCP server README changed in the packages.

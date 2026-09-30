@@ -73,6 +73,15 @@ named chain, the role choice and the authorization window. The MCP server
 reads that file from the path in `HEDWIG_POLICY_FILE`, and reads a required
 Solana role through the RPC endpoint named in the environment.
 
+The server hashes the policy file's bytes when it starts and compares every
+later read to that hash. A caller that can write the file cannot add its own
+recipient and get the next request approved: an edited, replaced or
+symlink-swapped file answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED`, and a
+deleted one with `ADAPTER_POLICY_UNREADABLE`. The Owner restarts the server to
+accept a new policy. The pin does not stop a caller that can change the file
+before the server starts, or that can change the server's environment or
+binary.
+
 Hedwig returns `proceed`, a verdict, and one row per Condition. Acting on
 that answer is the caller's own step.
 
