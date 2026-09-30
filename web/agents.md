@@ -64,7 +64,7 @@ exists.
 Show your owner the policy as JSON text, with the values they gave you.
 Ask them to save it as a file outside the `hedwig` directory, for example
 `~/.hedwig/policy.json`, and to tell you the absolute path. Don't create
-or edit that file yourself. Hedwig pins the file's bytes when the server starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so your owner should keep it where you can't write it.
+or edit that file yourself. Hedwig pins the file's bytes when the server starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so your owner should keep it where you can't write it. If `consult` answers `ADAPTER_POLICY_CHANGED`, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
 Add Hedwig to your MCP client as a stdio server. Both paths must be
 absolute: a relative path resolves against the client's working directory.

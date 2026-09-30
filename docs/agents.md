@@ -65,7 +65,7 @@ working directory, not the repo.
 ## Write the policy
 
 The policy is the owner's file. Keep it outside the repo. It's a JSON file
-of at most 256 KB, and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it.
+of at most 256 KB, and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. If `consult` answers `ADAPTER_POLICY_CHANGED`, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
 ```json
 {
