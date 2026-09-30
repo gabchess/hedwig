@@ -77,8 +77,8 @@ The server hashes the policy file's bytes when it starts and compares every
 later read to that hash. Within one server run, a caller that can write the
 file cannot add its own recipient and get the next request approved: any change
 to the file's bytes, by an edit, a replacement or a symlink swap, answers
-`UNKNOWN` with `ADAPTER_POLICY_CHANGED`, and a deleted file answers
-`UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. The reply says only that the file
+`UNKNOWN` with `ADAPTER_POLICY_CHANGED`. A deleted file, or one that grew
+past 256 KB, answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. The reply says only that the file
 changed; the restart advice goes to stderr, for the Owner.
 
 The pin lasts as long as the server process. Every server start, which means
@@ -92,8 +92,10 @@ change the file before the server starts, or that can change the server's
 environment or binary.
 
 The hash covers bytes, not meaning. Replacing the file with identical bytes
-or changing its permissions does not change the answer, and only the pinned
-bytes can ever be approved.
+or changing its permissions in a way that keeps it readable does not change
+the answer. A permissions change that makes the file unreadable answers
+`UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. Only the pinned bytes can ever be
+approved.
 
 Hedwig returns `proceed`, a verdict, and one row per Condition. Acting on
 that answer is the caller's own step.

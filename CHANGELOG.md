@@ -6,7 +6,7 @@ Versions track what ships, code or docs.
 
 ### Changed
 
-- The MCP server pins the owner's policy file when it starts. Within one server run, if the file's bytes differ on a later call, `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED`. The pin ends with the process: each server start pins whatever the file holds then, so review the file before restarting, or keep it out of the agent's write reach. A file that is deleted or unreadable still answers `ADAPTER_POLICY_UNREADABLE`.
+- The MCP server pins the owner's policy file when it starts. Within one server run, if the file's bytes differ on a later call, `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED`. The pin ends with the process: each server start pins whatever the file holds then, so review the file before restarting, or keep it out of the agent's write reach. A file that is deleted, unreadable, or grew past 256 KB answers `ADAPTER_POLICY_UNREADABLE`.
 - The MCP server opens the policy file once, checks its type and size on that open descriptor, and reads at most 256 KB from it, so a swap of the path between the check and the read changes nothing.
 - The revoke demo runs Ask 3, the missing-Fact case, on a second server process started on the swapped policy file. Asks 1, 2 and 4 still share one process.
 
