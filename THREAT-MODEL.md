@@ -80,8 +80,9 @@ to the file's bytes, by an edit, a replacement or a symlink swap, answers
 `UNKNOWN` with `ADAPTER_POLICY_CHANGED`. A deleted file, a file larger than
 256 KB (262,144 bytes), or a directory or FIFO in the file's place answers
 `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. So does every call in a run that
-started while the file could not be read. The reply says only that the file
-changed; the restart advice goes to stderr, for the Owner.
+started while the file could not be read. On `ADAPTER_POLICY_CHANGED` the reply
+says only that the file changed; the restart advice goes to stderr, for the
+Owner.
 
 The pin lasts as long as the server process. Every server start, which means
 every client session and every reconnect, hashes whatever the file holds at

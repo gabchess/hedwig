@@ -16,14 +16,14 @@ Versions track what ships, code or docs.
 - No sentence in `agentskill.md` or in the `agents.md` memory line ends on a URL.
 - `mcp/README.md` and `THREAT-MODEL.md` give the size cap as 262,144 bytes, say that a directory or FIFO in the policy file's place answers `ADAPTER_POLICY_UNREADABLE`, and say that a server started while the file could not be read answers `UNKNOWN` on every call of that run.
 - `/how-it-works` says a revoked role denies the next check on that payment.
-- `/team` says USDG 1,500 of the USDG 3,000 grant has been received.
+- `/team` says USDG 1,500 of the USDG 3,000 grant has been received, and its page description says the project was awarded the grant.
 - The access-control architecture doc is titled "Role record program architecture".
 - `/docs` says an `UNKNOWN` answer also covers a request where every check passed and the policy does not permit the action.
 - The `mcp` and `consult` packages report version 0.4.2, matching the server.
 
 ### Fixed
 
-- In the 0.4.2 entry, "opens the policy file once" means once per read. The server opens and reads the file on every call and compares its bytes to the hash taken at start.
+- In the 0.4.2 entry, "opens the policy file once" means once per read. The server reads the file again on each call that reaches the policy and compares its bytes to the hash taken at start.
 - The grant progress doc gives the Rust test total as 43 (29 core integration, 12 consumer integration, two program-ID), matching `cargo test --workspace`.
 
 ## [0.4.2] - 2026-09-30

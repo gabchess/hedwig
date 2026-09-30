@@ -29,8 +29,9 @@ Public delivery review:
 
 ## Verification totals
 
-- 43 Rust tests passed: 29 core integration tests, 12 consumer integration
-  tests, and two program-ID tests.
+- 43 Rust tests passed as of 2026-09-30: 29 core integration tests, 12
+  consumer integration tests, and two program-ID tests. The 2026-07-24 audit
+  counted 42; the 29th core test landed on 2026-09-09.
 - 27 TypeScript SDK tests passed.
 - Both SBF programs built from the reviewed source.
 - The live core dump matches the reviewed ELF with documented zero-filled
