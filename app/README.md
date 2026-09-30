@@ -98,8 +98,8 @@ It is a builder-owned reference integration, not independent adoption.
 
 The revoke demo shows a policy requiring a Solana role change its answer with
 no redeploy and no server restart. Between asks, the demo changes the
-request amount, swaps the policy file's role program id for one ask, and
-revokes the role on-chain.
+request amount, runs one ask on a second server started on a policy file
+with a swapped role program id, and revokes the role on-chain.
 
 ```bash
 yarn consult:build && yarn mcp:build && npm --prefix app run revoke-demo
@@ -108,12 +108,14 @@ yarn consult:build && yarn mcp:build && npm --prefix app run revoke-demo
 It generates its own throwaway keypair the first time it runs (a file
 outside the repository, overridable with `HEDWIG_DEMO_KEYPAIR`), funds it
 from the devnet faucet, creates an org and a role, assigns the role to a
-second generated key, and spawns the built MCP server once over stdio. It
-asks the server four questions against the same running process: an allow
-while the role is held, an over-cap payment that must DENY, a payment
-missing a required Fact that must return UNKNOWN (via a temporary swap of
-the on-disk policy file, restored before the next ask), and the original
-request repeated after revoking the role on-chain. It prints a transcript
+second generated key, and spawns the built MCP server over stdio. It asks
+four questions: an allow while the role is held, an over-cap payment that
+must DENY, a payment missing a required Fact that must return UNKNOWN, and
+the original request repeated after revoking the role on-chain. Asks 1, 2
+and 4 go to the same running process. The server pins its policy file when
+it starts, so a swap under a running server answers `ADAPTER_POLICY_CHANGED`.
+Ask 3 therefore swaps the on-disk policy file, starts a second server on it,
+asks, stops that server, and restores the original file before the revoke. It prints a transcript
 with every transaction's signature and an explorer link, and all four
 verdicts. Pass `--out <path>` to also write the full machine-readable
 record of all four answers.
