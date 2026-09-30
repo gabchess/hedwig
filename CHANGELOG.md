@@ -21,6 +21,10 @@ Versions track what ships, code or docs.
 - `/docs` says an `UNKNOWN` answer also covers a request where every check passed and the policy does not permit the action.
 - The `mcp` and `consult` packages report version 0.4.2, matching the server.
 
+### Removed
+
+- `augment/`, the agent skill. Agents connect through the MCP server; the agent guide (`docs/agents.md`, `/agents`) explains how.
+
 ### Fixed
 
 - In the 0.4.2 entry, "opens the policy file once" means once per read. The server reads the file again on each call that reaches the policy and compares its bytes to the hash taken at start.

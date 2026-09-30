@@ -36,7 +36,6 @@ app and MCP dependency audits.
 
 - Payment check: `consult/`
 - MCP server: `mcp/`
-- Agent skill: `augment/`
 - Program source: `programs/hedwig_sol/src/`
 - Program tests: `programs/hedwig_sol/tests/`
 - Secure consumer and tests: `programs/hedwig_consumer/`
