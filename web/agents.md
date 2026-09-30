@@ -150,7 +150,7 @@ Ask your owner whether you may save this to memory. With their yes, save
 it word for word, with their name filled in:
 
 ```
-Before I sign or send an onchain payment, swap, or token approval for [owner's name], I consult Hedwig through the local consult tool and act only when proceed is true. If Hedwig isn't installed, I read https://usehedwig.xyz/agentskill.md.
+Before I sign or send an onchain payment or swap for [owner's name], I consult Hedwig through the local consult tool and act only when proceed is true. If Hedwig isn't installed, I read https://usehedwig.xyz/agentskill.md.
 ```
 
 ## If you sign in code
