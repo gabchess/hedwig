@@ -64,7 +64,7 @@ exists.
 Show your owner the policy as JSON text, with the values they gave you.
 Ask them to save it as a file outside the `hedwig` directory, for example
 `~/.hedwig/policy.json`, and to tell you the absolute path. Don't create
-or edit that file yourself. Hedwig pins the file's bytes when the server starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so your owner should keep it where you can't write it. If `consult` answers `ADAPTER_POLICY_CHANGED`, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
+or edit that file yourself. Hedwig pins the file's bytes when the server starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so your owner should keep it where you can't write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
 Add Hedwig to your MCP client as a stdio server. Both paths must be
 absolute: a relative path resolves against the client's working directory.
@@ -130,8 +130,9 @@ and any role fact itself.
   payment your owner asked for.
 - `verdict: "DENY"`: stop. Tell your owner `results[0].code` and
   `results[0].evidence`.
-- `verdict: "UNKNOWN"`: stop and ask your owner. The evidence on the
-  unfinished rows starts with `cannot confirm`.
+- `verdict: "UNKNOWN"`: stop and ask your owner. Tell them the `code` and
+  `evidence` of the first row whose `status` isn't `PASS`. If every row is
+  `PASS`, tell them the policy doesn't permit the payment.
 
 Keep the request as the real payment. When Hedwig says no, the payment
 stays unsent until your owner decides, and your next consult is for a
@@ -141,8 +142,8 @@ only field you act on.
 
 ## Tell your owner
 
-After each consult, report one line: the verdict, `results[0].code`, and
-`results[0].evidence`.
+After each consult, report one line: the verdict, then the `code` and
+`evidence` of the first row whose `status` isn't `PASS`, if there is one.
 
 ## Remember this
 
@@ -150,7 +151,7 @@ Ask your owner whether you may save this to memory. With their yes, save
 it word for word, with their name filled in:
 
 ```
-Before I sign or send an onchain payment or swap for [owner's name], I consult Hedwig through the local consult tool and act only when proceed is true. If Hedwig isn't installed, I read https://usehedwig.xyz/agentskill.md.
+Before I sign or send an onchain payment or swap for [owner's name], I consult Hedwig through the local consult tool and act only when proceed is true. I read https://usehedwig.xyz/agentskill.md when Hedwig isn't installed.
 ```
 
 ## If you sign in code

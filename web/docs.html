@@ -100,7 +100,7 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
         <li><code>results</code>: one row per check, worst first, each with a reason code, an evidence sentence and a reference file.</li>
         <li><code>support</code> and <code>band</code>: how much of your checklist was proven and how strong the proof was. They never change the verdict.</li>
       </ul>
-      <p>A <code>DENY</code> means a check failed; your agent stops and tells you the first row's code and evidence. An <code>UNKNOWN</code> means a check couldn't be completed; your agent stops and asks you.</p>
+      <p>A <code>DENY</code> means a check failed; your agent stops and tells you the first row's code and evidence. An <code>UNKNOWN</code> means a check couldn't be completed, or every check passed but your policy doesn't permit the action; your agent stops and asks you.</p>
       <h2>Put the check in your own code</h2>
       <p><code>runTriggerGuard</code> from <code>@hedwig/consult/guard</code> wraps your signer. It runs the same check and calls your signer only on <code>ALLOW_UNDER_POLICY</code>.</p>
       <h2>More</h2>

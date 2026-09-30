@@ -1,4 +1,4 @@
-# Role program architecture
+# Role record program architecture
 
 The role program is the onchain part of Hedwig: a record of which pubkeys hold
 which roles. It is organized around three domain nouns (orgs, roles, and

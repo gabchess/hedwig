@@ -64,8 +64,8 @@ working directory, not the repo.
 
 ## Write the policy
 
-The policy is the owner's file. Keep it outside the repo. It's a JSON file
-of at most 256 KB, and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. If `consult` answers `ADAPTER_POLICY_CHANGED`, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
+The policy is the owner's file. Keep it outside the repo. It's a JSON file,
+and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
 ```json
 {
@@ -94,7 +94,7 @@ leaves out `authorizationWindow`, answers `UNKNOWN`. The shapes for a required r
 
 A policy that requires a Solana role makes the server read that role over
 the RPC named in `HEDWIG_SOLANA_RPC_URL_DEVNET` or `_MAINNET`, with the
-matching `HEDWIG_SOLANA_FEE_PAYER_*`. The read uses no key. Without that pair for the policy's cluster, the role check
+matching `HEDWIG_SOLANA_FEE_PAYER_*`. The read uses no private key. Without that pair for the policy's cluster, the role check
 answers `UNVERIFIED`. See [mcp/README.md](../mcp/README.md).
 
 ## Call `consult`
@@ -155,7 +155,7 @@ that explains the check.
 |---|---|---|
 | `ALLOW_UNDER_POLICY` | Every mandatory check passed and the policy has `permits: true`. | Continue with the payment the owner asked for. |
 | `DENY` | At least one check failed. `results[0]` is a FAIL. | Stop. Tell the owner `results[0].code` and `results[0].evidence`. |
-| `UNKNOWN` | A check couldn't be completed, the policy doesn't permit, or the input was malformed. Evidence on those rows starts with `cannot confirm`. | Stop and ask the owner. |
+| `UNKNOWN` | A check couldn't be completed, the policy doesn't permit, or the input was malformed. `PASS` rows can still appear, and can come first when every check passed. | Stop and ask the owner. Tell them the `code` and `evidence` of the first row whose `status` isn't `PASS`. If every row is `PASS`, tell them the policy doesn't permit the action. |
 
 A server error still comes back as a normal response with `verdict:
 "UNKNOWN"` and `proceed: false`, so one code path covers every answer.
