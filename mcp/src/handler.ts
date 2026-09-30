@@ -2,6 +2,7 @@ import { consult } from "@hedwig/consult";
 import type { ConsultResponse } from "@hedwig/consult";
 
 import { readPolicyFile } from "./policy";
+import type { PolicyPin } from "./policy";
 import { getSolanaClusterConfig } from "./readers/config";
 import {
   clusterForRoleRequirement,
@@ -73,9 +74,13 @@ function readPolicyRole(policy: unknown): unknown {
 // path (never taken from the arguments), and returns exactly what
 // consult(request, policy, facts) returns. Imports nothing from the MCP
 // SDK, so it can be tested directly without a live protocol handshake.
+// The pin is the hash of the policy file taken at server start; the server
+// always passes one. Without a pin the file is read live, which only tests
+// that do not care about the pin rely on.
 export async function handleConsult(
   rawArgs: unknown,
-  policyPath: string
+  policyPath: string,
+  pin?: PolicyPin
 ): Promise<ConsultResponse> {
   let serialized: string;
   try {
@@ -93,12 +98,17 @@ export async function handleConsult(
     );
   }
 
-  const policyResult = readPolicyFile(policyPath);
+  const policyResult = readPolicyFile(policyPath, pin);
   if (!policyResult.ok) {
-    return unknownAdapterResponse(
-      "ADAPTER_POLICY_UNREADABLE",
-      policyResult.reason
-    );
+    if (policyResult.code === "ADAPTER_POLICY_CHANGED") {
+      // Names the variable, never its value or the policy's contents. This
+      // line is for the owner: the restart advice stays out of the reply
+      // the agent reads.
+      console.error(
+        "hedwig-mcp: the file named by HEDWIG_POLICY_FILE changed since the server started; answering UNKNOWN until it restarts. A restart accepts whatever the file holds then, so review it first"
+      );
+    }
+    return unknownAdapterResponse(policyResult.code, policyResult.reason);
   }
 
   // Every key but "request" is ignored: the caller cannot choose the

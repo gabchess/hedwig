@@ -1,7 +1,9 @@
 /**
- * Devnet revoke demo: one Hedwig org, one role, one MCP server process,
- * four "consult" calls: an allow, an over-cap DENY, a missing-fact UNKNOWN,
- * and the original request repeated after a real on-chain revoke_role.
+ * Devnet revoke demo: one Hedwig org, one role, four "consult" calls: an
+ * allow, an over-cap DENY, a missing-fact UNKNOWN, and the original request
+ * repeated after a real on-chain revoke_role. Asks 1, 2 and 4 share one MCP
+ * server process; Ask 3 runs on a second process started on a swapped policy
+ * file, because the server pins its policy file at start.
  *
  * Uses a throwaway keypair this script generates and funds itself; it never
  * reads the caller's own Solana wallet. Thin wiring only: every decision
@@ -164,6 +166,19 @@ function waitForExit(
   });
 }
 
+// Closes stdin so the server exits on its own; kills it if it does not.
+async function stopServer(
+  child: ChildProcessWithoutNullStreams
+): Promise<void> {
+  if (child.exitCode !== null || child.killed) return;
+  child.stdin.end();
+  try {
+    await waitForExit(child, 3000);
+  } catch {
+    child.kill();
+  }
+}
+
 // Names the source commit (git rev-parse HEAD) and whether the source tree
 // had uncommitted changes (git status --porcelain, untracked files
 // included).
@@ -240,12 +255,16 @@ async function main(): Promise<void> {
   fs.writeFileSync(policyPath, JSON.stringify(policy), { mode: 0o600 });
 
   let child: ChildProcessWithoutNullStreams | undefined;
+  // The Ask 3 server, a second process started on the swapped policy file.
+  let ask3Child: ChildProcessWithoutNullStreams | undefined;
   let cleanedUp = false;
   const cleanup = (): void => {
     if (cleanedUp) return;
     cleanedUp = true;
-    if (child && child.exitCode === null && !child.killed) {
-      child.kill();
+    for (const proc of [child, ask3Child]) {
+      if (proc && proc.exitCode === null && !proc.killed) {
+        proc.kill();
+      }
     }
     fs.rmSync(tmpDir, { recursive: true, force: true });
   };
@@ -288,19 +307,17 @@ async function main(): Promise<void> {
       { signers: [] }
     );
 
-    child = spawn(process.execPath, [SERVER_PATH], {
-      env: buildServerEnv(
-        process.env,
-        policyPath,
-        rpcUrl,
-        admin.publicKey.toBase58()
-      ),
-    });
+    const spawnServer = (): ChildProcessWithoutNullStreams =>
+      spawn(process.execPath, [SERVER_PATH], {
+        env: buildServerEnv(
+          process.env,
+          policyPath,
+          rpcUrl,
+          admin.publicKey.toBase58()
+        ),
+      });
+    child = spawnServer();
     const serverPid = child.pid;
-    // `child` is a `let` typed with `| undefined`, and TypeScript drops its
-    // narrowing inside the closure passed to withSwappedPolicyFile. This
-    // const keeps the narrowed type.
-    const serverChild = child;
 
     await initializeServer(child);
 
@@ -314,25 +331,42 @@ async function main(): Promise<void> {
     const overCapMessage = await callConsult(child, PAY_REQUEST_OVER_CAP);
     const overCapAsk = assertOverCapAsk(extractAskSummary(overCapMessage));
 
-    // Ask 3: the on-disk policy's role programId is swapped to
-    // UNRECOGNIZED_ROLE_PROGRAM_ID for one call, then written back before the
-    // revoke. Same server process, same role, same request as Ask 1.
+    // Ask 3: the server pins the policy file's bytes when it starts, so a
+    // swap under the running Ask 1 server would answer ADAPTER_POLICY_CHANGED.
+    // Instead the on-disk policy's role programId is swapped to
+    // UNRECOGNIZED_ROLE_PROGRAM_ID, a second server process starts on it (the
+    // pin is taken on the swapped file), answers the Ask 1 request, and exits.
+    // The original policy is written back before the revoke. The Ask 1 server
+    // keeps running, and its pin still matches the restored file.
     const brokenPolicy = buildPolicyFileWithUnrecognizedRoleProgram({
       programId: HEDWIG_PROGRAM_ID.toBase58(),
       role: rolePda.toBase58(),
       holder: holder.publicKey.toBase58(),
     });
-    const { missingFactMessage, missingFactAsk } = await withSwappedPolicyFile(
+    const {
+      missingFactMessage,
+      missingFactAsk,
+      pid: ask3Pid,
+    } = await withSwappedPolicyFile(
       policyPath,
       brokenPolicy,
       policy,
       async () => {
-        assertServerProcessAlive(serverChild, serverPid);
-        const message = await callConsult(serverChild);
-        return {
-          missingFactMessage: message,
-          missingFactAsk: assertMissingFactAsk(extractAskSummary(message)),
-        };
+        const server = spawnServer();
+        ask3Child = server;
+        const pid = server.pid;
+        try {
+          await initializeServer(server);
+          assertServerProcessAlive(server, pid);
+          const message = await callConsult(server);
+          return {
+            missingFactMessage: message,
+            missingFactAsk: assertMissingFactAsk(extractAskSummary(message)),
+            pid: pid as number,
+          };
+        } finally {
+          await stopServer(server);
+        }
       }
     );
 
@@ -397,10 +431,7 @@ async function main(): Promise<void> {
         },
         ask1: { pid: serverPid as number, message: ask1Message },
         overCapAsk: { pid: serverPid as number, message: overCapMessage },
-        missingFactAsk: {
-          pid: serverPid as number,
-          message: missingFactMessage,
-        },
+        missingFactAsk: { pid: ask3Pid, message: missingFactMessage },
         ask4: { pid: serverPid as number, message: ask4Message },
         ask4FirstAttempt: ask4FirstAttemptMessage
           ? { pid: serverPid as number, message: ask4FirstAttemptMessage }
@@ -409,13 +440,8 @@ async function main(): Promise<void> {
       fs.writeFileSync(outPath, JSON.stringify(record, null, 2));
     }
   } finally {
-    if (child && child.exitCode === null && !child.killed) {
-      child.stdin.end();
-      try {
-        await waitForExit(child, 3000);
-      } catch {
-        child.kill();
-      }
+    if (child) {
+      await stopServer(child);
     }
     process.off("SIGINT", onSignal);
     process.off("SIGTERM", onSignal);

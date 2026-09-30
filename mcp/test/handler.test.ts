@@ -86,7 +86,7 @@ describe("handleConsult", () => {
     expect(withExtras.verdict).to.equal("ALLOW_UNDER_POLICY");
   });
 
-  it("reflects a policy file edit on the very next call, with no restart", async () => {
+  it("without a pin, reads the policy file live (the server always passes a pin)", async () => {
     const policyPath = writePolicy(JSON.stringify(VALID_POLICY));
 
     const first = await handleConsult({ request: VALID_REQUEST }, policyPath);
