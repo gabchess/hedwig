@@ -45,14 +45,17 @@
       <h2>Connect your agent</h2>
       <p>Paste this into an agent that can run commands on your computer:</p>
       <pre><code>Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md</code></pre>
-      <p>Your agent asks you before it installs anything. Then it asks for your policy, installs Hedwig from GitHub, registers the <code>consult</code> tool, and consults Hedwig before each payment or swap. It continues only when the answer is <code>proceed: true</code>.</p>
+      <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig never asks for keys, seed phrases or funds.</p>
+      <p>Your agent asks you before it installs anything. Then it asks for your policy, installs Hedwig v0.4.1 from GitHub, shows you the policy to save, registers the <code>consult</code> tool, and consults Hedwig before each payment or swap. You save the policy file yourself, and the agent never writes or edits it. The agent continues only when the answer is <code>proceed: true</code>.</p>
       <h2>Install it yourself</h2>
       <p>You need git, Node.js 22 or newer, and Yarn.</p>
-      <pre><code>git clone https://github.com/gabchess/hedwig.git
+      <pre><code>git clone --branch v0.4.1 --depth 1 https://github.com/gabchess/hedwig.git
+test "$(git -C hedwig rev-parse HEAD)" = 0424f8ab318d646c327ea97bdf97161a1bf87c2a
 cd hedwig
 yarn install --frozen-lockfile
 npm ci --ignore-scripts --prefix mcp
 yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
+      <p>The second line checks that the download is the commit published for v0.4.1. If the check fails, stop and don't run the commands after it.</p>
       <p>Add it to your MCP client as a stdio server, with absolute paths for both the server and your policy file:</p>
       <pre><code>{
   "mcpServers": {
@@ -91,21 +94,14 @@ yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
     }
   }
 }</code></pre>
-      <p>The server adds your policy and the current time. Your agent can't pass either one.</p>
+      <p>The server reads your policy file and the current time itself. The tool takes neither from your agent.</p>
       <h2>What comes back</h2>
       <ul>
-        <li><code>proceed</code>: <code>true</code> only when every check passed and your policy permits.</li>
-      </ul>
-      <p>Your agent acts on this field.</p>
-      <ul>
+        <li><code>proceed</code>: <code>true</code> only when every check passed and your policy permits. Your agent acts on this field.</li>
         <li><code>verdict</code>: <code>ALLOW_UNDER_POLICY</code>, <code>DENY</code> or <code>UNKNOWN</code>.</li>
-        <li><code>results</code>: one row per check, worst first, each with a reason code, an</li>
+        <li><code>results</code>: one row per check, worst first, each with a reason code, an evidence sentence and a reference file.</li>
+        <li><code>support</code> and <code>band</code>: how much of your checklist was proven and how strong the proof was. They never change the verdict.</li>
       </ul>
-      <p>evidence sentence and a reference file.</p>
-      <ul>
-        <li><code>support</code> and <code>band</code>: how much of your checklist was proven and how</li>
-      </ul>
-      <p>strong the proof was. They never change the verdict.</p>
       <p>A <code>DENY</code> means a check failed; your agent stops and tells you the first row's code and evidence. An <code>UNKNOWN</code> means a check couldn't be completed; your agent stops and asks you.</p>
       <h2>Put the check in your own code</h2>
       <p><code>runTriggerGuard</code> from <code>@hedwig/consult/guard</code> wraps your signer. It runs the same check and calls your signer only on <code>ALLOW_UNDER_POLICY</code>.</p>

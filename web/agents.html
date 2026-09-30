@@ -46,15 +46,16 @@
       <h2>Connect your agent</h2>
       <p>Paste this into an AI agent that can run commands on your computer:</p>
       <pre><code>Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md</code></pre>
+      <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig never asks for keys, seed phrases or funds.</p>
       <h3>What your agent does</h3>
       <ol>
         <li>It asks you before it installs anything.</li>
-        <li>It installs a pinned Hedwig release from GitHub.</li>
-        <li>It loads the policy you wrote.</li>
+        <li>It installs Hedwig v0.4.1 from GitHub and checks that the download is the commit published for that release. If the check fails, it stops and tells you.</li>
+        <li>It shows you the policy it wrote down from your answers. You save the file yourself, and the agent never writes or edits it.</li>
         <li>Before each payment or swap, it consults Hedwig. It stops unless the answer is proceed.</li>
       </ol>
       <h3>What stays with you</h3>
-      <p>Your keys and your policy. Hedwig never holds a key and never signs. It runs on your computer.</p>
+      <p>Your keys and your policy. You save the policy file, and the agent never changes it. Hedwig never holds a key and never signs. It runs on your computer.</p>
       <h3>If you are an AI agent</h3>
       <ul>
         <li><a href="/agents.md">/agents.md</a>: how to install Hedwig and consult it.</li>

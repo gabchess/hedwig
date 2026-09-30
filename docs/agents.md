@@ -15,19 +15,24 @@ Before you move money onchain for me, consult Hedwig. Open this exact link and f
 ```
 
 The page it opens is the agent-facing copy of this guide. The agent asks
-you before it installs anything, and it never writes your policy for you.
+you before it installs anything. It shows you the policy, you save the file
+yourself, and the agent never writes or edits it.
 
 ## Install
 
 You need git, Node.js 22 or newer, and Yarn.
 
 ```sh
-git clone https://github.com/gabchess/hedwig.git
+git clone --branch v0.4.1 --depth 1 https://github.com/gabchess/hedwig.git
+test "$(git -C hedwig rev-parse HEAD)" = 0424f8ab318d646c327ea97bdf97161a1bf87c2a
 cd hedwig
 yarn install --frozen-lockfile
 npm ci --ignore-scripts --prefix mcp
 yarn consult:build && yarn mcp:build
 ```
+
+The second line checks that the download is the commit published for
+v0.4.1. If the check fails, stop and don't run the commands after it.
 
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it
@@ -164,7 +169,9 @@ runs the same check and calls your signer only when the verdict is
 
 ## Safety
 
-Hedwig never asks for a private key, a seed phrase, an API key or funds. Its
+Hedwig never asks for a private key, a seed phrase, an API key or funds. A
+Solana RPC URL from the owner's provider may contain a key. It stays in the
+owner's local MCP config, and Hedwig never asks the agent for it. Its
 only sources are `github.com/gabchess/hedwig` and `usehedwig.xyz`. A
 Hedwig answer checks a payment against the owner's policy. The owner still
 approves the payment itself.
