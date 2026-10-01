@@ -133,7 +133,7 @@
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     cell = H / N; // the owl fills the column height, as it does today
     cols = Math.max(N, Math.ceil(W / cell));
-    vis = Math.max(1, Math.min(cols, Math.floor(W / cell)));
+    vis = Math.max(1, Math.min(cols, Math.floor(W / cell + 1e-6)));
     ox = PHONE.matches ? Math.floor((Math.ceil(W / cell) - N) / 2) : 0;
     if (ox < 0) ox = 0;
     gap = cell >= 10 ? 1 : 0;
@@ -159,10 +159,11 @@
     var loopT = t % 22;
     var bandOn = moving && loopT < 14; // reads down for 14 s, rests for 8 s
     var bandRow = (loopT / 14) * N;
+    var shown = Math.min(cols, Math.ceil(W / cell));
 
     for (var rw = 0; rw < N; rw++) {
       var band = bandOn ? Math.max(0, 1 - Math.abs(rw - bandRow) / 2.5) : 0;
-      for (var col = 0; col < cols; col++) {
+      for (var col = 0; col < shown; col++) {
         var lift = 0;
         if (moving && hover) {
           var dh = Math.max(Math.abs(col - hover.c), Math.abs(rw - hover.r));
@@ -237,7 +238,10 @@
     }
     if (last && !still()) t += Math.min((now - last) / 1000, 0.05);
     last = now;
-    if (now - lastPaint >= 1000 / 30) {
+    // Repaint at 30 fps while a ripple, flash or hover is live, 10 fps when
+    // idle. The 4 ms slack keeps vsync jitter from skipping a frame.
+    var busy = ripples.length || flashes.length || hover;
+    if (now - lastPaint >= (busy ? 1000 / 30 : 1000 / 10) - 4) {
       ripples = ripples.filter(function (rp) {
         return t - rp.born < 2.4;
       });
@@ -299,6 +303,7 @@
 
   // ---------- Mount ----------
   canvas.setAttribute("aria-hidden", "true");
+  svg.setAttribute("aria-hidden", "true"); // the art group carries the label
   art.appendChild(canvas);
   art.classList.add("has-field");
   art.setAttribute("tabindex", "0");
@@ -385,11 +390,14 @@
     kick();
     paint();
   });
-  REDUCED.addEventListener("change", function () {
+  function onReducedChange() {
     syncMotionButton();
     kick();
     paint();
-  });
+  }
+  if (REDUCED.addEventListener)
+    REDUCED.addEventListener("change", onReducedChange);
+  else REDUCED.addListener(onReducedChange);
 
   syncMotionButton();
   resize();

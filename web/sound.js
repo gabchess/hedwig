@@ -77,6 +77,10 @@
 
   function playChord() {
     if (!ac || !enabled || document.hidden) return;
+    if (ac.state !== "running") {
+      timer = setTimeout(playChord, CHORD_EVERY);
+      return;
+    }
     var now = ac.currentTime;
     CHORDS[chord % CHORDS.length].forEach(function (midi, i) {
       voice("triangle", midi, now + i * 0.42, 9.0, 0.05, 1.6, padBus);
@@ -176,8 +180,18 @@
     }
     if (starting) return;
     starting = true;
-    if (!ac) build();
-    var active = ac;
+    var active;
+    try {
+      if (!ac) build();
+      active = ac;
+    } catch (e) {
+      stop();
+      return;
+    }
+    // If resume() never settles, give up after 3 s instead of staying "starting".
+    var guard = setTimeout(function () {
+      if (ac === active) stop();
+    }, 3000);
     // resume() runs inside the gesture call stack, which Safari needs.
     active
       .resume()
@@ -189,7 +203,12 @@
         playChord();
         if (p) playTap(p);
       })
-      .catch(stop);
+      .catch(stop)
+      .finally(function () {
+        clearTimeout(guard);
+        // A stale attempt must not clear a newer attempt's flag.
+        if (ac === active) starting = false;
+      });
   }
 
   function remember() {
