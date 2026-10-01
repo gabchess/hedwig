@@ -284,6 +284,85 @@ a:focus-visible {
   }
 }
 
+/* --- tap field (field.js), only once the script has mounted it --- */
+.art.has-field {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.art.has-field:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+/* The canvas is absolutely positioned and paints over its parent's outline. */
+.art.has-field:focus-visible canvas {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.art.has-field .owl-svg {
+  opacity: 0;
+}
+
+.art.has-field .cell.glow {
+  animation: none;
+}
+
+.art canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.field-row {
+  margin: 0 0 16px;
+}
+
+.field-controls {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+.field-controls button {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 24px;
+  line-height: 24px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.field-controls button:hover,
+.field-controls #field-sound[data-on="true"] {
+  color: var(--text);
+}
+
+.field-controls button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.field-controls button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
 /* --- desktop, frame fills the viewport; the panel scrolls on its own --- */
 @media (min-width: 960px) {
   .frame {
@@ -293,6 +372,10 @@ a:focus-visible {
 
 /* --- mobile, single column --- */
 @media (max-width: 959px) {
+  .field-controls button {
+    min-height: 44px;
+  }
+
   .frame,
   .frame.has-panel {
     display: flex;
@@ -347,5 +430,13 @@ a:focus-visible {
 
   .rail-top {
     order: 1;
+  }
+
+  .field-row {
+    padding-top: 12px;
+  }
+
+  .frame:not(.has-panel) .art.has-field {
+    height: min(100vw, 62vh);
   }
 }

@@ -33,6 +33,13 @@
     </ul>
   </div>
   <div class="rail-bottom">
+    <div class="field-row" id="field-row" hidden>
+      <ul class="field-controls">
+        <li><button type="button" id="field-sound">Play music</button></li>
+        <li><button type="button" id="field-motion">Pause motion</button></li>
+      </ul>
+      <p class="field-hint" id="field-hint">Tap any square to play</p>
+    </div>
     <ul class="rail-socials">
       <li><a href="https://x.com/usehedwig" target="_blank" rel="noopener noreferrer">X</a></li>
       <li><a href="https://github.com/gabchess/hedwig" target="_blank" rel="noopener noreferrer">GitHub</a></li>
@@ -117,5 +124,7 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
   </div>
 </div>
 <script src="/owl.js"></script>
+<script src="/sound.js"></script>
+<script src="/field.js"></script>
 </body>
 </html>
