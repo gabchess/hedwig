@@ -20,6 +20,7 @@ Versions track what ships, code or docs.
 - The access-control architecture doc is titled "Role record program architecture".
 - `/docs` says an `UNKNOWN` answer also covers a request where every check passed and the policy does not permit the action.
 - The `mcp` and `consult` packages report version 0.4.2, matching the server.
+- The devnet upgrade authority of both programs is `2kJM7w8aqZFiYse47Jke9xhNLhZcV9E5jqLUFVrpKCv7`.
 
 ### Removed
 

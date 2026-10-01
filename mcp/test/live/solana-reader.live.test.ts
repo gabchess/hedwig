@@ -16,7 +16,7 @@ const RUN_LIVE = process.env.HEDWIG_LIVE_DEVNET === "1";
 
 const RPC_URL = "https://api.devnet.solana.com";
 const PROGRAM_ID = "H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC";
-const FUNDED_FEE_PAYER = "8gbaJEfM5VDs9BpFLgwMTq7s2FkVpEri8ZnPbxn4HPqY";
+const FUNDED_FEE_PAYER = "2kJM7w8aqZFiYse47Jke9xhNLhZcV9E5jqLUFVrpKCv7";
 
 // A role/holder/membership triple known, at the time this was written, to
 // exist and be enabled on public devnet.
