@@ -31,7 +31,7 @@ The program is intended to enforce these properties:
 | ------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | Org authority                   | Signer that created the org                                | Can create any role in that org. The authority cannot currently be rotated.                              |
 | Role admin                      | Org authority recorded when the role is created            | Can assign and revoke memberships and enable or disable the role. The admin cannot currently be rotated. |
-| Program upgrade authority       | Pubkey `8gba...HPqY` for Hedwig and the reference consumer | Can replace either live program. This is the highest current deployment risk.                            |
+| Program upgrade authority       | Pubkey `2kJM...KCv7` for Hedwig and the reference consumer | Can replace either live program. This is the highest current deployment risk.                            |
 | Solana runtime and Clock sysvar | Solana validator consensus                                 | Supply account ownership, transaction atomicity, signatures, and time used by expiry checks.             |
 | Integrating program             | Its own upgrade and instruction authorities                | Must authenticate the actor whose membership it asks Hedwig to check.                                    |
 | Caller's process                | The caller                                                 | Controls the globals, prototypes and signer the guard uses, so it can sign anything, guard or no guard.  |
@@ -175,6 +175,10 @@ matched every deployed code byte; the larger ProgramData allocation contained
 only zero bytes after the ELF. The repository records the authority as a single
 deployer-controlled key. A compromise could bypass every invariant described
 above by deploying different code.
+
+On 2026-10-01 the upgrade authority of both the Hedwig program and the
+reference consumer was rotated to
+`2kJM7w8aqZFiYse47Jke9xhNLhZcV9E5jqLUFVrpKCv7`.
 
 The live lifecycle called all six instructions and fetched `enabled=false`
 after the circuit breaker was set. This proves that transaction path on devnet,

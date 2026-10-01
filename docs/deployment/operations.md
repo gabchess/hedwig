@@ -10,7 +10,7 @@ Reference consumer:
 `52D3pTYvMwLYbiigY5xg55n4HmtEzTKCEicx1Cojzo9a`
 
 Current upgrade authority:
-`8gbaJEfM5VDs9BpFLgwMTq7s2FkVpEri8ZnPbxn4HPqY`
+`2kJM7w8aqZFiYse47Jke9xhNLhZcV9E5jqLUFVrpKCv7`
 
 ## Before an upgrade
 
