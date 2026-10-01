@@ -289,11 +289,9 @@
     if (REDUCED.matches) {
       motionBtn.textContent = "Motion off";
       motionBtn.disabled = true;
-      motionBtn.setAttribute("aria-pressed", "true");
     } else {
       motionBtn.disabled = false;
       motionBtn.textContent = paused ? "Play motion" : "Pause motion";
-      motionBtn.setAttribute("aria-pressed", String(paused));
     }
   }
 

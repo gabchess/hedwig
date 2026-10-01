@@ -15,7 +15,7 @@
   ];
   // Top of the field plays the highest note: G5 E5 C5 A4 G4 F4. The notes
   // are F, G, A, C, E. They match Fmaj9 fully and three to four tones of
-  // each other chord, so no tap clashes.
+  // each other chord.
   var SCALE = [79, 76, 72, 69, 67, 65];
   var CHORD_EVERY = 9600;
   var MAX_VOICES = 40;
@@ -40,7 +40,7 @@
   function setUI() {
     if (!button) return;
     button.textContent = enabled ? "Mute music" : "Play music";
-    button.setAttribute("aria-pressed", String(enabled));
+    button.dataset.on = String(enabled);
   }
 
   function hz(midi) {

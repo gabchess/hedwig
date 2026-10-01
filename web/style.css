@@ -337,7 +337,7 @@ a:focus-visible {
 }
 
 .field-controls button:hover,
-.field-controls #field-sound[aria-pressed="true"] {
+.field-controls #field-sound[data-on="true"] {
   color: var(--text);
 }
 
