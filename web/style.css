@@ -296,6 +296,12 @@ a:focus-visible {
   outline-offset: -2px;
 }
 
+/* The canvas is absolutely positioned and paints over its parent's outline. */
+.art.has-field:focus-visible canvas {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
 .art.has-field .owl-svg {
   opacity: 0;
 }

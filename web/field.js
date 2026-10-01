@@ -87,6 +87,7 @@
   var H = 0;
   var cell = 10;
   var cols = N;
+  var vis = N; // columns actually on the canvas, for the keyboard cursor
   var ox = 0;
   var gap = 0;
   var paused = false;
@@ -132,11 +133,12 @@
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     cell = H / N; // the owl fills the column height, as it does today
     cols = Math.max(N, Math.ceil(W / cell));
+    vis = Math.max(1, Math.min(cols, Math.floor(W / cell)));
     ox = PHONE.matches ? Math.floor((Math.ceil(W / cell) - N) / 2) : 0;
     if (ox < 0) ox = 0;
     gap = cell >= 10 ? 1 : 0;
     if (cursor) {
-      cursor.c = Math.max(0, Math.min(cols - 1, cursor.c));
+      cursor.c = Math.max(0, Math.min(vis - 1, cursor.c));
     }
     paint();
   }
@@ -328,11 +330,11 @@
       ArrowUp: [0, -1],
       ArrowDown: [0, 1],
     };
-    if (!cursor) cursor = { c: ox + 30, r: 22 };
+    if (!cursor) cursor = { c: Math.min(ox + 30, vis - 1), r: 22 };
     if (moves[e.key]) {
       e.preventDefault();
       showCursor = true;
-      cursor.c = Math.max(0, Math.min(cols - 1, cursor.c + moves[e.key][0]));
+      cursor.c = Math.max(0, Math.min(vis - 1, cursor.c + moves[e.key][0]));
       cursor.r = Math.max(0, Math.min(N - 1, cursor.r + moves[e.key][1]));
       paint();
       return;
@@ -349,7 +351,7 @@
       keyboard = art.matches(":focus-visible");
     } catch (e) {}
     if (!keyboard) return;
-    if (!cursor) cursor = { c: ox + 30, r: 22 };
+    if (!cursor) cursor = { c: Math.min(ox + 30, vis - 1), r: 22 };
     showCursor = true;
     paint();
   });
