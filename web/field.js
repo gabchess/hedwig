@@ -197,8 +197,9 @@
           }
           fill(TOKEN[o.key], alpha, col, rw);
           if (lift > 0.02) {
-            var tint = o.key === "text" ? TOKEN.purple : TOKEN.text;
-            fill(tint, lift * 0.5, col, rw);
+            var onViolet = o.key === "purple" || o.key === "blue";
+            var tint = onViolet ? TOKEN.text : TOKEN.purple;
+            fill(tint, lift * (onViolet ? 0.5 : 0.62), col, rw);
           }
         }
       }
@@ -214,9 +215,12 @@
 
     if (showCursor && cursor) {
       ctx.globalAlpha = 1;
+      var size = Math.max(4, cell - 2);
+      ctx.strokeStyle = TOKEN.ground;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(cursor.c * cell + 1, cursor.r * cell + 1, size, size);
       ctx.strokeStyle = TOKEN.blue;
       ctx.lineWidth = 2;
-      var size = Math.max(4, cell - 2);
       ctx.strokeRect(cursor.c * cell + 1, cursor.r * cell + 1, size, size);
     }
     ctx.globalAlpha = 1;

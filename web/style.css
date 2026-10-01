@@ -337,7 +337,7 @@ a:focus-visible {
 }
 
 .field-controls button:hover,
-.field-controls button[aria-pressed="true"] {
+.field-controls #field-sound[aria-pressed="true"] {
   color: var(--text);
 }
 
@@ -366,6 +366,10 @@ a:focus-visible {
 
 /* --- mobile, single column --- */
 @media (max-width: 959px) {
+  .field-controls button {
+    min-height: 44px;
+  }
+
   .frame,
   .frame.has-panel {
     display: flex;

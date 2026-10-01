@@ -13,8 +13,9 @@
     [46, 53, 57, 60, 64],
     [43, 50, 53, 58, 60],
   ];
-  // Top of the field plays the highest note: G5 E5 C5 A4 G4 F4. Every note
-  // sits inside all four chords, so no tap clashes.
+  // Top of the field plays the highest note: G5 E5 C5 A4 G4 F4. The notes
+  // are F, G, A, C, E. They match Fmaj9 fully and three to four tones of
+  // each other chord, so no tap clashes.
   var SCALE = [79, 76, 72, 69, 67, 65];
   var CHORD_EVERY = 9600;
   var MAX_VOICES = 40;
