@@ -9,8 +9,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { expect } from "chai";
 
-// The package manifest is the door: it must expose exactly "." and nothing
-// else, so a caller can never reach consult/src/internal.ts or any other
+// The package manifest is the door: it must expose exactly "." and its
+// named subpaths and nothing else, so a caller can never reach consult/src/internal.ts or any other
 // file directly. This resolves the deep paths through a real Node
 // node_modules lookup (a symlink, no install, no network) rather than just
 // re-reading the same package.json the implementation reads, so the test
@@ -18,7 +18,7 @@ import { expect } from "chai";
 const CONSULT_ROOT = resolve(__dirname, "..");
 
 describe("package door", () => {
-  it("exports exactly the package root, the introspect subpath and the guard subpath", () => {
+  it("exports exactly the package root and the introspect, guard and canonical subpaths", () => {
     const pkg = JSON.parse(
       readFileSync(join(CONSULT_ROOT, "package.json"), "utf8")
     );
@@ -26,6 +26,7 @@ describe("package door", () => {
       ".",
       "./introspect",
       "./guard",
+      "./canonical",
     ]);
   });
 
@@ -39,6 +40,12 @@ describe("package door", () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const door = require("../src/guard");
     expect(Object.keys(door)).to.deep.equal(["runTriggerGuard"]);
+  });
+
+  it("the canonical subpath exports only canonicalAddressFor at runtime", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const door = require("../src/canonical");
+    expect(Object.keys(door)).to.deep.equal(["canonicalAddressFor"]);
   });
 
   describe("deep import paths", () => {

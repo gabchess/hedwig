@@ -21,6 +21,8 @@ A `pay` policy states the same choice about an EIP-3009 authorization window: `a
 
 The third, optional argument, `facts`, is the only place a clock or a chain observation enters: `consult(request, policy, { now, solanaRole })`. A swap reads `now` for its deadline; a required role reads `now` and `solanaRole`; a required authorization window reads `now`.
 
+consult checks no signature on `facts.registryAsset`. Pass it only from a Reader that already checked the registry row's signatures.
+
 ```ts
 const swapResponse = consult(
   {

@@ -39,10 +39,14 @@ export type {
  *
  * `facts` is the optional third argument and carries observations as data:
  * `now`, a unix-seconds timestamp, `solanaRole`, a role fact, and
- * `registryAsset`, a signed registry row for a token the code table does not
- * list. The code table always wins; a registry row only fills a gap, is
- * ignored once expired or without `now`, and proves a token only while its
- * live read is `confirmed`. consult() never reads a clock or a chain itself. Facts that are missing, malformed,
+ * `registryAsset`, a registry row for a token the code table does not list,
+ * passed only after the caller's Reader checked its signatures (consult
+ * checks none). The code table always wins; a registry row only fills a gap,
+ * is ignored once expired or without `now` or `liveReadAt`, and proves a
+ * token only at the row's own address while its live read is `confirmed`
+ * and no older than 60 seconds. A different address is FAIL whatever the
+ * live read says. consult() never reads a clock or a chain itself. Facts
+ * that are missing, malformed,
  * uncloneable or over the size limit count as no facts: the Condition that
  * needs them answers UNVERIFIED. A `pay` under a policy that requires no
  * role reads no fact at all.
