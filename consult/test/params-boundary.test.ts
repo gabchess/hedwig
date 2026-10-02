@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { expect } from "chai";
 import * as ts from "typescript";
 
+import { checkParam } from "../src/params";
 import { usedByViolations } from "./params-lint";
 
 const REPO_ROOT = join(__dirname, "..", "..");
@@ -34,6 +35,22 @@ const tsUnder = (dir: string) =>
 // 0 and 1 are identities, 10000 is the basis-point scale, and 200 is the
 // pre-existing length bound on a role Fact's source string.
 const CATALOG_NUMBERS = new Set(["0", "1", "200", "10000", "0n", "10000n"]);
+// constants.ts may spell a number only inside one of these top-level
+// exported declarations. A new name fails the scan until a reviewer reads
+// its number and adds the name here.
+const CONSTANT_NAMES = new Set([
+  "MAX_EXTRA_CONDITIONS",
+  "MAX_CONDITION_ID_LENGTH",
+  "MAX_INPUT_JSON_LENGTH",
+  "EVIDENCE_ECHO_LIMIT",
+  "MAX_ROLE_FACT_AGE_SECONDS",
+  "MAX_AUTHORIZATION_WINDOW_SECONDS",
+  "EVIDENCE_CLASS_WEIGHTS",
+  "BAND_GREEN_MIN",
+  "BAND_RED_MAX",
+  "ALLOW_SUPPORT_SPAN",
+  "UNKNOWN_WITH_FLOOR_FACTOR",
+]);
 // Outside the catalog, a literal compared against may only be 0 or 1.
 const COMPARED_NUMBERS = new Set(["0", "1", "0n", "1n"]);
 const COMPARISONS = new Set([
@@ -46,7 +63,49 @@ const COMPARISONS = new Set([
 interface NumberLiteral {
   text: string;
   compared: boolean;
+  // The name of the top-level declaration that holds the literal, if any.
+  declaredAs: string | undefined;
   line: number;
+}
+
+// Wrappers that leave a literal's role unchanged: `(4999)`, `-5`, `+5`,
+// `4999 as number`, `4999 satisfies number`, `<number>4999`, `x!`.
+function unwrap(node: ts.Node): { outer: ts.Node; negative: boolean } {
+  let outer = node;
+  let negative = false;
+  for (;;) {
+    const parent = outer.parent;
+    if (
+      ts.isPrefixUnaryExpression(parent) &&
+      (parent.operator === ts.SyntaxKind.MinusToken ||
+        parent.operator === ts.SyntaxKind.PlusToken)
+    ) {
+      negative = negative !== (parent.operator === ts.SyntaxKind.MinusToken);
+    } else if (
+      !ts.isParenthesizedExpression(parent) &&
+      !ts.isAsExpression(parent) &&
+      !ts.isSatisfiesExpression(parent) &&
+      !ts.isTypeAssertionExpression(parent) &&
+      !ts.isNonNullExpression(parent)
+    ) {
+      return { outer, negative };
+    }
+    outer = parent;
+  }
+}
+
+function topLevelName(node: ts.Node): string | undefined {
+  for (let at: ts.Node = node; at.parent; at = at.parent) {
+    if (
+      ts.isVariableDeclaration(at) &&
+      ts.isIdentifier(at.name) &&
+      ts.isVariableStatement(at.parent.parent) &&
+      ts.isSourceFile(at.parent.parent.parent)
+    ) {
+      return at.name.text;
+    }
+  }
+  return undefined;
 }
 
 function numberLiterals(path: string, source: string): NumberLiteral[] {
@@ -54,12 +113,14 @@ function numberLiterals(path: string, source: string): NumberLiteral[] {
   const found: NumberLiteral[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)) {
-      const parent = node.parent;
+      const { outer, negative } = unwrap(node);
+      const parent = outer.parent;
       found.push({
-        text: node.text,
+        text: negative ? `-${node.text}` : node.text,
         compared:
           ts.isBinaryExpression(parent) &&
           COMPARISONS.has(parent.operatorToken.kind),
+        declaredAs: topLevelName(node),
         line: file.getLineAndCharacterOfPosition(node.getStart()).line + 1,
       });
     }
@@ -70,15 +131,18 @@ function numberLiterals(path: string, source: string): NumberLiteral[] {
 }
 
 function thresholdLiterals(path: string, source: string): string[] {
-  const isCatalog =
-    relative(REPO_ROOT, path) === join("consult", "src", "catalog.ts");
+  const where = relative(REPO_ROOT, path);
+  const isCatalog = where === join("consult", "src", "catalog.ts");
+  const isConstants = where === join("consult", "src", "constants.ts");
   return numberLiterals(path, source)
     .filter((lit) =>
       isCatalog
         ? !CATALOG_NUMBERS.has(lit.text)
+        : isConstants
+        ? lit.declaredAs === undefined || !CONSTANT_NAMES.has(lit.declaredAs)
         : lit.compared && !COMPARED_NUMBERS.has(lit.text)
     )
-    .map((lit) => `${relative(REPO_ROOT, path)}:${lit.line}: ${lit.text}`);
+    .map((lit) => `${where}:${lit.line}: ${lit.text}`);
 }
 
 describe("params boundary: no value reaches the public tree", () => {
@@ -121,6 +185,59 @@ describe("params boundary: no value reaches the public tree", () => {
     expect(thresholdLiterals(other, "const timeoutMs = 4999;")).to.deep.equal(
       []
     );
+  });
+
+  it("the threshold scan sees a compared literal under parentheses, a sign or a type wrapper", () => {
+    const other = join(REPO_ROOT, "mcp", "src", "readers", "x.ts");
+    for (const source of [
+      "if (holders < (4999)) {}",
+      "if (holders < -5) {}",
+      "if (holders > -(4999)) {}",
+      "if (holders < (4999 as number)) {}",
+      "if (holders >= +4999) {}",
+    ]) {
+      expect(thresholdLiterals(other, source), source).to.have.length(1);
+    }
+    expect(thresholdLiterals(other, "if (holders < -1) {}")).to.deep.equal([
+      `${join("mcp", "src", "readers", "x.ts")}:1: -1`,
+    ]);
+    expect(thresholdLiterals(other, "if (holders < (1)) {}")).to.deep.equal([]);
+  });
+
+  it("constants.ts holds a numeric literal only under an allowlisted exported name", () => {
+    const constants = join(REPO_ROOT, "consult", "src", "constants.ts");
+    expect(
+      thresholdLiterals(constants, "export const HOLDERS_MIN = 4999;")
+    ).to.have.length(1);
+    expect(
+      thresholdLiterals(constants, "export const HOLDERS_MIN = 0;")
+    ).to.have.length(1);
+    expect(
+      thresholdLiterals(constants, "export const BAND_RED_MAX = 0.2;")
+    ).to.deep.equal([]);
+    expect(
+      thresholdLiterals(
+        constants,
+        "export const BAND_RED_MAX = 0.2, HOLDERS_MIN = 4999;"
+      )
+    ).to.have.length(1);
+    expect(
+      thresholdLiterals(
+        constants,
+        "export function f() { const BAND_RED_MAX = 4999; return BAND_RED_MAX; }"
+      )
+    ).to.have.length(1);
+  });
+
+  it("every allowlisted constants.ts name is still exported there", () => {
+    const source = readFileSync(
+      join(REPO_ROOT, "consult", "src", "constants.ts"),
+      "utf8"
+    );
+    const missing = [...CONSTANT_NAMES].filter(
+      (name) => !new RegExp(`^export const ${name}\\b`, "m").test(source)
+    );
+    expect(missing).to.deep.equal([]);
   });
 });
 
@@ -176,6 +293,18 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
     expect(usedByViolations({ "x.ts": source }, BUNDLE)).to.have.length(1);
   });
 
+  for (const source of [
+    'const v = facts["params"]["fixture-params-alpha"]["fixture_next_e"].value;',
+    "const v = facts['params'];",
+    'const v = Reflect.get(facts, "params");',
+  ]) {
+    it(`fails on a direct read by string key: ${source}`, () => {
+      const problems = usedByViolations({ "x.ts": source }, BUNDLE);
+      expect(problems).to.have.length(1);
+      expect(problems[0]).to.include("outside a checkParam call");
+    });
+  }
+
   it("ignores the import of checkParam, comments and plain strings that mention params", () => {
     const source = [
       'import { checkParam } from "./params";',
@@ -192,6 +321,35 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
     const destructure = "const { params } = facts;";
     expect(usedByViolations({ "x.ts": template }, BUNDLE)).to.have.length(1);
     expect(usedByViolations({ "x.ts": destructure }, BUNDLE)).to.have.length(1);
+  });
+
+  it("checkParam and the lint allow exactly the same used_by labels", () => {
+    const id = "fixture-params-alpha";
+    const key = "fixture_check_a";
+    const labels = [
+      "check",
+      "both",
+      "fixture-label-not-check",
+      "fixture-label-unassigned",
+      "next",
+      "fixture-label-unknown",
+    ];
+    const verdicts = labels.map((label) => {
+      const bundle = {
+        [id]: { [key]: { ...BUNDLE[id][key], used_by: label } },
+      };
+      return {
+        label,
+        runtime: checkParam(bundle, id, key) !== undefined,
+        lint: usedByViolations({ "x.ts": read(key) }, bundle).length === 0,
+      };
+    });
+    for (const { label, runtime, lint } of verdicts) {
+      expect(lint, label).to.equal(runtime);
+    }
+    expect(verdicts.filter((v) => v.runtime).map((v) => v.label)).to.deep.equal(
+      ["check", "both"]
+    );
   });
 
   it("fails against a bundle that is not a Params value", () => {

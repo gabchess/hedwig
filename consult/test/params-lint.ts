@@ -11,8 +11,12 @@ const PARAMS_IMPORT = /^\s*import\b[^;]*\bfrom\s+["']\.\/params["'];?\s*$/gm;
 const LINE_COMMENT = /^\s*\/\/.*$/gm;
 const BLOCK_COMMENT = /\/\*[\s\S]*?\*\//g;
 // Single- and double-quoted strings only. Template literals stay, so a read
-// hidden in a `${...}` interpolation is still caught.
+// hidden in a `${...}` interpolation is still caught. A string whose content
+// is exactly `params` keeps the word, so `facts["params"]` and
+// `Reflect.get(facts, "params")` are caught too.
 const PLAIN_STRING = /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g;
+const blankString = (s: string): string =>
+  s.slice(1, -1) === "params" ? "params" : '""';
 const PARAMS_WORD = /\bparams\b/;
 
 const CHECK_READABLE = ["check", "both"];
@@ -69,7 +73,7 @@ export function usedByViolations(
     const rest = stripped
       .replace(READ_CALL, "")
       .replace(PARAMS_IMPORT, "")
-      .replace(PLAIN_STRING, '""');
+      .replace(PLAIN_STRING, blankString);
     if (calls === reads.length && PARAMS_WORD.test(rest)) {
       problems.push(`${file}: touches params outside a checkParam call`);
     }
