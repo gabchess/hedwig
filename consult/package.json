@@ -20,6 +20,11 @@
       "types": "./dist/guard.d.ts",
       "require": "./dist/guard.js",
       "default": "./dist/guard.js"
+    },
+    "./canonical": {
+      "types": "./dist/canonical.d.ts",
+      "require": "./dist/canonical.js",
+      "default": "./dist/canonical.js"
     }
   }
 }

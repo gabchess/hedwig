@@ -22,6 +22,10 @@ export const EVIDENCE_ECHO_LIMIT = 120;
 // ceiling: the owner can ask for a fresher fact, never an older one.
 export const MAX_ROLE_FACT_AGE_SECONDS = 60;
 
+// How old a registry Fact's live read may be, in seconds, before a
+// `confirmed` read counts as `unconfirmed`. Same ceiling as the role fact.
+export const MAX_REGISTRY_LIVE_READ_AGE_SECONDS = 60;
+
 // How far out an EIP-3009 authorization's validBefore may sit, in seconds,
 // before authorization-window-within-ceiling stops accepting it. A policy's
 // own maxSeconds must fall at or under this ceiling: the owner can ask for a

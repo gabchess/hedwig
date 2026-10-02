@@ -2,6 +2,7 @@ import {
   EVIDENCE_CLASS_WEIGHTS,
   EVIDENCE_ECHO_LIMIT,
   MAX_AUTHORIZATION_WINDOW_SECONDS,
+  MAX_REGISTRY_LIVE_READ_AGE_SECONDS,
   MAX_ROLE_FACT_AGE_SECONDS,
 } from "./constants";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
@@ -84,9 +85,31 @@ export interface RoleFact {
   };
 }
 
+// A registry row for one token, as `canonicalAddressFor` reads it. consult
+// checks no signature: the caller must pass only a row whose signatures the
+// Reader that produced it already checked. `liveRead` is that Reader's own
+// live check of the deployed contract against the row: `confirmed`,
+// `mismatch` (the chain disagrees with the row) or `unconfirmed` (the read
+// did not complete). `liveReadAt` is when that read ran and `expiresAt` is
+// when the row lapses, both unix seconds. A `confirmed` read older than
+// MAX_REGISTRY_LIVE_READ_AGE_SECONDS, or dated after facts.now, counts as
+// `unconfirmed`. `symbol` is ASCII uppercase letters and digits only. The
+// code table always wins over a Fact; a Fact only fills a gap.
+export type RegistryLiveRead = "confirmed" | "mismatch" | "unconfirmed";
+
+export interface RegistryAssetFact {
+  chainId: string;
+  symbol: string;
+  contractAddress: string;
+  expiresAt: number;
+  liveRead: RegistryLiveRead;
+  liveReadAt: number;
+}
+
 export interface Facts {
   now?: number;
   solanaRole?: RoleFact;
+  registryAsset?: RegistryAssetFact;
 }
 
 // One flat shape covering every action type this catalog knows: pay's
@@ -195,8 +218,8 @@ export interface ConditionDefinition {
 // off context.policy, read once here so validateCatalog can catch a
 // Condition that reads the owner's policy but ships with an empty or
 // missing policyFields declaration. An id absent from this set decides
-// entirely from the request or a static registry; its checker takes
-// `_context` and never touches `context.policy`. The same id is shared by a
+// entirely from the request, a static registry or `context.facts`; its
+// checker never touches `context.policy`. The same id is shared by a
 // pay instance and a swap instance of the same Condition (for example
 // "role-requirement-met"), and both read policy the same way.
 export const POLICY_READING_CONDITION_IDS: ReadonlySet<string> = new Set([
@@ -334,6 +357,230 @@ function readFactNow(facts: unknown): number | undefined {
     : undefined;
 }
 
+const REGISTRY_LIVE_READS: readonly string[] = [
+  "confirmed",
+  "mismatch",
+  "unconfirmed",
+];
+
+// ASCII uppercase letters and digits: no lowercase, no look-alike Unicode,
+// no invisible characters a Fact could use to sit beside a code-table
+// symbol under a spelling the exact lookup misses.
+const REGISTRY_SYMBOL_SHAPE = /^[A-Z0-9]+$/;
+
+// True when the code table already lists this symbol on this chain under
+// any letter case, so a Fact can never stand in for it.
+function codeTableListsSymbol(chainId: string, symbol: string): boolean {
+  const byChain = ownLookup<Record<string, string>>(CANONICAL_ASSETS, chainId);
+  const upper = symbol.toUpperCase();
+  return (
+    byChain !== undefined &&
+    Object.keys(byChain).some((key) => key.toUpperCase() === upper)
+  );
+}
+
+// facts.registryAsset, only when every field is well-formed, it names this
+// exact chain and symbol, its symbol has the strict shape and is not a
+// code-table symbol, and it has not expired against facts.now. Anything
+// else, including a Fact with no facts.now to date it or no liveReadAt,
+// counts as no Fact. The live read it answers is the effective one: a
+// `confirmed` read that is too old or dated in the future is `unconfirmed`.
+function readRegistryAssetFact(
+  facts: unknown,
+  chainId: string,
+  symbol: string
+): { address: string; liveRead: RegistryLiveRead } | undefined {
+  if (
+    !REGISTRY_SYMBOL_SHAPE.test(symbol) ||
+    codeTableListsSymbol(chainId, symbol)
+  ) {
+    return undefined;
+  }
+  const now = readFactNow(facts);
+  const fact =
+    now === undefined
+      ? undefined
+      : ownLookup<unknown>(facts as object, "registryAsset");
+  if (fact === null || typeof fact !== "object" || Array.isArray(fact)) {
+    return undefined;
+  }
+  const field = (key: string) => ownLookup<unknown>(fact, key);
+  const expiresAt = field("expiresAt");
+  const contractAddress = field("contractAddress");
+  const liveRead = field("liveRead");
+  const liveReadAt = field("liveReadAt");
+  const wellFormed =
+    field("chainId") === chainId &&
+    field("symbol") === symbol &&
+    typeof contractAddress === "string" &&
+    EVM_ADDRESS_SHAPE.test(contractAddress) &&
+    typeof expiresAt === "number" &&
+    Number.isSafeInteger(expiresAt) &&
+    typeof liveRead === "string" &&
+    REGISTRY_LIVE_READS.includes(liveRead) &&
+    typeof liveReadAt === "number" &&
+    Number.isSafeInteger(liveReadAt);
+  if (!wellFormed || (expiresAt as number) <= (now as number)) {
+    return undefined;
+  }
+  const age = (now as number) - (liveReadAt as number);
+  const fresh = age >= 0 && age <= MAX_REGISTRY_LIVE_READ_AGE_SECONDS;
+  return {
+    address: contractAddress as string,
+    liveRead:
+      liveRead === "confirmed" && !fresh
+        ? "unconfirmed"
+        : (liveRead as RegistryLiveRead),
+  };
+}
+
+export type CanonicalAddress =
+  | { source: "code-table"; address: string }
+  | { source: "registry"; address: string; liveRead: RegistryLiveRead };
+
+// The one lookup behind asset-is-canonical, target-is-canonical,
+// token-in-is-canonical and token-out-is-canonical, through
+// checkCanonicalAddress. The code table always wins. A registry Fact fills
+// a gap only for an EVM chain and symbol the code table does not list, and
+// its effective live read travels with the address.
+export function canonicalAddressFor(
+  chainId: unknown,
+  symbol: unknown,
+  facts: unknown
+): CanonicalAddress | undefined {
+  const byChain = ownLookup<Record<string, string>>(CANONICAL_ASSETS, chainId);
+  const fromCode = ownLookup<string>(byChain, symbol);
+  if (fromCode !== undefined) {
+    return { source: "code-table", address: fromCode };
+  }
+  if (!isCaip2(chainId) || !isEvmChain(chainId) || typeof symbol !== "string") {
+    return undefined;
+  }
+  const fact = readRegistryAssetFact(facts, chainId, symbol);
+  return fact === undefined ? undefined : { source: "registry", ...fact };
+}
+
+interface RegistryLiveReadCodes {
+  readonly mismatch: string;
+  readonly unconfirmed: string;
+}
+
+// At the row's own address, a registry entry whose live read is not
+// `confirmed` cannot vouch for that address, so the Condition answers
+// UNVERIFIED. Only checkCanonicalAddress calls this, and only after the
+// request's address matched the row.
+function unconfirmedRegistryOutcome(
+  id: string,
+  entry: CanonicalAddress,
+  chainId: unknown,
+  symbol: unknown,
+  codes: RegistryLiveReadCodes
+): CheckerOutcome | undefined {
+  if (entry.source !== "registry" || entry.liveRead === "confirmed") {
+    return undefined;
+  }
+  const subject = `${describe(chainId)}:${describe(symbol)}`;
+  return entry.liveRead === "mismatch"
+    ? {
+        id,
+        status: "UNVERIFIED",
+        code: codes.mismatch,
+        evidenceClass: "not-verifiable",
+        evidence: `a live read disagrees with the registry entry in facts for ${subject}`,
+      }
+    : {
+        id,
+        status: "UNVERIFIED",
+        code: codes.unconfirmed,
+        evidenceClass: "not-verifiable",
+        evidence: `a live read could not confirm the registry entry in facts for ${subject}`,
+      };
+}
+
+interface CanonicalAddressCodes {
+  readonly pass: string;
+  readonly notCanonical: string;
+  readonly registryMissing: string;
+  readonly addressMalformed: string;
+  readonly liveReadMismatch: string;
+  readonly liveReadUnconfirmed: string;
+}
+
+// The one order every canonical-address Condition follows, kept here so no
+// Condition can reorder it: look the canonical address up, compare the
+// request's address with it, and only when they match ask whether a
+// registry row's live read was confirmed. A different address is FAIL
+// whatever the live read says. `label` names the field in the evidence
+// ("asset", "target", "tokenIn", "tokenOut").
+function checkCanonicalAddress(
+  id: string,
+  label: string,
+  chainId: unknown,
+  symbol: unknown,
+  address: unknown,
+  facts: unknown,
+  codes: CanonicalAddressCodes
+): CheckerOutcome {
+  const entry = canonicalAddressFor(chainId, symbol, facts);
+  if (entry === undefined) {
+    return {
+      id,
+      status: "UNVERIFIED",
+      code: codes.registryMissing,
+      evidenceClass: "not-verifiable",
+      evidence: `no canonical registry entry for ${describe(
+        chainId
+      )}:${describe(symbol)}`,
+    };
+  }
+  const canonical = entry.address;
+  const matches = sameEvmAddress(canonical, address);
+  if (matches === "invalid") {
+    return {
+      id,
+      status: "UNVERIFIED",
+      code: codes.addressMalformed,
+      evidenceClass: "not-verifiable",
+      evidence: `${label} contract address "${describe(
+        address
+      )}" is not a well-formed EVM address`,
+    };
+  }
+  if (!matches) {
+    return {
+      id,
+      status: "FAIL",
+      code: codes.notCanonical,
+      evidenceClass: "static-registry",
+      evidence: `${label} contract ${describe(
+        address
+      )} does not match ${entryName(entry)} ${canonical}`,
+    };
+  }
+  const unconfirmed = unconfirmedRegistryOutcome(id, entry, chainId, symbol, {
+    mismatch: codes.liveReadMismatch,
+    unconfirmed: codes.liveReadUnconfirmed,
+  });
+  if (unconfirmed) {
+    return unconfirmed;
+  }
+  return {
+    id,
+    status: "PASS",
+    code: codes.pass,
+    evidenceClass: "static-registry",
+    evidence: `${label} contract matches ${entryName(entry)}`,
+  };
+}
+
+// The fixed text naming which table an address came from: the code table
+// keeps the exact wording it always had.
+function entryName(entry: CanonicalAddress): string {
+  return entry.source === "code-table"
+    ? "the canonical entry"
+    : "the registry entry in facts";
+}
+
 // Shared by both recipient checkers: neither can compare a value it cannot
 // first place in a validated chain family and shape. Each caller passes its
 // own codes, since a code is never reused across two Conditions.
@@ -451,50 +698,27 @@ function checkRecipientNotPoisonDerived(
 
 function checkAssetIsCanonical(
   request: ConsultRequest,
-  _context: ConditionContext
+  context: ConditionContext
 ): CheckerOutcome {
   const id = "asset-is-canonical";
   const { chainId, asset } = request.action;
-  const symbol = asset?.symbol;
-  const contractAddress = asset?.contractAddress;
 
-  const byChain = ownLookup<Record<string, string>>(CANONICAL_ASSETS, chainId);
-  const canonical = ownLookup<string>(byChain, symbol);
-  if (canonical === undefined) {
-    return {
-      id,
-      status: "UNVERIFIED",
-      code: "ASSET_REGISTRY_ENTRY_MISSING",
-      evidenceClass: "not-verifiable",
-      evidence: `no canonical registry entry for ${describe(
-        chainId
-      )}:${describe(symbol)}`,
-    };
-  }
-
-  const matches = sameEvmAddress(canonical, contractAddress);
-  if (matches === "invalid") {
-    return {
-      id,
-      status: "UNVERIFIED",
-      code: "ASSET_ADDRESS_MALFORMED",
-      evidenceClass: "not-verifiable",
-      evidence: `asset contract address "${describe(
-        contractAddress
-      )}" is not a well-formed EVM address`,
-    };
-  }
-  return {
+  return checkCanonicalAddress(
     id,
-    status: matches ? "PASS" : "FAIL",
-    code: matches ? "ASSET_IS_CANONICAL" : "ASSET_NOT_CANONICAL",
-    evidenceClass: "static-registry",
-    evidence: matches
-      ? "asset contract matches the canonical entry"
-      : `asset contract ${describe(
-          contractAddress
-        )} does not match the canonical entry ${canonical}`,
-  };
+    "asset",
+    chainId,
+    asset?.symbol,
+    asset?.contractAddress,
+    context.facts,
+    {
+      pass: "ASSET_IS_CANONICAL",
+      notCanonical: "ASSET_NOT_CANONICAL",
+      registryMissing: "ASSET_REGISTRY_ENTRY_MISSING",
+      addressMalformed: "ASSET_ADDRESS_MALFORMED",
+      liveReadMismatch: "ASSET_LIVE_READ_DISAGREES_WITH_REGISTRY",
+      liveReadUnconfirmed: "ASSET_IMPLEMENTATION_UNCONFIRMED",
+    }
+  );
 }
 
 // The contract the transaction calls must be the canonical asset contract
@@ -502,7 +726,7 @@ function checkAssetIsCanonical(
 // through any other contract.
 function checkTargetIsCanonical(
   request: ConsultRequest,
-  _context: ConditionContext
+  context: ConditionContext
 ): CheckerOutcome {
   const id = "target-is-canonical";
   const { chainId, asset, target } = request.action;
@@ -529,34 +753,24 @@ function checkTargetIsCanonical(
     };
   }
 
-  const byChain = ownLookup<Record<string, string>>(CANONICAL_ASSETS, chainId);
-  const canonical = ownLookup<string>(byChain, symbol);
-  if (canonical === undefined) {
-    return {
-      id,
-      status: "UNVERIFIED",
-      code: "TARGET_REGISTRY_ENTRY_MISSING",
-      evidenceClass: "not-verifiable",
-      evidence: `no canonical registry entry for ${describe(
-        chainId
-      )}:${describe(symbol)}`,
-    };
-  }
-
-  // Both sides are already known well-formed, so this never answers
-  // "invalid": it is a clean value comparison.
-  const matches = sameEvmAddress(canonical, target) === true;
-  return {
+  // The target is already known well-formed, so the malformed branch never
+  // runs here; TARGET_SHAPE_INVALID above is the only shape answer.
+  return checkCanonicalAddress(
     id,
-    status: matches ? "PASS" : "FAIL",
-    code: matches ? "TARGET_IS_CANONICAL" : "TARGET_NOT_CANONICAL",
-    evidenceClass: "static-registry",
-    evidence: matches
-      ? "target contract matches the canonical entry"
-      : `target contract ${describe(
-          target
-        )} does not match the canonical entry ${canonical}`,
-  };
+    "target",
+    chainId,
+    symbol,
+    target,
+    context.facts,
+    {
+      pass: "TARGET_IS_CANONICAL",
+      notCanonical: "TARGET_NOT_CANONICAL",
+      registryMissing: "TARGET_REGISTRY_ENTRY_MISSING",
+      addressMalformed: "TARGET_SHAPE_INVALID",
+      liveReadMismatch: "TARGET_LIVE_READ_DISAGREES_WITH_REGISTRY",
+      liveReadUnconfirmed: "TARGET_IMPLEMENTATION_UNCONFIRMED",
+    }
+  );
 }
 
 // 78 digits covers uint256's maximum value; anything longer cannot be a real
@@ -1011,13 +1225,20 @@ const PAY_FLOOR: ConditionDefinition[] = [
     codes: {
       pass: "ASSET_IS_CANONICAL",
       fail: ["ASSET_NOT_CANONICAL"],
-      unverified: ["ASSET_REGISTRY_ENTRY_MISSING", "ASSET_ADDRESS_MALFORMED"],
+      unverified: [
+        "ASSET_REGISTRY_ENTRY_MISSING",
+        "ASSET_ADDRESS_MALFORMED",
+        "ASSET_LIVE_READ_DISAGREES_WITH_REGISTRY",
+        "ASSET_IMPLEMENTATION_UNCONFIRMED",
+      ],
     },
     codeEvidenceClass: {
       ASSET_IS_CANONICAL: "static-registry",
       ASSET_NOT_CANONICAL: "static-registry",
       ASSET_REGISTRY_ENTRY_MISSING: "not-verifiable",
       ASSET_ADDRESS_MALFORMED: "not-verifiable",
+      ASSET_LIVE_READ_DISAGREES_WITH_REGISTRY: "not-verifiable",
+      ASSET_IMPLEMENTATION_UNCONFIRMED: "not-verifiable",
     },
     policyFields: [],
     check: checkAssetIsCanonical,
@@ -1083,6 +1304,8 @@ const PAY_FLOOR: ConditionDefinition[] = [
         "TARGET_SHAPE_INVALID",
         "TARGET_CHAIN_UNSUPPORTED",
         "TARGET_REGISTRY_ENTRY_MISSING",
+        "TARGET_LIVE_READ_DISAGREES_WITH_REGISTRY",
+        "TARGET_IMPLEMENTATION_UNCONFIRMED",
       ],
     },
     codeEvidenceClass: {
@@ -1091,6 +1314,8 @@ const PAY_FLOOR: ConditionDefinition[] = [
       TARGET_SHAPE_INVALID: "not-verifiable",
       TARGET_CHAIN_UNSUPPORTED: "not-verifiable",
       TARGET_REGISTRY_ENTRY_MISSING: "not-verifiable",
+      TARGET_LIVE_READ_DISAGREES_WITH_REGISTRY: "not-verifiable",
+      TARGET_IMPLEMENTATION_UNCONFIRMED: "not-verifiable",
     },
     policyFields: [],
     check: checkTargetIsCanonical,
@@ -1252,6 +1477,8 @@ interface TokenIsCanonicalCodes {
   readonly sameAsOther: string;
   readonly registryMissing: string;
   readonly addressMalformed: string;
+  readonly liveReadMismatch: string;
+  readonly liveReadUnconfirmed: string;
 }
 
 // Shared by token-in-is-canonical and token-out-is-canonical: each reads
@@ -1266,7 +1493,7 @@ function makeTokenIsCanonicalChecker(
 ): ConditionChecker {
   return function checkTokenIsCanonical(
     request: ConsultRequest,
-    _context: ConditionContext
+    context: ConditionContext
   ): CheckerOutcome {
     const { chainId } = request.action;
     const token = request.action[tokenField];
@@ -1286,46 +1513,15 @@ function makeTokenIsCanonicalChecker(
       };
     }
 
-    const byChain = ownLookup<Record<string, string>>(
-      CANONICAL_ASSETS,
-      chainId
-    );
-    const canonical = ownLookup<string>(byChain, symbol);
-    if (canonical === undefined) {
-      return {
-        id,
-        status: "UNVERIFIED",
-        code: codes.registryMissing,
-        evidenceClass: "not-verifiable",
-        evidence: `no canonical registry entry for ${describe(
-          chainId
-        )}:${describe(symbol)}`,
-      };
-    }
-
-    const matches = sameEvmAddress(canonical, contractAddress);
-    if (matches === "invalid") {
-      return {
-        id,
-        status: "UNVERIFIED",
-        code: codes.addressMalformed,
-        evidenceClass: "not-verifiable",
-        evidence: `${tokenField} contract address "${describe(
-          contractAddress
-        )}" is not a well-formed EVM address`,
-      };
-    }
-    return {
+    return checkCanonicalAddress(
       id,
-      status: matches ? "PASS" : "FAIL",
-      code: matches ? codes.pass : codes.notCanonical,
-      evidenceClass: "static-registry",
-      evidence: matches
-        ? `${tokenField} contract matches the canonical entry`
-        : `${tokenField} contract ${describe(
-            contractAddress
-          )} does not match the canonical entry ${canonical}`,
-    };
+      tokenField,
+      chainId,
+      symbol,
+      contractAddress,
+      context.facts,
+      codes
+    );
   };
 }
 
@@ -1804,6 +2000,8 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       unverified: [
         "SWAP_TOKEN_IN_REGISTRY_ENTRY_MISSING",
         "SWAP_TOKEN_IN_ADDRESS_MALFORMED",
+        "SWAP_TOKEN_IN_LIVE_READ_DISAGREES_WITH_REGISTRY",
+        "SWAP_TOKEN_IN_IMPLEMENTATION_UNCONFIRMED",
       ],
     },
     codeEvidenceClass: {
@@ -1812,6 +2010,8 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_TOKEN_IN_SAME_AS_TOKEN_OUT: "static-registry",
       SWAP_TOKEN_IN_REGISTRY_ENTRY_MISSING: "not-verifiable",
       SWAP_TOKEN_IN_ADDRESS_MALFORMED: "not-verifiable",
+      SWAP_TOKEN_IN_LIVE_READ_DISAGREES_WITH_REGISTRY: "not-verifiable",
+      SWAP_TOKEN_IN_IMPLEMENTATION_UNCONFIRMED: "not-verifiable",
     },
     check: makeTokenIsCanonicalChecker(
       "token-in-is-canonical",
@@ -1823,6 +2023,8 @@ const SWAP_FLOOR: ConditionDefinition[] = [
         sameAsOther: "SWAP_TOKEN_IN_SAME_AS_TOKEN_OUT",
         registryMissing: "SWAP_TOKEN_IN_REGISTRY_ENTRY_MISSING",
         addressMalformed: "SWAP_TOKEN_IN_ADDRESS_MALFORMED",
+        liveReadMismatch: "SWAP_TOKEN_IN_LIVE_READ_DISAGREES_WITH_REGISTRY",
+        liveReadUnconfirmed: "SWAP_TOKEN_IN_IMPLEMENTATION_UNCONFIRMED",
       }
     ),
     policyFields: [],
@@ -1838,6 +2040,8 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       unverified: [
         "SWAP_TOKEN_OUT_REGISTRY_ENTRY_MISSING",
         "SWAP_TOKEN_OUT_ADDRESS_MALFORMED",
+        "SWAP_TOKEN_OUT_LIVE_READ_DISAGREES_WITH_REGISTRY",
+        "SWAP_TOKEN_OUT_IMPLEMENTATION_UNCONFIRMED",
       ],
     },
     codeEvidenceClass: {
@@ -1846,6 +2050,8 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_TOKEN_OUT_SAME_AS_TOKEN_IN: "static-registry",
       SWAP_TOKEN_OUT_REGISTRY_ENTRY_MISSING: "not-verifiable",
       SWAP_TOKEN_OUT_ADDRESS_MALFORMED: "not-verifiable",
+      SWAP_TOKEN_OUT_LIVE_READ_DISAGREES_WITH_REGISTRY: "not-verifiable",
+      SWAP_TOKEN_OUT_IMPLEMENTATION_UNCONFIRMED: "not-verifiable",
     },
     check: makeTokenIsCanonicalChecker(
       "token-out-is-canonical",
@@ -1857,6 +2063,8 @@ const SWAP_FLOOR: ConditionDefinition[] = [
         sameAsOther: "SWAP_TOKEN_OUT_SAME_AS_TOKEN_IN",
         registryMissing: "SWAP_TOKEN_OUT_REGISTRY_ENTRY_MISSING",
         addressMalformed: "SWAP_TOKEN_OUT_ADDRESS_MALFORMED",
+        liveReadMismatch: "SWAP_TOKEN_OUT_LIVE_READ_DISAGREES_WITH_REGISTRY",
+        liveReadUnconfirmed: "SWAP_TOKEN_OUT_IMPLEMENTATION_UNCONFIRMED",
       }
     ),
     policyFields: [],
