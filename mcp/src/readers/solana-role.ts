@@ -308,7 +308,7 @@ function readOutcome(
 // cut off the moment the cap is passed, never buffered whole first. A
 // response object with no readable stream (an injected test double) falls
 // back to a single bounded read.
-async function readBoundedBody(
+export async function readBoundedBody(
   response: Response,
   maxBytes: number,
   controller: AbortController

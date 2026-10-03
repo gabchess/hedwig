@@ -3,7 +3,17 @@ import type { ConsultResponse } from "@hedwig/consult";
 
 import { readPolicyFile } from "./policy";
 import type { PolicyPin } from "./policy";
-import { getSolanaClusterConfig } from "./readers/config";
+import {
+  getEvmRpcUrl,
+  getRegistryConfig,
+  getSolanaClusterConfig,
+} from "./readers/config";
+import {
+  gatherRegistry,
+  PINNED_REGISTRY_KEYS,
+  REGISTRY_DEADLINE_MS,
+  sharedRatchet,
+} from "./readers/registry-asset";
 import {
   clusterForRoleRequirement,
   gatherSolanaRole,
@@ -18,6 +28,17 @@ import {
 // function receives its arguments (see server.ts's transport-level cap for
 // that).
 const MAX_ARGUMENT_BYTES = 64 * 1024;
+
+// The signing keys the registry Reader verifies rows under: consult's two
+// constants. Test-only: a test may swap in its own pair, since the shipped
+// constants are empty and an empty pair rejects every row. Never called
+// outside a test, and nothing a request or a policy says can reach it.
+let registryKeys = PINNED_REGISTRY_KEYS;
+export function __setRegistryKeysForTests(
+  keys: { a: string; b: string } | undefined
+): void {
+  registryKeys = keys ?? PINNED_REGISTRY_KEYS;
+}
 
 const ADAPTER_REFERENCE = "consult/references/core.md";
 
@@ -135,27 +156,52 @@ export async function handleConsult(
   const policyRole = readPolicyRole(policyResult.policy);
   const cluster = clusterForRoleRequirement(policyRole);
   const clusterConfig = cluster ? getSolanaClusterConfig(cluster) : undefined;
-  const solanaRole = await gatherSolanaRole(policyRole, {
-    fetch: globalThis.fetch,
-    // observedAt: read inside the Reader, right before it sends.
-    now: () => Math.floor(Date.now() / 1000),
-    feePayer: clusterConfig?.feePayer,
-    rpcUrl: clusterConfig?.rpcUrl,
-    deadlineMs: SIMULATE_DEADLINE_MS,
-  });
+  // The registry Reader runs beside it, under its own 800 ms limit. It reads
+  // the request only to pick a chain number, a token symbol and a vault
+  // address, each checked against its strict shape before it can reach a
+  // path. The registry host, the RPC URLs and the signing keys come from
+  // configuration and consult's constants, never from the request or the
+  // policy. It never throws, so a failure surfaces as an absent fact.
+  const [solanaRole, registry] = await Promise.all([
+    gatherSolanaRole(policyRole, {
+      fetch: globalThis.fetch,
+      // observedAt: read inside the Reader, right before it sends.
+      now: () => Math.floor(Date.now() / 1000),
+      feePayer: clusterConfig?.feePayer,
+      rpcUrl: clusterConfig?.rpcUrl,
+      deadlineMs: SIMULATE_DEADLINE_MS,
+    }),
+    gatherRegistry(request, {
+      fetch: globalThis.fetch,
+      now: () => Math.floor(Date.now() / 1000),
+      deadlineMs: REGISTRY_DEADLINE_MS,
+      keys: registryKeys,
+      registry: () => {
+        const config = getRegistryConfig();
+        return config
+          ? {
+              baseUrl: config.baseUrl,
+              ratchet: sharedRatchet(config.ratchetFile),
+            }
+          : undefined;
+      },
+      rpcUrlFor: getEvmRpcUrl,
+    }),
+  ]);
   // consult()'s own clock: read only after the Reader has returned, so the
   // gap between it and the fact's observedAt reflects how long the actual
   // round trip took, and a stale fact can be detected at all.
   const now = Math.floor(Date.now() / 1000);
 
   try {
-    // The adapter is the only clock and the only Solana reader consult()
-    // ever sees: it supplies `now` and `solanaRole` as data on every call.
-    // Only `rawArgs.request` is read above and these facts are built here,
-    // so nothing a caller sends can become a fact.
+    // The adapter is the only clock and the only reader consult() ever
+    // sees: it supplies `now`, `solanaRole` and the registry facts as data
+    // on every call. Only `rawArgs.request` is read above and these facts
+    // are built here, so nothing a caller sends can become a fact.
     return consult(request as never, policyResult.policy as never, {
       now,
       ...(solanaRole !== undefined ? { solanaRole } : {}),
+      ...registry,
     });
   } catch {
     return unknownAdapterResponse(

@@ -4,6 +4,10 @@ Versions track what ships, code or docs.
 
 ## Unreleased
 
+### Added
+
+- The `mcp` server reads a signed registry row for a token or deposit vault that the code table does not list, checks both signatures and a sequence ratchet, confirms the contract's code hash on chain, and passes the result to `consult` as `registryAsset` and `registryVault` facts. The registry host and RPC URLs come from `HEDWIG_REGISTRY_URL` and `HEDWIG_EVM_RPC_URL_<chain number>`, and with no keys set in `consult` every row is refused.
+
 ### Changed
 
 - The agent install, on `/docs`, in `agents.md` and in `docs/agents.md`, fetches the commit published as v0.4.2, which includes the policy pin.
