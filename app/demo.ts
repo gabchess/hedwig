@@ -7,9 +7,6 @@
  *
  * Usage: see app/README.md
  */
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
 import { AnchorProvider, Wallet } from "@anchor-lang/core";
 import {
   createHedwigProgram,
@@ -24,15 +21,15 @@ import {
   sendSetRoleEnabled,
 } from "@hedwig-sol/sdk";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-
-function loadKeypair(): Keypair {
-  const walletPath =
-    process.env.ANCHOR_WALLET ||
-    path.join(os.homedir(), ".config", "solana", "id.json");
-  const raw = fs.readFileSync(walletPath, "utf-8");
-  const secret = Uint8Array.from(JSON.parse(raw));
-  return Keypair.fromSecretKey(secret);
-}
+import {
+  LIFECYCLE_ACCOUNT_BYTES,
+  LIFECYCLE_DEMO_KEYPAIR_PATH,
+  assertDevnetGenesisHash,
+  assertPayerCanCover,
+  loadOrGenerateKeypair,
+  requiredPayerLamports,
+  resolveKeypairPath,
+} from "./revoke-demo-lib";
 
 function randomOrgName(): string {
   const suffix = Math.random().toString(36).slice(2, 10);
@@ -43,7 +40,13 @@ async function main() {
   const rpcUrl = process.env.HELIUS_RPC_URL || clusterApiUrl("devnet");
   const connection = new Connection(rpcUrl, "confirmed");
 
-  const payer = loadKeypair();
+  // Before any key is read or any transaction is signed: an RPC URL can
+  // name any cluster, so the cluster's own answer decides.
+  assertDevnetGenesisHash(await connection.getGenesisHash());
+
+  const keypair = resolveKeypairPath(process.env, LIFECYCLE_DEMO_KEYPAIR_PATH);
+  console.log(`[setup] keypair: ${keypair.path} (${keypair.source})`);
+  const payer = loadOrGenerateKeypair(keypair.path);
   const wallet = new Wallet(payer);
   const provider = new AnchorProvider(connection, wallet, {
     commitment: "confirmed",
@@ -52,13 +55,26 @@ async function main() {
   console.log(`[setup] wallet: ${payer.publicKey.toBase58()}`);
   const balanceLamports = await connection.getBalance(payer.publicKey);
   console.log(`[setup] balance: ${balanceLamports / 1e9} SOL`);
-  if (balanceLamports === 0) {
-    throw new Error(
-      `Wallet ${payer.publicKey.toBase58()} has 0 SOL on devnet. Fund it with: solana airdrop 1 ${payer.publicKey.toBase58()} --url devnet`
-    );
-  }
 
   const program = createHedwigProgram(provider);
+  // The run creates an org, a role and a member account (the member's rent
+  // returns at revoke_role, but the payer must hold it first) and signs six
+  // transactions.
+  const rents = await Promise.all(
+    LIFECYCLE_ACCOUNT_BYTES.map((bytes) =>
+      connection.getMinimumBalanceForRentExemption(bytes)
+    )
+  );
+  assertPayerCanCover(
+    payer.publicKey.toBase58(),
+    balanceLamports,
+    requiredPayerLamports({
+      spendLamports: rents.reduce((sum, rent) => sum + rent, 0),
+      signatures: 6,
+      rentExemptMinimumLamports:
+        await connection.getMinimumBalanceForRentExemption(0),
+    })
+  );
 
   const orgName = randomOrgName();
   const roleName = "treasurer";

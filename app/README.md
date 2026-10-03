@@ -11,14 +11,31 @@ in the separate devnet reference consumer through CPI.
 ## Prerequisites
 
 - Node.js 22+
-- A funded devnet wallet at `~/.config/solana/id.json` (or set `ANCHOR_WALLET`
-  to a different keypair path)
+- A throwaway devnet keypair. Each demo creates one the first time it runs and
+  prints its path and public key. The demos never read your Solana CLI wallet.
+  `demo` uses `~/.hedwig/demo-keys/lifecycle-demo-admin.json`, `consumer-demo`
+  uses `~/.hedwig/demo-keys/consumer-demo-payer.json`, and `revoke-demo` uses
+  `~/.hedwig/demo-keys/revoke-demo-admin.json`.
+- To use a different key, set `HEDWIG_DEMO_KEYPAIR` to an absolute path. An
+  empty or relative value is refused, and so is any path inside a git work
+  tree or under `~/.config/solana`, `~/secrets` or a `target/deploy`
+  directory. The default applies only when the variable is unset.
 
-Fund a devnet wallet if needed:
+For `demo` and `consumer-demo`, fund the key on devnet after the first run
+prints the public key. `revoke-demo` funds its own key from the faucet.
 
 ```bash
-solana airdrop 1 <your-pubkey> --url devnet
+solana airdrop 1 <the-printed-pubkey> --url devnet
 ```
+
+`demo` and `consumer-demo` check the balance before they send anything: the
+lamports they spend, 5,000 per signature, and the rent-exempt minimum the key
+must keep. If the key holds less, the demo stops and prints the amount it
+needs. `revoke-demo` asks the faucet for 1 SOL when its key holds less than
+0.05 SOL.
+
+Every demo asks the RPC endpoint for its genesis hash before it loads a key or
+signs anything, and stops unless the answer is devnet's.
 
 ## Install
 
@@ -54,13 +71,14 @@ export HELIUS_RPC_URL="https://devnet.helius-rpc.com/?api-key=<your-key>"
 npm --prefix app run demo
 ```
 
-Never commit an API key. Pass it as an environment variable only.
+Never commit an API key. Pass it as an environment variable only. A URL that
+answers with any other cluster's genesis hash is refused.
 
 ## What it does
 
 An Org PDA is derived from the wallet, not from the random display name. Each
-wallet can therefore run this demo once. Use a fresh funded wallet for another
-run.
+wallet can therefore run this demo once. Point `HEDWIG_DEMO_KEYPAIR` at a new
+file and fund it for another run.
 
 The script prints one labeled line per instruction with the resulting
 transaction signature, reads back the Role and Member account state after
@@ -106,7 +124,8 @@ yarn consult:build && yarn mcp:build && npm --prefix app run revoke-demo
 ```
 
 It generates its own throwaway keypair the first time it runs (a file
-outside the repository, overridable with `HEDWIG_DEMO_KEYPAIR`), funds it
+outside the repository, overridable with `HEDWIG_DEMO_KEYPAIR`, printed
+with whether it is the default or an explicit path), funds it
 from the devnet faucet, creates an org and a role, assigns the role to a
 second generated key, and spawns the built MCP server over stdio. It asks
 four questions: an allow while the role is held, an over-cap payment that
