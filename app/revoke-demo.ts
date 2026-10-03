@@ -44,7 +44,6 @@ import {
   buildPolicyFile,
   buildPolicyFileWithUnrecognizedRoleProgram,
   buildServerEnv,
-  DEFAULT_KEYPAIR_PATH,
   extractAskSummary,
   formatTranscript,
   isAsk4Valid,
@@ -52,6 +51,7 @@ import {
   parseOutPath,
   PAY_REQUEST,
   PAY_REQUEST_OVER_CAP,
+  resolveKeypairPath,
   shouldRequestAirdrop,
   withSwappedPolicyFile,
   type AskSummary,
@@ -206,8 +206,9 @@ async function main(): Promise<void> {
   const genesisHash = await connection.getGenesisHash();
   assertDevnetGenesisHash(genesisHash);
 
-  const keypairPath = process.env.HEDWIG_DEMO_KEYPAIR || DEFAULT_KEYPAIR_PATH;
-  const admin = loadOrGenerateKeypair(keypairPath);
+  const keypair = resolveKeypairPath(process.env);
+  console.log(`[setup] keypair: ${keypair.path} (${keypair.source})`);
+  const admin = loadOrGenerateKeypair(keypair.path);
 
   const balance = await connection.getBalance(admin.publicKey);
   if (shouldRequestAirdrop(balance)) {
