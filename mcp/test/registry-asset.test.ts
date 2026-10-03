@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -851,24 +852,79 @@ describe("registry Reader", function () {
       ).to.not.equal(undefined);
     });
 
-    it("writes the file, and a fresh process reads it back", () => {
+    const lines = (file: string) =>
+      readFileSync(file, "utf8")
+        .split("\n")
+        .filter((line) => line !== "")
+        .map((line) => JSON.parse(line));
+
+    it("appends one line per raised sequence, and a fresh process reads it back", () => {
       const first = createRatchet(ratchetFile);
       expect(first.admit("token:143:USDC", 4)).to.equal(true);
-      expect(JSON.parse(readFileSync(ratchetFile, "utf8"))).to.deep.equal({
-        "token:143:USDC": 4,
-      });
+      expect(lines(ratchetFile)).to.deep.equal([
+        { key: "token:143:USDC", sequence: 4 },
+      ]);
       const second = createRatchet(ratchetFile);
       expect(second.admit("token:143:USDC", 3)).to.equal(false);
       expect(second.admit("token:143:USDC", 4)).to.equal(true);
       expect(second.admit("token:143:USDC", 7)).to.equal(true);
       expect(second.admit("vault:1:x", 1)).to.equal(true);
-      expect(JSON.parse(readFileSync(ratchetFile, "utf8"))).to.deep.equal({
-        "token:143:USDC": 7,
-        "vault:1:x": 1,
-      });
+      expect(lines(ratchetFile)).to.deep.equal([
+        { key: "token:143:USDC", sequence: 4 },
+        { key: "token:143:USDC", sequence: 7 },
+        { key: "vault:1:x", sequence: 1 },
+      ]);
       expect(createRatchet(ratchetFile).admit("token:143:USDC", 6)).to.equal(
         false
       );
+    });
+
+    it("loses no entry when several server processes write one file", async function () {
+      this.timeout(60000);
+      const workers = 4;
+      const perWorker = 200;
+      const startAt = Date.now() + 4000;
+      const env = {
+        ...process.env,
+        TS_NODE_PROJECT: join(__dirname, "..", "tsconfig.test.json"),
+      };
+      await Promise.all(
+        Array.from(
+          { length: workers },
+          (_, w) =>
+            new Promise<void>((resolve, reject) => {
+              const child = spawn(
+                process.execPath,
+                [
+                  "-r",
+                  "ts-node/register/transpile-only",
+                  join(__dirname, "ratchet-worker.ts"),
+                  ratchetFile,
+                  String(w),
+                  String(perWorker),
+                  String(startAt),
+                ],
+                { env, stdio: "inherit" }
+              );
+              child.on("error", reject);
+              child.on("close", (code) =>
+                code === 0
+                  ? resolve()
+                  : reject(new Error(`worker ${w} exited ${code}`))
+              );
+            })
+        )
+      );
+      const fresh = createRatchet(ratchetFile);
+      let lost = 0;
+      for (let w = 0; w < workers; w += 1) {
+        for (let i = 0; i < perWorker; i += 1) {
+          if (fresh.admit(`token:${w}:${i}`, 4)) {
+            lost += 1;
+          }
+        }
+      }
+      expect(lost).to.equal(0);
     });
 
     it("falls back to memory when the file cannot be written", () => {
@@ -909,12 +965,16 @@ describe("registry Reader", function () {
       console.error = () => undefined;
       try {
         for (const content of [
-          "not json",
-          "[]",
-          "null",
-          '{"k":0}',
-          '{"k":"1"}',
-          '{"k":1.5}',
+          "not json\n",
+          "[]\n",
+          "null\n",
+          '{"key":"k","sequence":0}\n',
+          '{"key":"k","sequence":"1"}\n',
+          '{"key":"k","sequence":1.5}\n',
+          '{"key":1,"sequence":1}\n',
+          '{"key":"k"}\n',
+          '{"key":"k","sequence":2}\nnot json\n',
+          '{"key":"k","sequence":2}\n{"key":"k","sequence":3',
         ]) {
           writeFileSync(ratchetFile, content);
           const ratchet = createRatchet(ratchetFile);
@@ -958,10 +1018,10 @@ describe("registry Reader", function () {
       );
       expect(facts.registryAsset).to.not.equal(undefined);
       expect(facts.registryVault).to.not.equal(undefined);
-      expect(JSON.parse(readFileSync(ratchetFile, "utf8"))).to.deep.equal({
-        "token:1:USDT": 4,
-        [`vault:1:${STEAK}`]: 1,
-      });
+      expect(lines(ratchetFile)).to.deep.equal([
+        { key: "token:1:USDT", sequence: 4 },
+        { key: `vault:1:${STEAK}`, sequence: 1 },
+      ]);
     });
   });
 

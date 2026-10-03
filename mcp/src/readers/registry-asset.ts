@@ -1,6 +1,6 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 import type { KeyObject } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { canonicalAddressFor } from "@hedwig/consult/canonical";
@@ -79,12 +79,15 @@ export interface RegistryFacts {
 
 // --- the sequence ratchet ---------------------------------------------------
 
-// A file of the highest sequence seen per row key, written whole through a
-// temporary file and a rename. When the file cannot be written (a sandboxed
-// Host, a read-only home) the ratchet keeps working in memory for the life
-// of the process. A file that exists but is not a table of positive
-// integers is not trusted and not overwritten: admit answers false until
-// the owner fixes or removes it.
+// An append-only file, one JSON line per raised sequence:
+// {"key":"token:143:USDC","sequence":5}. The highest line per key is that
+// key's ratchet. Several server processes may share the file, and an append
+// never replaces what another process wrote, so no entry is lost. The file
+// grows by one line each time a row's sequence rises. When the file cannot
+// be written (a sandboxed Host, a read-only home) the ratchet keeps working
+// in memory for the life of the process. A file with any line that is not a
+// key and a positive integer sequence is not trusted and not overwritten:
+// admit answers false until the owner fixes or removes it.
 export function createRatchet(file: string): RegistryRatchet {
   const memory = new Map<string, number>();
   let warnedCorrupt = false;
@@ -99,30 +102,34 @@ export function createRatchet(file: string): RegistryRatchet {
         ? new Map()
         : undefined;
     }
-    try {
-      const parsed: unknown = JSON.parse(text);
+    const table = new Map<string, number>();
+    const rows = text.split("\n");
+    // A complete file ends with a newline, so the last piece is empty.
+    if (rows.at(-1) === "") {
+      rows.pop();
+    }
+    for (const row of rows) {
+      let entry: unknown;
+      try {
+        entry = JSON.parse(row);
+      } catch {
+        return "corrupt";
+      }
+      if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+        return "corrupt";
+      }
+      const { key, sequence } = entry as Record<string, unknown>;
       if (
-        parsed === null ||
-        typeof parsed !== "object" ||
-        Array.isArray(parsed)
+        typeof key !== "string" ||
+        typeof sequence !== "number" ||
+        !Number.isSafeInteger(sequence) ||
+        sequence < 1
       ) {
         return "corrupt";
       }
-      const table = new Map<string, number>();
-      for (const [key, value] of Object.entries(parsed)) {
-        if (
-          typeof value !== "number" ||
-          !Number.isSafeInteger(value) ||
-          value < 1
-        ) {
-          return "corrupt";
-        }
-        table.set(key, value);
-      }
-      return table;
-    } catch {
-      return "corrupt";
+      table.set(key, Math.max(table.get(key) ?? 0, sequence));
     }
+    return table;
   }
 
   function warnMemoryOnly(): void {
@@ -134,14 +141,12 @@ export function createRatchet(file: string): RegistryRatchet {
     }
   }
 
-  function save(table: Map<string, number>): void {
+  function append(key: string, sequence: number): void {
     try {
       mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
-      const temporary = `${file}.${process.pid}.tmp`;
-      writeFileSync(temporary, JSON.stringify(Object.fromEntries(table)), {
+      appendFileSync(file, `${JSON.stringify({ key, sequence })}\n`, {
         mode: 0o600,
       });
-      renameSync(temporary, file);
     } catch {
       warnMemoryOnly();
     }
@@ -154,7 +159,7 @@ export function createRatchet(file: string): RegistryRatchet {
         if (!warnedCorrupt) {
           warnedCorrupt = true;
           console.error(
-            "hedwig-mcp: the registry ratchet file is not a table of sequences; answering with no registry fact until it is fixed or removed"
+            "hedwig-mcp: the registry ratchet file is not a list of sequences; answering with no registry fact until it is fixed or removed"
           );
         }
         return false;
@@ -168,8 +173,7 @@ export function createRatchet(file: string): RegistryRatchet {
       }
       memory.set(key, sequence);
       if (loaded !== undefined && sequence > onDisk) {
-        loaded.set(key, sequence);
-        save(loaded);
+        append(key, sequence);
       }
       return true;
     },
