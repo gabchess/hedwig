@@ -179,6 +179,23 @@ describe("handleConsult: the registry Reader wired end to end", function () {
     expect(lines).to.deep.equal(["HEDWIG_REGISTRY_URL is not set"]);
   });
 
+  it("the shipped, empty keys with no host set log nothing about the host", async () => {
+    delete process.env.HEDWIG_REGISTRY_URL;
+    __resetRegistryConfigForTests();
+    __setRegistryKeysForTests(undefined);
+    const realError = console.error;
+    const lines: string[] = [];
+    console.error = (line: unknown) => lines.push(String(line));
+    try {
+      const result = await handleConsult({ request: PAY_MONAD }, policyPath);
+      expect(result.verdict).to.equal("UNKNOWN");
+    } finally {
+      console.error = realError;
+    }
+    expect(world.log).to.have.length(0);
+    expect(lines).to.deep.equal([]);
+  });
+
   it("the shipped, empty keys reject every row and fetch nothing", async () => {
     __setRegistryKeysForTests(undefined);
     const result = await handleConsult({ request: PAY_MONAD }, policyPath);

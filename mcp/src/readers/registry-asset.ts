@@ -785,12 +785,22 @@ function liveReadOfToken(
   return reads.includes("unread") ? "unconfirmed" : "confirmed";
 }
 
-async function readTokenFact(
+// The token half runs in two stages so the vault half can wait only for the
+// first. Stage one fetches and verifies the row: the address a vault is
+// listed over needs nothing more. Stage two is the token's own live read.
+// Both stages share one deadline and one controller.
+interface TokenStage {
+  row: TokenRow;
+  deadlineAt: number;
+  controller: AbortController;
+}
+
+async function readTokenStage(
   lookup: Lookup & { tokenSymbol: string },
   deps: RegistryDeps,
   config: { baseUrl: string; ratchet: RegistryRatchet },
   keys: VerifyingKeys
-): Promise<RegistryAssetFact | undefined> {
+): Promise<TokenStage | undefined> {
   try {
     const deadlineAt = Date.now() + deps.deadlineMs;
     const controller = new AbortController();
@@ -832,7 +842,22 @@ async function readTokenFact(
     ) {
       return undefined;
     }
+    return { row, deadlineAt, controller };
+  } catch {
+    return undefined;
+  }
+}
 
+async function liveReadTokenFact(
+  lookup: Lookup & { tokenSymbol: string },
+  stage: TokenStage | undefined,
+  deps: RegistryDeps
+): Promise<RegistryAssetFact | undefined> {
+  if (stage === undefined) {
+    return undefined;
+  }
+  try {
+    const { row, deadlineAt, controller } = stage;
     const rpcUrl = deps.rpcUrlFor(row.chainNumber);
     const liveReadAt = deps.now();
     let liveRead: RegistryLiveRead = "unconfirmed";
@@ -882,7 +907,7 @@ async function readVaultFact(
   deps: RegistryDeps,
   config: { baseUrl: string; ratchet: RegistryRatchet },
   keys: VerifyingKeys,
-  tokenFact: Promise<RegistryAssetFact | undefined>
+  tokenStage: Promise<TokenStage | undefined>
 ): Promise<RegistryVaultFact | undefined> {
   try {
     const deadlineAt = Date.now() + deps.deadlineMs;
@@ -928,8 +953,18 @@ async function readVaultFact(
     }
 
     // A vault is listed only over the canonical token for this chain, the
-    // same answer the token Conditions use.
-    const registryAsset = await tokenFact;
+    // same answer the token Conditions use. The address comes from the
+    // verified token row alone, so this waits for the row, never for the
+    // token's own chain read; the liveRead here does not change the address.
+    const stage = await tokenStage;
+    const registryAsset: RegistryAssetFact | undefined = stage && {
+      chainId: lookup.chainId,
+      symbol: stage.row.symbol,
+      contractAddress: stage.row.contractAddress,
+      expiresAt: stage.row.expiresAt,
+      liveRead: "unconfirmed",
+      liveReadAt: now,
+    };
     const canonical = canonicalAddressFor(
       lookup.chainId,
       vault.symbol,
@@ -1032,18 +1067,22 @@ export async function gatherRegistry(
     if (!lookup) {
       return {};
     }
-    const config = deps.registry();
-    const keys = config ? readKeys(deps.keys) : undefined;
+    // Keys first: with none usable no row can pass, so the host setting is
+    // never read and never logged as missing.
+    const keys = readKeys(deps.keys);
+    const config = keys ? deps.registry() : undefined;
     if (!config || !keys) {
       return {};
     }
+    const { tokenSymbol } = lookup;
+    const tokenStage =
+      tokenSymbol !== undefined
+        ? readTokenStage({ ...lookup, tokenSymbol }, deps, config, keys)
+        : Promise.resolve(undefined);
     const tokenFact =
-      lookup.tokenSymbol !== undefined
-        ? readTokenFact(
-            { ...lookup, tokenSymbol: lookup.tokenSymbol },
-            deps,
-            config,
-            keys
+      tokenSymbol !== undefined
+        ? tokenStage.then((stage) =>
+            liveReadTokenFact({ ...lookup, tokenSymbol }, stage, deps)
           )
         : Promise.resolve(undefined);
     const vaultFact =
@@ -1053,7 +1092,7 @@ export async function gatherRegistry(
             deps,
             config,
             keys,
-            tokenFact
+            tokenStage
           )
         : Promise.resolve(undefined);
     const [registryAsset, registryVault] = await Promise.all([

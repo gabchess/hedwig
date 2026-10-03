@@ -6,7 +6,7 @@ Versions track what ships, code or docs.
 
 ### Added
 
-- The `mcp` server reads a signed registry row for a token or deposit vault that the code table does not list, checks both signatures and a sequence ratchet, confirms the contract's code hash on chain, and passes the result to `consult` as `registryAsset` and `registryVault` facts. The registry host and RPC URLs come from `HEDWIG_REGISTRY_URL` and `HEDWIG_EVM_RPC_URL_<chain number>`, and with no keys set in `consult` every row is refused.
+- The `mcp` server reads a signed registry row for a token or deposit vault that the code table does not list, checks both signatures and a sequence ratchet, confirms the contract's code hash on chain, and passes the result to `consult` as `registryAsset` and `registryVault` facts. The registry host and RPC URLs come from `HEDWIG_REGISTRY_URL` and `HEDWIG_EVM_RPC_URL_<chain number>`, and with no keys set in `consult` every row is refused. The ratchet, the highest sequence seen per row, lives in the file named by `HEDWIG_REGISTRY_RATCHET_FILE`, default `~/.hedwig/registry-ratchet.json`. When that file cannot be written, the ratchet stays in memory for the life of the process. A file that exists but is not a table of positive integers makes the Reader refuse every row until the owner fixes or deletes it.
 
 ### Changed
 

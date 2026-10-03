@@ -549,6 +549,28 @@ describe("registry Reader", function () {
       expect(world.log).to.have.length(0);
     });
 
+    it("reads no registry config when the keys are unusable", async () => {
+      // An unusable key set must not make the Reader ask for the host
+      // setting, which logs a line naming an unset variable.
+      let asked = 0;
+      const world = makeWorld(
+        files([[MONAD_PATH, monadUsdcRow()]]),
+        monadChain()
+      );
+      const facts = await gatherRegistry(
+        PAY_MONAD,
+        depsFor(world, {
+          keys: PINNED_REGISTRY_KEYS,
+          registry: () => {
+            asked += 1;
+            return undefined;
+          },
+        })
+      );
+      expect(facts).to.deep.equal({});
+      expect(asked).to.equal(0);
+    });
+
     it("rejects every row for an empty, equal, short or non-base64 key", async () => {
       const world = makeWorld(
         files([[MONAD_PATH, monadUsdcRow()]]),
@@ -1044,6 +1066,32 @@ describe("registry Reader", function () {
         liveReadAt: NOW,
       });
       expect(facts.registryAsset?.symbol).to.equal("USDT");
+    });
+
+    it("steakUSDT keeps its chain reads at 300 ms per network hop", async () => {
+      // USDT is not in the code table, so the vault waits for the token row.
+      // It must wait for that row only, not for the token's own chain read:
+      // row fetches, then the token batch beside the vault batch, is two
+      // hops after the rows, not three.
+      const world = steakWorld();
+      const real = world.fetch;
+      world.fetch = (async (input: unknown, init?: RequestInit) => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return real(input as string, init);
+      }) as typeof fetch;
+      const started = Date.now();
+      const facts = await gatherRegistry(
+        deposit(STEAK, "1000000"),
+        depsFor(world)
+      );
+      expect(Date.now() - started).to.be.lessThan(REGISTRY_DEADLINE_MS);
+      expect(facts.registryVault?.vaultCodeHash).to.equal("match");
+      expect(facts.registryVault?.implementationSlot).to.equal(ZERO_WORD);
+      expect(facts.registryVault?.assetRead).to.equal(USDT);
+      expect(facts.registryVault?.preview).to.deep.equal({
+        shares: "882612176477205266",
+      });
+      expect(facts.registryAsset?.liveRead).to.equal("confirmed");
     });
 
     it("steakUSDT reads slot zero and canonical USDT from asset()", async () => {
