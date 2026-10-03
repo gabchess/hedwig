@@ -22,7 +22,8 @@ and run it on their computer, and ask for their policy. Name the fields it needs
 - `permits`: `true` to allow any payment at all.
 - `chainId`: the one chain they allow, such as `eip155:1` or `eip155:8453`.
 - `approvedRecipients`: the addresses they approve to receive payments.
-- `perActionCaps`: the largest amount per action, such as `{ "pay": "1000000" }`.
+- `perActionCaps`: the largest amount per action, such as `{ "pay": "1000000" }`, in the base units of one asset.
+- `perActionCapAssets`: the contract address of that asset for each action type, such as the USDC contract for a USDC cap. A cap applies only to an amount of that asset.
 - `role`: `{ "mode": "not-required" }` unless they require a Solana role.
 - `authorizationWindow`: `{ "mode": "not-required" }`, or
   `{ "mode": "required", "maxSeconds": n }` for EIP-3009 authorizations.

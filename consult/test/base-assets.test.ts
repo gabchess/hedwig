@@ -59,7 +59,13 @@ describe("Base assets", () => {
   });
 
   it("a clean USDC pay on Base earns ALLOW at 0.92", () => {
-    const response = consult(basePay(), makePolicy({ chainId: BASE_CHAIN_ID }));
+    const response = consult(
+      basePay(),
+      makePolicy({
+        chainId: BASE_CHAIN_ID,
+        perActionCapAssets: { pay: BASE_USDC_ADDRESS },
+      })
+    );
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
     expect(response.proceed).to.equal(true);
     expect(response.support).to.equal(0.92);
@@ -68,7 +74,10 @@ describe("Base assets", () => {
   it("a clean USDC to WETH swap on Base earns ALLOW at 0.90", () => {
     const response = consult(
       baseSwap(),
-      makeSwapPolicy({ chainId: BASE_CHAIN_ID }),
+      makeSwapPolicy({
+        chainId: BASE_CHAIN_ID,
+        perActionCapAssets: { swap: BASE_USDC_ADDRESS },
+      }),
       makeSwapFacts()
     );
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");

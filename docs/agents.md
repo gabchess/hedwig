@@ -73,6 +73,7 @@ and when a key appears twice, the last one applies. The server pins the file's b
   "chainId": "eip155:1",
   "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
   "perActionCaps": { "pay": "1000000" },
+  "perActionCapAssets": { "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }
@@ -83,7 +84,8 @@ and when a key appears twice, the last one applies. The server pins the file's b
 | `permits` | Must be `true` for any answer to come back `ALLOW_UNDER_POLICY`. |
 | `chainId` | The one chain the owner allows, as a CAIP-2 id such as `eip155:1` or `eip155:8453`. |
 | `approvedRecipients` | Addresses the owner approved to receive a payment. |
-| `perActionCaps` | The largest amount per action type, as a decimal string in the same units as the request's amount. |
+| `perActionCaps` | The largest amount per action type, as a decimal string in the base units of the asset named in `perActionCapAssets`. |
+| `perActionCapAssets` | The contract address of the asset each cap is written for, under the same action type. A cap applies only to an amount of that asset. A request for another asset, a request whose asset cannot be read, or a cap with no named asset answers `UNKNOWN`. For `swap`, the asset is `tokenIn`. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
 | `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |
 

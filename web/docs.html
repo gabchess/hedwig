@@ -78,10 +78,11 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
   "chainId": "eip155:1",
   "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
   "perActionCaps": { "pay": "1000000" },
+  "perActionCapAssets": { "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }</code></pre>
-      <p>It names the chain you allow, the recipients you approve, a cap per action, and your choices about a Solana role and an EIP-3009 authorization window. A swap policy also sets a slippage ceiling, a deadline ceiling and your own addresses. Hedwig pins the file's bytes when the server starts: <code>consult</code> answers UNKNOWN while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where your agent can't write it.</p>
+      <p>It names the chain you allow, the recipients you approve, a cap per action and the asset each cap is written for, and your choices about a Solana role and an EIP-3009 authorization window. A swap policy also sets a slippage ceiling, a deadline ceiling and your own addresses. Hedwig pins the file's bytes when the server starts: <code>consult</code> answers UNKNOWN while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where your agent can't write it.</p>
       <h2>What your agent sends</h2>
       <p>One argument, <code>request</code>, holding the payment it's about to sign:</p>
       <pre><code>{
