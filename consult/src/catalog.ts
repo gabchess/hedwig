@@ -156,8 +156,8 @@ export interface ConditionContext {
   policy: Policy;
   // Time as data, not a clock the core or a Condition ever reads directly.
   // Whatever shape survived cloning: a Condition that needs `now` narrows
-  // it itself and answers UNVERIFIED when it cannot. Never holds `params`:
-  // the core takes it out first.
+  // it itself and answers UNVERIFIED when it cannot. The core takes the
+  // `params` property out first; a copy under another key stays.
   facts: unknown;
   // The one way a Condition reads a domain number (see params.ts).
   param: ParamReader;

@@ -252,6 +252,103 @@ describe("params channel: a Condition reads params only through context.param", 
   });
 });
 
+// A Condition that records the facts it was handed.
+function factsSeenBy(facts: unknown): unknown {
+  let seen: unknown = "probe did not run";
+  const catalog: Catalog = {
+    pay: [
+      testCondition({
+        id: "facts-probe",
+        isFloor: true,
+        check: (_request, context: ConditionContext) => {
+          seen = context.facts;
+          return {
+            id: "facts-probe",
+            status: "UNVERIFIED",
+            code: "TEST_UNVERIFIED",
+            evidenceClass: "not-verifiable",
+            evidence: "recorded facts",
+          };
+        },
+      }),
+    ],
+  };
+  consultWith(catalog, undefined, READS)(makeRequest(), makePolicy(), facts);
+  return seen;
+}
+
+describe("params channel: facts that are not a plain object", () => {
+  it("takes params off array facts that carry it", () => {
+    const seen = factsSeenBy(
+      Object.assign([{ now: 1 }], { params: sentinelBundle() })
+    );
+    expect(Array.isArray(seen)).to.equal(true);
+    expect(Object.hasOwn(seen as object, "params")).to.equal(false);
+    expect(Object.keys(seen as object)).to.deep.equal(["0"]);
+    expect(
+      [...sweep(seen).strings].filter((s) => s.startsWith("sentinel-"))
+    ).to.deep.equal([]);
+  });
+
+  it("reads a listed constant from the params of array facts", () => {
+    const facts = Object.assign([], { params: sentinelBundle() });
+    let read: unknown;
+    const catalog: Catalog = {
+      pay: [
+        testCondition({
+          id: "array-read",
+          isFloor: true,
+          check: (_request, context: ConditionContext) => {
+            read = context.param(ID, "fixture_check_a")?.value;
+            return {
+              id: "array-read",
+              status: "UNVERIFIED",
+              code: "TEST_UNVERIFIED",
+              evidenceClass: "not-verifiable",
+              evidence: "read",
+            };
+          },
+        }),
+      ],
+    };
+    consultWith(catalog, undefined, READS)(makeRequest(), makePolicy(), facts);
+    expect(read).to.equal("sentinel-fixture_check_a");
+  });
+
+  for (const [name, make] of [
+    ["a Map with a params entry", () => new Map([["params", BUNDLE]])],
+    ["a Set holding the bundle", () => new Set([BUNDLE])],
+    ["a Date", () => new Date(0)],
+  ] as const) {
+    it(`counts ${name} as no facts, so the bundle never reaches a Condition`, () => {
+      expect(factsSeenBy(make())).to.equal(undefined);
+    });
+  }
+
+  it("leaves a primitive fact as it was", () => {
+    expect(factsSeenBy(7)).to.equal(7);
+    expect(factsSeenBy("text")).to.equal("text");
+    expect(factsSeenBy(null)).to.equal(null);
+  });
+});
+
+describe("params channel: the documented limit", () => {
+  const read = (...parts: string[]) =>
+    readFileSync(join(__dirname, "..", ...parts), "utf8");
+
+  for (const [file, text] of [
+    ["src/params.ts", () => read("src", "params.ts")],
+    ["README.md", () => read("README.md")],
+  ] as const) {
+    it(`${file} states that code in the same process can reach the bundle`, () => {
+      const body = text();
+      expect(body).to.match(/same process/i);
+      expect(body).to.include("inspector");
+      expect(body).to.match(/alias/i);
+    });
+  }
+});
+
 describe("params channel: paramReader and the used-by check", () => {
   it("paramReader returns a listed check or both constant, and nothing else", () => {
     const read = paramReader(BUNDLE, [

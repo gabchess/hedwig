@@ -2,10 +2,18 @@
 // gets as `context.param`. No value lives here or anywhere in this package:
 // every number a Check compares against arrives at run time as
 // `facts.params`, supplied by the service that runs consult. The core takes
-// `params` out of `facts` before any Condition runs, so a Condition never
-// holds the bundle: it asks `context.param(id, key)` for one constant.
-// Without the bundle, a Check that needs a number answers UNVERIFIED, which
-// folds to UNKNOWN.
+// `params` out of `facts` before any Condition runs, so the bundle is never a
+// value a Condition is handed: it asks `context.param(id, key)` for one
+// constant. Without the bundle, a Check that needs a number answers
+// UNVERIFIED, which folds to UNKNOWN.
+//
+// Limit, stated as a class: code that runs in the same process can still
+// reach the bundle. It can patch a built-in or a module export (a patch made
+// during one call catches the bundle on the next), or read the heap through
+// `node:inspector` or `node:v8`. consult does not defend against this. The
+// caller must also not alias the bundle: a reference to it under another key
+// of `facts`, or kept elsewhere, is not taken out. Closing the same-process
+// class needs a separate realm, which is out of scope.
 //
 // This file imports nothing, so the service can load it with Node's type
 // stripping alone, with no install.

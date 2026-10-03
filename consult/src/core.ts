@@ -431,18 +431,22 @@ function cloneFacts(factsInput: unknown): unknown {
 }
 
 // `facts.params` leaves `facts` here, before any Condition runs: the bundle
-// reaches a Condition only through the reader, never as a value.
+// reaches a Condition only through the reader, never as a value. `params` is
+// deleted from the fresh clone, array or object. Any other object (a Map, a
+// Set, a Date) cannot carry `params` as a property, so it counts as no facts
+// rather than a place the bundle could sit under another access path.
 function liftParams(facts: unknown): { facts: unknown; params: unknown } {
-  if (
-    facts === null ||
-    typeof facts !== "object" ||
-    Array.isArray(facts) ||
-    !Object.hasOwn(facts, "params")
-  ) {
+  if (facts === null || typeof facts !== "object") {
     return { facts, params: undefined };
   }
-  const { params, ...rest } = facts as Record<string, unknown>;
-  return { facts: rest, params };
+  const proto = Object.getPrototypeOf(facts);
+  if (!Array.isArray(facts) && proto !== Object.prototype && proto !== null) {
+    return { facts: undefined, params: undefined };
+  }
+  const record = facts as Record<string, unknown>;
+  const params = Object.hasOwn(record, "params") ? record.params : undefined;
+  delete record.params;
+  return { facts: record, params };
 }
 
 function runConsult(
