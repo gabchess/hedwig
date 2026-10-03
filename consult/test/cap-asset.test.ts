@@ -171,17 +171,21 @@ describe("amount-within-cap: the cap names its asset (pay)", () => {
     });
   });
 
-  it("never reads a cap asset off the prototype chain", () => {
-    const base = makeRequest();
-    const response = consult(
-      makeRequest({ action: { ...base.action, type: "pay" } }),
-      makePolicy({
-        perActionCaps: { pay: "1000000" },
-        perActionCapAssets: Object.create({ pay: ASSET_ADDRESS }),
-      })
-    );
+  it("never reads a cap asset off Object.prototype", () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    proto.pay = ASSET_ADDRESS;
+    try {
+      const response = pay("1000000", "1000000", undefined);
 
-    expect(amountCheck(response).code).to.equal("CAP_ASSET_MISSING");
+      expect(response.verdict).to.equal("UNKNOWN");
+      expect(response.proceed).to.equal(false);
+      expect(amountCheck(response)).to.include({
+        status: "UNVERIFIED",
+        code: "CAP_ASSET_MISSING",
+      });
+    } finally {
+      delete proto.pay;
+    }
   });
 });
 
