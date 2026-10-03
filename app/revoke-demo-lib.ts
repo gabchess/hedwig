@@ -392,6 +392,48 @@ export function assertServerBuilt(serverPath: string): void {
 }
 
 // ---------------------------------------------------------------------------
+// Pre-flight balance floor
+// ---------------------------------------------------------------------------
+
+// The base fee: 5,000 lamports per signature. No demo sets a priority fee.
+export const FEE_LAMPORTS_PER_SIGNATURE = 5_000;
+
+// What a payer must hold before a run starts: everything the run spends,
+// the fee for each signed transaction, and the rent-exempt minimum the
+// payer account must keep. A fee-only floor still lets balances between the
+// spend and the rent floor through, and those fail with a raw
+// "insufficient funds for rent" error.
+export function requiredPayerLamports(plan: {
+  spendLamports: number;
+  signatures: number;
+  rentExemptMinimumLamports: number;
+}): number {
+  return (
+    plan.spendLamports +
+    plan.signatures * FEE_LAMPORTS_PER_SIGNATURE +
+    plan.rentExemptMinimumLamports
+  );
+}
+
+// Account sizes the lifecycle creates, in bytes, mirrored from the LEN
+// constants in programs/hedwig_sol/src/state.rs (Org, Role, Member). The
+// SDK's own `account.<name>.size` is not usable here: it counts a string
+// field without its maximum length.
+export const LIFECYCLE_ACCOUNT_BYTES = [117, 118, 89] as const;
+
+export function assertPayerCanCover(
+  payer: string,
+  balanceLamports: number,
+  requiredLamports: number
+): void {
+  if (balanceLamports < requiredLamports) {
+    throw new Error(
+      `Wallet ${payer} has too little SOL on devnet: ${balanceLamports} lamports, needs at least ${requiredLamports}. Fund it with: solana airdrop 1 ${payer} --url devnet`
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Airdrop decision: capped, and only when actually needed
 // ---------------------------------------------------------------------------
 

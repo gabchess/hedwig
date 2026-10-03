@@ -22,9 +22,12 @@ import {
 } from "@hedwig-sol/sdk";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
 import {
+  LIFECYCLE_ACCOUNT_BYTES,
   LIFECYCLE_DEMO_KEYPAIR_PATH,
   assertDevnetGenesisHash,
+  assertPayerCanCover,
   loadOrGenerateKeypair,
+  requiredPayerLamports,
   resolveKeypairPath,
 } from "./revoke-demo-lib";
 
@@ -52,13 +55,26 @@ async function main() {
   console.log(`[setup] wallet: ${payer.publicKey.toBase58()}`);
   const balanceLamports = await connection.getBalance(payer.publicKey);
   console.log(`[setup] balance: ${balanceLamports / 1e9} SOL`);
-  if (balanceLamports === 0) {
-    throw new Error(
-      `Wallet ${payer.publicKey.toBase58()} has 0 SOL on devnet. Fund it with: solana airdrop 1 ${payer.publicKey.toBase58()} --url devnet`
-    );
-  }
 
   const program = createHedwigProgram(provider);
+  // The run creates an org, a role and a member account (the member's rent
+  // returns at revoke_role, but the payer must hold it first) and signs six
+  // transactions.
+  const rents = await Promise.all(
+    LIFECYCLE_ACCOUNT_BYTES.map((bytes) =>
+      connection.getMinimumBalanceForRentExemption(bytes)
+    )
+  );
+  assertPayerCanCover(
+    payer.publicKey.toBase58(),
+    balanceLamports,
+    requiredPayerLamports({
+      spendLamports: rents.reduce((sum, rent) => sum + rent, 0),
+      signatures: 6,
+      rentExemptMinimumLamports:
+        await connection.getMinimumBalanceForRentExemption(0),
+    })
+  );
 
   const orgName = randomOrgName();
   const roleName = "treasurer";

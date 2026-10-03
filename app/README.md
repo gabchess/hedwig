@@ -27,6 +27,10 @@ Fund the demo key on devnet after its first run prints the public key:
 solana airdrop 1 <the-printed-pubkey> --url devnet
 ```
 
+Each demo checks the balance before it sends anything: the lamports it spends,
+5,000 per signature, and the rent-exempt minimum the key must keep. If the key
+holds less, the demo stops and prints the amount it needs.
+
 Every demo asks the RPC endpoint for its genesis hash before it loads a key or
 signs anything, and stops unless the answer is devnet's.
 

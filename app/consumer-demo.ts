@@ -29,7 +29,9 @@ import {
 import {
   CONSUMER_DEMO_KEYPAIR_PATH,
   assertDevnetGenesisHash,
+  assertPayerCanCover,
   loadOrGenerateKeypair,
+  requiredPayerLamports,
   resolveKeypairPath,
 } from "./revoke-demo-lib";
 
@@ -70,11 +72,18 @@ async function main() {
   console.log(`[setup] keypair: ${keypair.path} (${keypair.source})`);
   const payer = loadOrGenerateKeypair(keypair.path);
   const payerLamports = await connection.getBalance(payer.publicKey);
-  if (payerLamports < ACTOR_FUNDING_LAMPORTS) {
-    throw new Error(
-      `Wallet ${payer.publicKey.toBase58()} has too little SOL on devnet. Fund it with: solana airdrop 1 ${payer.publicKey.toBase58()} --url devnet`
-    );
-  }
+  // The payer sends the funding transfer: the spend, one signature's fee,
+  // and a rent-exempt zero-data account left behind.
+  assertPayerCanCover(
+    payer.publicKey.toBase58(),
+    payerLamports,
+    requiredPayerLamports({
+      spendLamports: ACTOR_FUNDING_LAMPORTS,
+      signatures: 1,
+      rentExemptMinimumLamports:
+        await connection.getMinimumBalanceForRentExemption(0),
+    })
+  );
   const actor = Keypair.generate();
 
   const consumerAccount = await connection.getAccountInfo(CONSUMER_PROGRAM_ID);

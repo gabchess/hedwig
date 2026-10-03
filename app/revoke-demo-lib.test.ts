@@ -18,6 +18,8 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 
 import {
   AIRDROP_LAMPORTS,
+  FEE_LAMPORTS_PER_SIGNATURE,
+  LIFECYCLE_ACCOUNT_BYTES,
   MIN_BALANCE_LAMPORTS,
   airdropAmountLamports,
   assertAsk1,
@@ -27,6 +29,7 @@ import {
   assertMissingFactAsk,
   assertOverCapAsk,
   assertParentSafeForCreate,
+  assertPayerCanCover,
   assertServerBuilt,
   assertServerProcessAlive,
   buildConnectionOptions,
@@ -51,6 +54,7 @@ import {
   LIFECYCLE_DEMO_KEYPAIR_PATH,
   loadOrGenerateKeypair,
   parseOutPath,
+  requiredPayerLamports,
   PAY_REQUEST,
   PAY_REQUEST_OVER_CAP,
   PERSONAL_NOTES_VAULT_DIR_NAME,
@@ -179,6 +183,97 @@ test("shouldRequestAirdrop is true only under the 0.05 SOL threshold", () => {
 test("airdropAmountLamports is a fixed cap, at most 1 SOL, ignoring any input", () => {
   assert.equal(airdropAmountLamports(), AIRDROP_LAMPORTS);
   assert.ok(AIRDROP_LAMPORTS <= 1_000_000_000);
+});
+
+// --- pre-flight balance floor ---------------------------------------------
+
+// Local-validator measurements (fee 5,000, rent-exempt minimum for a
+// zero-data account 890,880): a payer sending 20,000,000 fails below
+// 20,895,880 and succeeds at it.
+const RENT_EXEMPT_ZERO_DATA = 890_880;
+
+test("requiredPayerLamports adds spend, per-signature fees and the rent-exempt minimum", () => {
+  assert.equal(FEE_LAMPORTS_PER_SIGNATURE, 5_000);
+  assert.equal(
+    requiredPayerLamports({
+      spendLamports: 20_000_000,
+      signatures: 1,
+      rentExemptMinimumLamports: RENT_EXEMPT_ZERO_DATA,
+    }),
+    20_895_880
+  );
+  assert.equal(
+    requiredPayerLamports({
+      spendLamports: 100,
+      signatures: 6,
+      rentExemptMinimumLamports: 7,
+    }),
+    100 + 6 * FEE_LAMPORTS_PER_SIGNATURE + 7
+  );
+});
+
+// Mutants to kill: `<` against the spend alone, and a fee-only floor. Both
+// let a balance between the spend and the rent floor through.
+test("assertPayerCanCover refuses every balance below the floor and accepts the floor", () => {
+  const required = 20_895_880;
+  for (const balance of [0, 20_000_000, 20_005_000, 20_500_000, 20_895_879]) {
+    assert.throws(
+      () => assertPayerCanCover("PayerKey", balance, required),
+      /too little SOL/,
+      `balance ${balance}`
+    );
+  }
+  assert.doesNotThrow(() =>
+    assertPayerCanCover("PayerKey", required, required)
+  );
+  assert.doesNotThrow(() =>
+    assertPayerCanCover("PayerKey", 21_000_000, required)
+  );
+});
+
+test("assertPayerCanCover names the wallet, the balance and the required amount", () => {
+  assert.throws(
+    () => assertPayerCanCover("PayerKey", 20_000_000, 20_895_880),
+    (error: Error) =>
+      error.message.includes("PayerKey") &&
+      error.message.includes("20895880") &&
+      error.message.includes("20000000") &&
+      error.message.includes("solana airdrop 1 PayerKey --url devnet")
+  );
+});
+
+// LIFECYCLE_ACCOUNT_BYTES must track the program's LEN constants.
+test("LIFECYCLE_ACCOUNT_BYTES matches the LEN constants in state.rs", () => {
+  const source = readFileSync(
+    join(__dirname, "..", "programs", "hedwig_sol", "src", "state.rs"),
+    "utf8"
+  );
+  const lens = [...source.matchAll(/pub const LEN: usize = ([^;]+);/g)].map(
+    (m) => {
+      assert.match(m[1], /^[0-9+() ]+$/);
+      return Function(`return (${m[1]})`)() as number;
+    }
+  );
+  assert.deepEqual(lens, [...LIFECYCLE_ACCOUNT_BYTES]);
+});
+
+// The revoke demo's own floor must cover what its run spends: three
+// accounts, six signed transactions and a rent-exempt payer.
+test("MIN_BALANCE_LAMPORTS covers the revoke demo's own spend", () => {
+  const rentPerByteTwoYears = 6_960;
+  const accountRent = (bytes: number) => (128 + bytes) * rentPerByteTwoYears;
+  const required = requiredPayerLamports({
+    spendLamports: LIFECYCLE_ACCOUNT_BYTES.map(accountRent).reduce(
+      (sum, rent) => sum + rent,
+      0
+    ),
+    signatures: 6,
+    rentExemptMinimumLamports: RENT_EXEMPT_ZERO_DATA,
+  });
+  assert.ok(
+    MIN_BALANCE_LAMPORTS >= required,
+    `${MIN_BALANCE_LAMPORTS} < ${required}`
+  );
 });
 
 // --- keypair path guard: K1 ----------------------------------------------
@@ -1172,5 +1267,15 @@ test("every signing demo reads the genesis hash from the connection it signs on"
       /assertDevnetGenesisHash\(\s*await connection\.getGenesisHash\(\)\s*\)|assertDevnetGenesisHash\(genesisHash\)/,
       file
     );
+  }
+});
+
+// The two demos that fund from a payer check the full floor, not `=== 0` or
+// the spend alone.
+test("the lifecycle and consumer demos gate on assertPayerCanCover", () => {
+  for (const file of ["demo.ts", "consumer-demo.ts"]) {
+    const source = demoSource(file);
+    assert.match(source, /assertPayerCanCover\(/, file);
+    assert.match(source, /getMinimumBalanceForRentExemption\(0\)/, file);
   }
 });
