@@ -5,6 +5,7 @@ import {
   MAX_REGISTRY_LIVE_READ_AGE_SECONDS,
   MAX_ROLE_FACT_AGE_SECONDS,
 } from "./constants";
+import type { ParamReader } from "./params";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
 
 export type SolanaCluster = "devnet" | "testnet" | "mainnet-beta";
@@ -42,6 +43,12 @@ export interface Policy {
   chainId: string;
   approvedRecipients: string[];
   perActionCaps: Record<string, string>;
+  // The contract address of the asset each `perActionCaps` entry is written
+  // for, keyed by the same action type. A cap is a raw base-unit number, and
+  // base units differ across assets (USDC 6 decimals, WETH 18), so a cap is
+  // compared only with an amount of its own asset. Optional in the type only:
+  // an action type with a cap and no named asset answers UNVERIFIED.
+  perActionCapAssets?: Record<string, string>;
   // swap-only policy fields. Optional so a pay-only policy never has to
   // declare them; a swap Condition that needs one and finds it missing
   // answers UNVERIFIED rather than guessing a default.
@@ -193,8 +200,11 @@ export interface ConditionContext {
   policy: Policy;
   // Time as data, not a clock the core or a Condition ever reads directly.
   // Whatever shape survived cloning: a Condition that needs `now` narrows
-  // it itself and answers UNVERIFIED when it cannot.
+  // it itself and answers UNVERIFIED when it cannot. The core takes the
+  // `params` property out first; a copy under another key stays.
   facts: unknown;
+  // The one way a Condition reads a domain number (see params.ts).
+  param: ParamReader;
 }
 
 export type ConditionChecker = (
@@ -821,15 +831,20 @@ interface AmountWithinCapCodes {
   readonly zero: string;
   readonly capMissing: string;
   readonly malformed: string;
+  readonly capAssetMissing: string;
+  readonly capAssetMismatch: string;
+  readonly capAssetUnresolved: string;
 }
 
 // Shared by pay's `amount` and swap's `amountIn`: the rule ("above zero,
 // within the owner's per-action cap") is one rule, so it is one function.
-// Each caller supplies its own id, the field to read, and its own codes,
-// since a code is never reused across two Conditions.
+// Each caller supplies its own id, the fields to read (the amount and the
+// token that amount is counted in), and its own codes, since a code is never
+// reused across two Conditions.
 function makeAmountWithinCapChecker(
   id: string,
   amountField: "amount" | "amountIn",
+  assetField: "asset" | "tokenIn",
   codes: AmountWithinCapCodes
 ): ConditionChecker {
   return function checkAmountWithinCap(
@@ -875,6 +890,68 @@ function makeAmountWithinCapChecker(
         code: codes.zero,
         evidenceClass: "owner-policy",
         evidence: "an amount of 0 is never what the owner approved",
+      };
+    }
+
+    // The cap is a raw number in its own asset's base units. An amount in
+    // another asset's base units is a different quantity, so it is never
+    // compared: no named asset, an unreadable request asset, or a different
+    // asset each answer UNVERIFIED.
+    const capAsset = ownLookup<unknown>(
+      context.policy.perActionCapAssets,
+      type
+    );
+    if (capAsset === undefined) {
+      return {
+        id,
+        status: "UNVERIFIED",
+        code: codes.capAssetMissing,
+        evidenceClass: "not-verifiable",
+        evidence: `the cap for action type "${describe(
+          type
+        )}" names no asset, so an amount cannot be compared with it`,
+      };
+    }
+    if (typeof capAsset !== "string" || !EVM_ADDRESS_SHAPE.test(capAsset)) {
+      return {
+        id,
+        status: "UNVERIFIED",
+        code: codes.malformed,
+        evidenceClass: "not-verifiable",
+        evidence: `the cap's asset "${describe(
+          capAsset
+        )}" is not a well-formed EVM address`,
+      };
+    }
+    const requestAsset = action[assetField] as
+      | { contractAddress?: unknown }
+      | null
+      | undefined;
+    const requestAddress =
+      typeof requestAsset === "object" && requestAsset !== null
+        ? requestAsset.contractAddress
+        : undefined;
+    if (
+      typeof requestAddress !== "string" ||
+      !EVM_ADDRESS_SHAPE.test(requestAddress)
+    ) {
+      return {
+        id,
+        status: "UNVERIFIED",
+        code: codes.capAssetUnresolved,
+        evidenceClass: "not-verifiable",
+        evidence: `cannot tell which asset the amount is in: ${assetField} is missing or not a well-formed EVM address`,
+      };
+    }
+    if (sameEvmAddress(capAsset, requestAddress) !== true) {
+      return {
+        id,
+        status: "UNVERIFIED",
+        code: codes.capAssetMismatch,
+        evidenceClass: "not-verifiable",
+        evidence: `the cap is written for asset ${describe(
+          capAsset
+        )}, not ${describe(requestAddress)}, so the amounts are not comparable`,
       };
     }
 
@@ -1290,7 +1367,13 @@ const PAY_FLOOR: ConditionDefinition[] = [
     codes: {
       pass: "AMOUNT_WITHIN_CAP",
       fail: ["AMOUNT_EXCEEDS_CAP", "AMOUNT_ZERO"],
-      unverified: ["CAP_MISSING", "AMOUNT_MALFORMED"],
+      unverified: [
+        "CAP_MISSING",
+        "AMOUNT_MALFORMED",
+        "CAP_ASSET_MISSING",
+        "CAP_ASSET_MISMATCH",
+        "CAP_ASSET_UNRESOLVED",
+      ],
     },
     codeEvidenceClass: {
       AMOUNT_WITHIN_CAP: "owner-policy",
@@ -1298,14 +1381,20 @@ const PAY_FLOOR: ConditionDefinition[] = [
       AMOUNT_ZERO: "owner-policy",
       CAP_MISSING: "not-verifiable",
       AMOUNT_MALFORMED: "not-verifiable",
+      CAP_ASSET_MISSING: "not-verifiable",
+      CAP_ASSET_MISMATCH: "not-verifiable",
+      CAP_ASSET_UNRESOLVED: "not-verifiable",
     },
-    policyFields: ["perActionCaps.pay"],
-    check: makeAmountWithinCapChecker("amount-within-cap", "amount", {
+    policyFields: ["perActionCaps.pay", "perActionCapAssets.pay"],
+    check: makeAmountWithinCapChecker("amount-within-cap", "amount", "asset", {
       pass: "AMOUNT_WITHIN_CAP",
       exceeds: "AMOUNT_EXCEEDS_CAP",
       zero: "AMOUNT_ZERO",
       capMissing: "CAP_MISSING",
       malformed: "AMOUNT_MALFORMED",
+      capAssetMissing: "CAP_ASSET_MISSING",
+      capAssetMismatch: "CAP_ASSET_MISMATCH",
+      capAssetUnresolved: "CAP_ASSET_UNRESOLVED",
     }),
   },
   {
@@ -2221,7 +2310,13 @@ const SWAP_FLOOR: ConditionDefinition[] = [
     codes: {
       pass: "SWAP_AMOUNT_WITHIN_CAP",
       fail: ["SWAP_AMOUNT_EXCEEDS_CAP", "SWAP_AMOUNT_ZERO"],
-      unverified: ["SWAP_CAP_MISSING", "SWAP_AMOUNT_MALFORMED"],
+      unverified: [
+        "SWAP_CAP_MISSING",
+        "SWAP_AMOUNT_MALFORMED",
+        "SWAP_CAP_ASSET_MISSING",
+        "SWAP_CAP_ASSET_MISMATCH",
+        "SWAP_CAP_ASSET_UNRESOLVED",
+      ],
     },
     codeEvidenceClass: {
       SWAP_AMOUNT_WITHIN_CAP: "owner-policy",
@@ -2229,15 +2324,26 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       SWAP_AMOUNT_ZERO: "owner-policy",
       SWAP_CAP_MISSING: "not-verifiable",
       SWAP_AMOUNT_MALFORMED: "not-verifiable",
+      SWAP_CAP_ASSET_MISSING: "not-verifiable",
+      SWAP_CAP_ASSET_MISMATCH: "not-verifiable",
+      SWAP_CAP_ASSET_UNRESOLVED: "not-verifiable",
     },
-    policyFields: ["perActionCaps.swap"],
-    check: makeAmountWithinCapChecker("amount-within-cap", "amountIn", {
-      pass: "SWAP_AMOUNT_WITHIN_CAP",
-      exceeds: "SWAP_AMOUNT_EXCEEDS_CAP",
-      zero: "SWAP_AMOUNT_ZERO",
-      capMissing: "SWAP_CAP_MISSING",
-      malformed: "SWAP_AMOUNT_MALFORMED",
-    }),
+    policyFields: ["perActionCaps.swap", "perActionCapAssets.swap"],
+    check: makeAmountWithinCapChecker(
+      "amount-within-cap",
+      "amountIn",
+      "tokenIn",
+      {
+        pass: "SWAP_AMOUNT_WITHIN_CAP",
+        exceeds: "SWAP_AMOUNT_EXCEEDS_CAP",
+        zero: "SWAP_AMOUNT_ZERO",
+        capMissing: "SWAP_CAP_MISSING",
+        malformed: "SWAP_AMOUNT_MALFORMED",
+        capAssetMissing: "SWAP_CAP_ASSET_MISSING",
+        capAssetMismatch: "SWAP_CAP_ASSET_MISMATCH",
+        capAssetUnresolved: "SWAP_CAP_ASSET_UNRESOLVED",
+      }
+    ),
   },
   {
     id: "chain-matches-intent",

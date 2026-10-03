@@ -10,6 +10,7 @@ Versions track what ships, code or docs.
 
 ### Changed
 
+- A per-action cap names the asset it is written for in a new policy field, `perActionCapAssets`, and applies only to an amount of that asset. The `amount-within-cap` Check answers `UNKNOWN` when the request's asset differs from the cap's asset or cannot be read, when the cap names no asset, and for the swap's `amountIn` the same way. A same-asset request answers as before. Add `perActionCapAssets` to an existing policy.
 - The agent install, on `/docs`, in `agents.md` and in `docs/agents.md`, fetches the commit published as v0.4.2, which includes the policy pin.
 - The roadmap lists v0.4.2 as the newest release. (#67)
 - `/docs`, `agents.md` and `docs/agents.md` say that the server pins the policy file's bytes at start and answers `UNKNOWN` while the bytes differ. (#67)

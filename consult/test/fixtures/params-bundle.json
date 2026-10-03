@@ -1,0 +1,79 @@
+{
+  "fixture-params-alpha": {
+    "fixture_check_a": {
+      "value": "fixture value, not a threshold",
+      "unit": "fixture-unit",
+      "status": "fixture",
+      "source_ids": ["fixture-source"],
+      "used_by": "check",
+      "id": "fixture-params-alpha",
+      "asOf": "2000-01-01",
+      "paramsSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "fixture_both_b": {
+      "value": "fixture value, not a threshold",
+      "unit": "fixture-unit",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "both",
+      "id": "fixture-params-alpha",
+      "asOf": "2000-01-01",
+      "paramsSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "fixture_other_c": {
+      "value": { "fixture:chain-a": "fixture", "fixture:chain-b": "fixture" },
+      "unit": "fixture-unit",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "fixture-label-not-check",
+      "id": "fixture-params-alpha",
+      "asOf": "2000-01-01",
+      "paramsSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "fixture_unassigned_d": {
+      "value": "fixture value, not a threshold",
+      "unit": "fixture-unit",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "fixture-label-unassigned",
+      "id": "fixture-params-alpha",
+      "asOf": "2000-01-01",
+      "paramsSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "fixture_next_e": {
+      "value": "fixture value, not a threshold",
+      "unit": "fixture-unit",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "next",
+      "id": "fixture-params-alpha",
+      "asOf": "2000-01-01",
+      "paramsSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  }
+}

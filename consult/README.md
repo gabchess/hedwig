@@ -21,6 +21,8 @@ A `pay` policy states the same choice about an EIP-3009 authorization window: `a
 
 The third, optional argument, `facts`, is the only place a clock or a chain observation enters: `consult(request, policy, { now, solanaRole })`. A swap reads `now` for its deadline; a required role reads `now` and `solanaRole`; a required authorization window reads `now`.
 
+`facts.params` carries the service's domain constants. consult takes it out of `facts` before any Condition runs, so the bundle is never a value a Condition is handed: it reads one listed constant, labelled `check` or `both`, through `context.param`. This is not a sandbox. Code in the same process can still reach the bundle: it can patch a built-in or a module export, or read the heap through `node:inspector` or `node:v8`. consult does not defend against this. Do not alias the bundle: a reference to it under another key of `facts`, or kept elsewhere, is not taken out.
+
 consult checks no signature on `facts.registryAsset`. Pass it only from a Reader that already checked the registry row's signatures.
 
 ```ts

@@ -16,7 +16,9 @@ import type { EvidenceClass } from "./fold";
 
 export function consultWith(
   catalog: Catalog,
-  weights?: Readonly<Record<EvidenceClass, number>>
+  weights?: Readonly<Record<EvidenceClass, number>>,
+  // Test seam, not part of the door: the params reads a Condition may make.
+  reads?: readonly (readonly [string, string])[]
 ): (
   request: ConsultRequest,
   policy: Policy,
@@ -46,5 +48,5 @@ export function consultWith(
       )
     );
   }
-  return makeConsult(Object.freeze(bound), weights);
+  return makeConsult(Object.freeze(bound), weights, reads);
 }

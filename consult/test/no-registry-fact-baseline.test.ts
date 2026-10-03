@@ -68,25 +68,25 @@ export function baselineCases(): BaselineCase[] {
     {
       id: "fixture:pay-usdt-ethereum-address",
       request: usdtPayRequest(ETHEREUM_USDT),
-      policy: makePolicy(),
+      policy: makePolicy({ perActionCapAssets: { pay: ETHEREUM_USDT } }),
       facts: makeSwapFacts(),
     },
     {
       id: "fixture:pay-usdt-lookalike-address",
       request: usdtPayRequest(LOOKALIKE_USDT),
-      policy: makePolicy(),
+      policy: makePolicy({ perActionCapAssets: { pay: LOOKALIKE_USDT } }),
       facts: makeSwapFacts(),
     },
     {
       id: "fixture:swap-usdt-ethereum-address",
       request: usdtSwapRequest(ETHEREUM_USDT),
-      policy: makeSwapPolicy(),
+      policy: makeSwapPolicy({ perActionCapAssets: { swap: ETHEREUM_USDT } }),
       facts: makeSwapFacts(),
     },
     {
       id: "fixture:swap-usdt-lookalike-address",
       request: usdtSwapRequest(LOOKALIKE_USDT),
-      policy: makeSwapPolicy(),
+      policy: makeSwapPolicy({ perActionCapAssets: { swap: LOOKALIKE_USDT } }),
       facts: makeSwapFacts(),
     },
   ];

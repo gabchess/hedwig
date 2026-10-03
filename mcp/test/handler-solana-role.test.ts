@@ -36,6 +36,7 @@ const PAY_POLICY = {
   chainId: "eip155:1",
   approvedRecipients: [OWNER],
   perActionCaps: { pay: "1000000" },
+  perActionCapAssets: { pay: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   role: REQUIRED_ROLE,
   authorizationWindow: { mode: "not-required" as const },
 };
@@ -58,6 +59,7 @@ const SWAP_POLICY = {
   permits: true,
   chainId: "eip155:1",
   perActionCaps: { swap: "1000000" },
+  perActionCapAssets: { swap: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   maxSlippageBps: 100,
   maxDeadlineSeconds: 600,
   ownerAddresses: [OWNER],
