@@ -1,8 +1,14 @@
-// The Params type, its shape guard, and checkParam, the one way a Condition
-// reads a domain number. No value lives here or anywhere in this package:
+// The Params type, its shape guard, checkParam, and the reader a Condition
+// gets as `context.param`. No value lives here or anywhere in this package:
 // every number a Check compares against arrives at run time as
-// `facts.params`, supplied by the service that runs consult. Without it, a
-// Check that needs a number answers UNVERIFIED, which folds to UNKNOWN.
+// `facts.params`, supplied by the service that runs consult. The core takes
+// `params` out of `facts` before any Condition runs, so a Condition never
+// holds the bundle: it asks `context.param(id, key)` for one constant.
+// Without the bundle, a Check that needs a number answers UNVERIFIED, which
+// folds to UNKNOWN.
+//
+// This file imports nothing, so the service can load it with Node's type
+// stripping alone, with no install.
 //
 // Each constant carries the params file's own fields (`value`, `unit`,
 // `used_by`) and its provenance (`id`, `asOf`, `paramsSha256`, `scrub`). Any
@@ -109,4 +115,56 @@ export function checkParam(
   }
   const constant = file[key];
   return CHECK_READABLE.includes(constant.used_by) ? constant : undefined;
+}
+
+// Every constant a Condition may read, as [params id, key]. `context.param`
+// returns undefined for a pair not listed here, so this list is the whole set
+// of constants consult can read, and the used-by check reads it as data. A
+// Check adds its pair here when it starts reading one.
+export const PARAM_READS: readonly (readonly [string, string])[] =
+  Object.freeze([]);
+
+export type ParamReader = (
+  paramsId: string,
+  key: string
+) => ParamConstant | undefined;
+
+// The reader the core hands each Condition as `context.param`. The bundle
+// stays in this closure: a Condition gets one constant, label-filtered by
+// checkParam, for a listed pair, and nothing else.
+export function paramReader(
+  params: unknown,
+  reads: readonly (readonly [string, string])[]
+): ParamReader {
+  return (paramsId, key) =>
+    reads.some(([id, k]) => id === paramsId && k === key)
+      ? checkParam(params, paramsId, key)
+      : undefined;
+}
+
+// The used-by check: every listed pair must name a `check` or `both` constant
+// in the bundle. Public CI runs it against the fixture bundle; the service
+// runs it against its generated params.
+export function paramReadViolations(
+  reads: readonly (readonly [string, string])[],
+  params: unknown
+): string[] {
+  if (!isParams(params)) {
+    return ["the bundle is not a Params value"];
+  }
+  return reads.flatMap(([id, key]) => {
+    const file = Object.prototype.hasOwnProperty.call(params, id)
+      ? params[id]
+      : undefined;
+    if (
+      file === undefined ||
+      !Object.prototype.hasOwnProperty.call(file, key)
+    ) {
+      return [`${id} ${key}: not in the bundle`];
+    }
+    const label = file[key].used_by;
+    return CHECK_READABLE.includes(label)
+      ? []
+      : [`${id} ${key}: labelled ${label}`];
+  });
 }

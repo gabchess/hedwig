@@ -148,7 +148,7 @@ describe("params: the Params type and its shape guard", () => {
   }
 });
 
-describe("params: checkParam, the one way a Condition reads a constant", () => {
+describe("params: checkParam, the label filter behind context.param", () => {
   it("returns a check constant with its provenance", () => {
     const constant = checkParam(bundle(), ID, "fixture_check_a");
     expect(constant?.used_by).to.equal("check");
