@@ -5,6 +5,7 @@ import {
   MAX_REGISTRY_LIVE_READ_AGE_SECONDS,
   MAX_ROLE_FACT_AGE_SECONDS,
 } from "./constants";
+import type { ParamReader } from "./params";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
 
 export type SolanaCluster = "devnet" | "testnet" | "mainnet-beta";
@@ -155,8 +156,11 @@ export interface ConditionContext {
   policy: Policy;
   // Time as data, not a clock the core or a Condition ever reads directly.
   // Whatever shape survived cloning: a Condition that needs `now` narrows
-  // it itself and answers UNVERIFIED when it cannot.
+  // it itself and answers UNVERIFIED when it cannot. The core takes the
+  // `params` property out first; a copy under another key stays.
   facts: unknown;
+  // The one way a Condition reads a domain number (see params.ts).
+  param: ParamReader;
 }
 
 export type ConditionChecker = (
