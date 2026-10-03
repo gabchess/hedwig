@@ -313,6 +313,13 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
     'const v = (facts!)?.["par" + "ams"];',
     'const v = facts["\\u0070arams"];',
     "const v = Reflect.get(facts, '\\x70arams');",
+    "const ok = facts.slot < facts.params.p.end.value && facts.slot > facts.start;",
+    'if (amount < facts.params["p"]["max"].value && fee > facts.fee) {}',
+    "const ok = a < facts[key] && b > facts.now;",
+    "const ok = a < context.facts.params && b > facts.now;",
+    "return lo < facts.params.cap && hi > facts.now.at;",
+    'const ok = "a" < facts.params.cap && b > facts.now;',
+    "const ok = x! < facts.params.cap && b > facts.now;",
     "const v = Reflect.get?.(facts, k);",
   ]) {
     it(`fails on a direct read by string key: ${source}`, () => {
@@ -333,6 +340,8 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
       'const n = Reflect.get((facts), "now");',
       'const n = Reflect.get(facts as object, "now");',
       "const l = facts as string[]; const q = z as T, w = facts.now;",
+      "const ok = a < facts.now && b > facts.start;",
+      'const n = Reflect.get(<object>facts, "now");',
     ]) {
       expect(
         usedByViolations({ "x.ts": wrapped }, BUNDLE),

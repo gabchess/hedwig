@@ -11,7 +11,12 @@
 // of `facts`, `Object.entries(facts)`, a spread of `facts`,
 // `JSON.stringify(facts)`, a receiver that is another expression such as
 // `(facts ?? {})`, or a `Reflect.get` reached through `call`, `apply` or a
-// copy.
+// copy. It does not catch `context["facts"]` (a string key is blanked, so it
+// is not told from any other), a helper that takes `facts` as an argument
+// (`ownLookup(facts as object, k)`), computed destructuring of `facts`, or
+// `Object.getOwnPropertyDescriptor(facts, k)`. A cast to an object-literal
+// type, `typeof`, `keyof`, a parenthesized union or generics nested three
+// levels deep is not stripped, so the receiver behind it is not seen.
 // Closing those needs `params` out of `context.facts`, with its own channel
 // for `checkParam`.
 
@@ -41,10 +46,12 @@ const PARAMS_WORD = /\bparams\b/;
 // no longer spells `params`. So an index on `facts`, or `Reflect.get(facts`,
 // passes only when its key is exactly one plain string literal.
 const TYPE_ATOM = String.raw`[\w$.]+(?:<[^<>()\n]*(?:<[^<>()\n]*>[^<>()\n]*)*>)?(?:\[\])*`;
-// Casts leave the receiver unchanged, so they are removed before the scan:
-// `facts as T`, `facts satisfies T` and `<T>facts`.
+// Casts leave the receiver unchanged, so they are also removed for a second
+// scan: `facts as T`, `facts satisfies T` and `<T>facts`. The `<T>` branch
+// matches only where an assertion can start, never after an operand, so a
+// comparison such as `a < facts.x && b > facts.y` is not a cast.
 const CAST = new RegExp(
-  String.raw`\s(?:as|satisfies)\s+${TYPE_ATOM}(?:\s*[|&]\s*${TYPE_ATOM})*|<(?:[^<>()\n]|<[^<>()\n]*>)*>\s*(?=facts\b)`,
+  String.raw`\s(?:as|satisfies)\s+${TYPE_ATOM}(?:\s*[|&]\s*${TYPE_ATOM})*|(?<![\w$)\]]\s*)<(?:[^<>()\n]|<[^<>()\n]*>)*>\s*(?=facts\b)`,
   "g"
 );
 // After a cast is removed, the receiver is `facts` plus any run of closing
@@ -106,11 +113,14 @@ export function usedByViolations(
     const rest = stripped
       .replace(READ_CALL, "")
       .replace(PARAMS_IMPORT, "")
-      .replace(PLAIN_STRING, blankString)
-      .replace(CAST, "");
+      .replace(PLAIN_STRING, blankString);
+    // The text is scanned as written and with casts removed. A cast removal
+    // must never hide a read that is plain in the original.
+    const touches = (text: string): boolean =>
+      PARAMS_WORD.test(text) || FACTS_COMPUTED.test(text);
     if (
       calls === reads.length &&
-      (PARAMS_WORD.test(rest) || FACTS_COMPUTED.test(rest))
+      (touches(rest) || touches(rest.replace(CAST, "")))
     ) {
       problems.push(`${file}: touches params outside a checkParam call`);
     }
