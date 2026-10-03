@@ -64,6 +64,43 @@ describe("params: the Params type and its shape guard", () => {
     });
   }
 
+  describe("a bundle of two params files", () => {
+    const OTHER = "fixture-params-beta";
+    const twoFiles = () => {
+      const params = bundle();
+      params[OTHER] = Object.fromEntries(
+        Object.entries(params[ID]).map(([key, constant]) => [
+          key,
+          { ...constant, id: OTHER },
+        ])
+      );
+      return params;
+    };
+
+    it("accepts both files whole", () => {
+      expect(isParams(twoFiles())).to.equal(true);
+    });
+
+    it("rejects a bundle where the second file is missing its scrub record", () => {
+      const params = twoFiles();
+      delete params[OTHER].fixture_check_a.scrub;
+      expect(isParams(params)).to.equal(false);
+    });
+
+    it("rejects a bundle where the second file holds a bad constant, though the first file is whole", () => {
+      const params = twoFiles();
+      params[OTHER].fixture_both_b.value = null;
+      expect(isParams(params)).to.equal(false);
+    });
+
+    it("counts a partial bundle as absent: a whole file's constants stay unreadable", () => {
+      const params = twoFiles();
+      delete params[OTHER].fixture_check_a.scrub;
+      expect(checkParam(params, ID, "fixture_check_a")).to.equal(undefined);
+      expect(checkParam(params, ID, "fixture_both_b")).to.equal(undefined);
+    });
+  });
+
   for (const label of ["", 7, null]) {
     it(`rejects a used_by of ${JSON.stringify(label)}`, () => {
       const params = bundle();
