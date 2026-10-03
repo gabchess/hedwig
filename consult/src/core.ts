@@ -17,6 +17,8 @@ import {
   MAX_EXTRA_CONDITIONS,
   MAX_INPUT_JSON_LENGTH,
 } from "./constants";
+import { PARAM_READS, paramReader } from "./params";
+import type { ParamReader } from "./params";
 import { bandOf, supportOf } from "./support";
 import type { Band, ConditionResult } from "./types";
 
@@ -117,11 +119,12 @@ function runChecker(
   definition: ConditionDefinition,
   request: ConsultRequest,
   policy: Policy,
-  facts: unknown
+  facts: unknown,
+  param: ParamReader
 ): ConditionResult {
   let outcome: unknown;
   try {
-    outcome = definition.check(request, { policy, facts });
+    outcome = definition.check(request, { policy, facts, param });
   } catch (error) {
     return malformedResult(
       definition,
@@ -427,12 +430,32 @@ function cloneFacts(factsInput: unknown): unknown {
   }
 }
 
+// `facts.params` leaves `facts` here, before any Condition runs: the bundle
+// reaches a Condition only through the reader, never as a value. `params` is
+// deleted from the fresh clone, array or object. Any other object (a Map, a
+// Set, a Date) cannot carry `params` as a property, so it counts as no facts
+// rather than a place the bundle could sit under another access path.
+function liftParams(facts: unknown): { facts: unknown; params: unknown } {
+  if (facts === null || typeof facts !== "object") {
+    return { facts, params: undefined };
+  }
+  const proto = Object.getPrototypeOf(facts);
+  if (!Array.isArray(facts) && proto !== Object.prototype && proto !== null) {
+    return { facts: undefined, params: undefined };
+  }
+  const record = facts as Record<string, unknown>;
+  const params = Object.hasOwn(record, "params") ? record.params : undefined;
+  delete record.params;
+  return { facts: record, params };
+}
+
 function runConsult(
   catalog: Catalog,
   requestInput: unknown,
   policyInput: unknown,
   factsInput: unknown,
-  weights?: Readonly<Record<EvidenceClass, number>>
+  weights: Readonly<Record<EvidenceClass, number>> | undefined,
+  reads: readonly (readonly [string, string])[]
 ): ConsultResponse {
   // Deep-frozen structured clones, read first: every field below comes only
   // from these clones, never again from requestInput or policyInput, so a
@@ -456,7 +479,9 @@ function runConsult(
 
   const request = deepFreeze(clonedRequest) as unknown as ConsultRequest;
   const policy = deepFreeze(clonedPolicy) as unknown as Policy;
-  const facts = deepFreeze(clonedFacts);
+  const lifted = liftParams(clonedFacts);
+  const facts = deepFreeze(lifted.facts);
+  const param = paramReader(deepFreeze(lifted.params), reads);
 
   const requestObj = requireObject(request, "request");
   const actionObj = requireObject(requestObj.action, "request.action");
@@ -512,7 +537,7 @@ function runConsult(
 
   const results: ConditionResult[] = [
     ...floor.map((definition) =>
-      runChecker(definition, request, policy, facts)
+      runChecker(definition, request, policy, facts, param)
     ),
     ...extraIds.map((id): ConditionResult => {
       const definition = conditions.find((condition) => condition.id === id);
@@ -526,7 +551,7 @@ function runConsult(
           )}" is not in the catalog for action type "${describe(type)}"`
         );
       }
-      return runChecker(definition, request, policy, facts);
+      return runChecker(definition, request, policy, facts, param);
     }),
     ...extraResults,
   ];
@@ -545,7 +570,8 @@ function runConsult(
  */
 export function makeConsult(
   catalog: Catalog,
-  weights?: Readonly<Record<EvidenceClass, number>>
+  weights?: Readonly<Record<EvidenceClass, number>>,
+  reads: readonly (readonly [string, string])[] = PARAM_READS
 ): (
   request: ConsultRequest,
   policy: Policy,
@@ -562,7 +588,8 @@ export function makeConsult(
         requestInput,
         policyInput,
         factsInput,
-        weights
+        weights,
+        reads
       );
     } catch (error) {
       return unknownResponse("INPUT_SHAPE_INVALID", describeInputError(error));
