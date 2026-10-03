@@ -55,6 +55,46 @@ export const DEFAULT_KEYPAIR_PATH = path.join(
   "revoke-demo-admin.json"
 );
 
+// Where each demo keeps its own throwaway key when HEDWIG_DEMO_KEYPAIR is
+// not set. The lifecycle demo's org PDA derives from its key alone, so it
+// cannot share a key with the revoke demo.
+export const LIFECYCLE_DEMO_KEYPAIR_PATH = path.join(
+  path.dirname(DEFAULT_KEYPAIR_PATH),
+  "lifecycle-demo-admin.json"
+);
+export const CONSUMER_DEMO_KEYPAIR_PATH = path.join(
+  path.dirname(DEFAULT_KEYPAIR_PATH),
+  "consumer-demo-payer.json"
+);
+
+export type KeypairPathSource = "explicit" | "default";
+
+// The default applies only when the variable is absent. A variable that is
+// set but empty, blank or relative is a mistake the caller must fix: a
+// silent fallback would sign with a key the caller did not choose, and a
+// relative value would resolve against whatever directory the demo started
+// in.
+export function resolveKeypairPath(
+  env: NodeJS.ProcessEnv,
+  defaultPath: string = DEFAULT_KEYPAIR_PATH
+): { path: string; source: KeypairPathSource } {
+  const value = env.HEDWIG_DEMO_KEYPAIR;
+  if (value === undefined) {
+    return { path: defaultPath, source: "default" };
+  }
+  if (value.trim() === "") {
+    throw new Error(
+      "refusing: HEDWIG_DEMO_KEYPAIR is set but empty; unset it to use the default or give an absolute path"
+    );
+  }
+  if (!path.isAbsolute(value)) {
+    throw new Error(
+      "refusing: HEDWIG_DEMO_KEYPAIR must be an absolute path (no relative or ~ shorthand)"
+    );
+  }
+  return { path: value, source: "explicit" };
+}
+
 // No mode bits beyond the owner's may be set: 600 or stricter only.
 const FORBIDDEN_MODE_BITS = 0o077;
 // A pre-existing parent directory must not be writable by group or other.
@@ -347,6 +387,48 @@ export function assertServerBuilt(serverPath: string): void {
   if (!fs.existsSync(serverPath)) {
     throw new Error(
       `${serverPath} is missing; run "yarn mcp:build" before the revoke demo`
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pre-flight balance floor
+// ---------------------------------------------------------------------------
+
+// The base fee: 5,000 lamports per signature. No demo sets a priority fee.
+export const FEE_LAMPORTS_PER_SIGNATURE = 5_000;
+
+// What a payer must hold before a run starts: everything the run spends,
+// the fee for each signed transaction, and the rent-exempt minimum the
+// payer account must keep. A fee-only floor still lets balances between the
+// spend and the rent floor through, and those fail with a raw
+// "insufficient funds for rent" error.
+export function requiredPayerLamports(plan: {
+  spendLamports: number;
+  signatures: number;
+  rentExemptMinimumLamports: number;
+}): number {
+  return (
+    plan.spendLamports +
+    plan.signatures * FEE_LAMPORTS_PER_SIGNATURE +
+    plan.rentExemptMinimumLamports
+  );
+}
+
+// Account sizes the lifecycle creates, in bytes, mirrored from the LEN
+// constants in programs/hedwig_sol/src/state.rs (Org, Role, Member). The
+// SDK's own `account.<name>.size` is not usable here: it counts a string
+// field without its maximum length.
+export const LIFECYCLE_ACCOUNT_BYTES = [117, 118, 89] as const;
+
+export function assertPayerCanCover(
+  payer: string,
+  balanceLamports: number,
+  requiredLamports: number
+): void {
+  if (balanceLamports < requiredLamports) {
+    throw new Error(
+      `Wallet ${payer} has too little SOL on devnet: ${balanceLamports} lamports, needs at least ${requiredLamports}. Fund it with: solana airdrop 1 ${payer} --url devnet`
     );
   }
 }
