@@ -158,7 +158,7 @@ describe("registry Fact: pay asset-is-canonical and target-is-canonical", () => 
   it("real Ethereum USDT with a valid Fact is ALLOW_UNDER_POLICY for a plain transfer", () => {
     const response = consult(
       usdtPayRequest(ETHEREUM_USDT),
-      makePolicy(),
+      makePolicy({ perActionCapAssets: { pay: ETHEREUM_USDT } }),
       factsWith(makeRegistryFact())
     );
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
@@ -174,7 +174,7 @@ describe("registry Fact: pay asset-is-canonical and target-is-canonical", () => 
   it("a case-folded real address still passes against the Fact", () => {
     const response = consult(
       usdtPayRequest(ETHEREUM_USDT.toLowerCase()),
-      makePolicy(),
+      makePolicy({ perActionCapAssets: { pay: ETHEREUM_USDT } }),
       factsWith(makeRegistryFact())
     );
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
@@ -368,7 +368,7 @@ describe("registry Fact: liveReadAt age", () => {
   it("a confirmed read exactly at the age limit still counts as confirmed", () => {
     const response = consult(
       usdtPayRequest(ETHEREUM_USDT),
-      makePolicy(),
+      makePolicy({ perActionCapAssets: { pay: ETHEREUM_USDT } }),
       factsWith(
         makeRegistryFact({
           liveReadAt: SWAP_NOW - MAX_REGISTRY_LIVE_READ_AGE_SECONDS,
@@ -529,7 +529,11 @@ describe("registry Fact: swap token-in and token-out resolve USDT through the he
     it(`${side}: real USDT with a valid Fact passes and the swap is ALLOW_UNDER_POLICY`, () => {
       const response = consult(
         usdtSwapRequest(side, ETHEREUM_USDT),
-        makeSwapPolicy(),
+        makeSwapPolicy({
+          perActionCapAssets: {
+            swap: side === "tokenIn" ? ETHEREUM_USDT : ASSET_ADDRESS,
+          },
+        }),
         factsWith(makeRegistryFact())
       );
       expect(row(response, id)).to.include({
