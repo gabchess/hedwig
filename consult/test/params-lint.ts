@@ -6,8 +6,12 @@
 //
 // Limit: this is a text scan, not a parser. It rejects a direct `params`
 // read and any index on `facts` or `Reflect.get(facts, ...)` whose key is
-// not one plain string literal. It does not catch an alias of `facts`,
-// `Object.entries(facts)`, a spread of `facts` or `JSON.stringify(facts)`.
+// not one plain string literal. The receiver may be parenthesized, cast
+// (`as T`, `satisfies T`, `<T>`) or non-null (`!`). It does not catch an alias
+// of `facts`, `Object.entries(facts)`, a spread of `facts`,
+// `JSON.stringify(facts)`, a receiver that is another expression such as
+// `(facts ?? {})`, or a `Reflect.get` reached through `call`, `apply` or a
+// copy.
 // Closing those needs `params` out of `context.facts`, with its own channel
 // for `checkParam`.
 
@@ -22,14 +26,31 @@ const BLOCK_COMMENT = /\/\*[\s\S]*?\*\//g;
 // is exactly `params` keeps the word, so `facts["params"]` and
 // `Reflect.get(facts, "params")` are caught too.
 const PLAIN_STRING = /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g;
-const blankString = (s: string): string =>
-  s.slice(1, -1) === "params" ? "params" : '""';
+// A string with an escape (`"\u0070arams"`) cannot be read without parsing,
+// so it blanks to a marker that no plain-literal key matches.
+const blankString = (s: string): string => {
+  const content = s.slice(1, -1);
+  return content === "params"
+    ? "params"
+    : content.includes("\\")
+    ? '"x"'
+    : '""';
+};
 const PARAMS_WORD = /\bparams\b/;
 // After strings are blanked, a key built by concatenation or interpolation
 // no longer spells `params`. So an index on `facts`, or `Reflect.get(facts`,
 // passes only when its key is exactly one plain string literal.
+const TYPE_ATOM = String.raw`[\w$.]+(?:<[^<>()\n]*(?:<[^<>()\n]*>[^<>()\n]*)*>)?(?:\[\])*`;
+// Casts leave the receiver unchanged, so they are removed before the scan:
+// `facts as T`, `facts satisfies T` and `<T>facts`.
+const CAST = new RegExp(
+  String.raw`\s(?:as|satisfies)\s+${TYPE_ATOM}(?:\s*[|&]\s*${TYPE_ATOM})*|<(?:[^<>()\n]|<[^<>()\n]*>)*>\s*(?=facts\b)`,
+  "g"
+);
+// After a cast is removed, the receiver is `facts` plus any run of closing
+// parentheses, `!` and spaces.
 const FACTS_COMPUTED =
-  /\bfacts\s*(?:\?\.)?\[(?!\s*""\s*\])|\bReflect\.get\(\s*(?:[\w$]+\.)*facts\s*,(?!\s*""\s*\))/;
+  /\bfacts[\s)!]*(?:\?\.)?\s*\[(?!\s*""\s*\])|\bReflect\s*(?:\??\.\s*get|\??\.?\s*\[[^\]]*\])\s*(?:\?\.)?\(\s*[(\s]*(?:[\w$]+\.)*facts[\s)!]*,(?!\s*""\s*\))/;
 
 const CHECK_READABLE = ["check", "both"];
 
@@ -85,7 +106,8 @@ export function usedByViolations(
     const rest = stripped
       .replace(READ_CALL, "")
       .replace(PARAMS_IMPORT, "")
-      .replace(PLAIN_STRING, blankString);
+      .replace(PLAIN_STRING, blankString)
+      .replace(CAST, "");
     if (
       calls === reads.length &&
       (PARAMS_WORD.test(rest) || FACTS_COMPUTED.test(rest))

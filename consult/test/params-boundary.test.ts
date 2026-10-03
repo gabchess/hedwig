@@ -301,6 +301,19 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
     'const v = facts["par" + "ams"];',
     'const v = facts[`par${"ams"}`];',
     'const v = Reflect.get(facts, "par" + "ams");',
+    'const v = Reflect.get((facts), "par" + "ams");',
+    'const v = (facts)["par" + "ams"];',
+    "const v = (facts as Record<string, unknown>)[k];",
+    "const v = (facts satisfies object)[k];",
+    "const v = (<Record<string, unknown>>facts)[k];",
+    "const v = Reflect.get(facts as object, k);",
+    "const v = Reflect.get(<object>facts, k);",
+    'const v = facts!["par" + "ams"];',
+    "const v = facts![k];",
+    'const v = (facts!)?.["par" + "ams"];',
+    'const v = facts["\\u0070arams"];',
+    "const v = Reflect.get(facts, '\\x70arams');",
+    "const v = Reflect.get?.(facts, k);",
   ]) {
     it(`fails on a direct read by string key: ${source}`, () => {
       const problems = usedByViolations({ "x.ts": source }, BUNDLE);
@@ -313,6 +326,19 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
     const source =
       'const n = facts["now"]; const m = Reflect.get(facts, "now");';
     expect(usedByViolations({ "x.ts": source }, BUNDLE)).to.deep.equal([]);
+    for (const wrapped of [
+      'const n = (facts)["now"];',
+      'const n = (facts as Record<string, unknown>)["now"];',
+      'const n = facts!["now"];',
+      'const n = Reflect.get((facts), "now");',
+      'const n = Reflect.get(facts as object, "now");',
+      "const l = facts as string[]; const q = z as T, w = facts.now;",
+    ]) {
+      expect(
+        usedByViolations({ "x.ts": wrapped }, BUNDLE),
+        wrapped
+      ).to.deep.equal([]);
+    }
   });
 
   it("ignores the import of checkParam, comments and plain strings that mention params", () => {
