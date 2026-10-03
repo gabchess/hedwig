@@ -102,12 +102,14 @@ export function createRatchet(file: string): RegistryRatchet {
         ? new Map()
         : undefined;
     }
+    // Every line the ratchet wrote ends with a newline. Text that does not is
+    // a torn write or a hand edit, and the next append would glue onto it.
+    if (text !== "" && !text.endsWith("\n")) {
+      return "corrupt";
+    }
     const table = new Map<string, number>();
     const rows = text.split("\n");
-    // A complete file ends with a newline, so the last piece is empty.
-    if (rows.at(-1) === "") {
-      rows.pop();
-    }
+    rows.pop();
     for (const row of rows) {
       let entry: unknown;
       try {

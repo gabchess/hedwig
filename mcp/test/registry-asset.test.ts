@@ -1,5 +1,11 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
@@ -925,6 +931,15 @@ describe("registry Reader", function () {
         }
       }
       expect(lost).to.equal(0);
+      expect(lines(ratchetFile)).to.have.length(workers * perWorker);
+    });
+
+    it("creates the file with mode 600 and its folders with mode 700", () => {
+      const nested = join(dir, "a", "b", "ratchet.json");
+      expect(createRatchet(nested).admit("k", 1)).to.equal(true);
+      expect(statSync(nested).mode & 0o777).to.equal(0o600);
+      expect(statSync(join(dir, "a", "b")).mode & 0o777).to.equal(0o700);
+      expect(statSync(join(dir, "a")).mode & 0o777).to.equal(0o700);
     });
 
     it("falls back to memory when the file cannot be written", () => {
@@ -975,10 +990,11 @@ describe("registry Reader", function () {
           '{"key":"k"}\n',
           '{"key":"k","sequence":2}\nnot json\n',
           '{"key":"k","sequence":2}\n{"key":"k","sequence":3',
+          '{"key":"k","sequence":2}',
         ]) {
           writeFileSync(ratchetFile, content);
           const ratchet = createRatchet(ratchetFile);
-          expect(ratchet.admit("k", 1), content).to.equal(false);
+          expect(ratchet.admit("k", 3), content).to.equal(false);
           expect(readFileSync(ratchetFile, "utf8")).to.equal(content);
         }
       } finally {
