@@ -3,6 +3,13 @@
 // fails on anything else. Public CI runs it against the fixture bundle; the
 // service that supplies `facts.params` runs it against its own values. This
 // file imports nothing, so that service can load it directly.
+//
+// Limit: this is a text scan, not a parser. It rejects a direct `params`
+// read and any index on `facts` or `Reflect.get(facts, ...)` whose key is
+// not one plain string literal. It does not catch an alias of `facts`,
+// `Object.entries(facts)`, a spread of `facts` or `JSON.stringify(facts)`.
+// Closing those needs `params` out of `context.facts`, with its own channel
+// for `checkParam`.
 
 const READ_CALL =
   /checkParam\(\s*[^,()]+?\s*,\s*"([^"\\]+)"\s*,\s*"([^"\\]+)"\s*\)/g;
@@ -18,6 +25,11 @@ const PLAIN_STRING = /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g;
 const blankString = (s: string): string =>
   s.slice(1, -1) === "params" ? "params" : '""';
 const PARAMS_WORD = /\bparams\b/;
+// After strings are blanked, a key built by concatenation or interpolation
+// no longer spells `params`. So an index on `facts`, or `Reflect.get(facts`,
+// passes only when its key is exactly one plain string literal.
+const FACTS_COMPUTED =
+  /\bfacts\s*(?:\?\.)?\[(?!\s*""\s*\])|\bReflect\.get\(\s*(?:[\w$]+\.)*facts\s*,(?!\s*""\s*\))/;
 
 const CHECK_READABLE = ["check", "both"];
 
@@ -74,7 +86,10 @@ export function usedByViolations(
       .replace(READ_CALL, "")
       .replace(PARAMS_IMPORT, "")
       .replace(PLAIN_STRING, blankString);
-    if (calls === reads.length && PARAMS_WORD.test(rest)) {
+    if (
+      calls === reads.length &&
+      (PARAMS_WORD.test(rest) || FACTS_COMPUTED.test(rest))
+    ) {
       problems.push(`${file}: touches params outside a checkParam call`);
     }
   }

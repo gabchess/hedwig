@@ -298,6 +298,9 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
     'const v = facts["params"]["fixture-params-alpha"]["fixture_next_e"].value;',
     "const v = facts['params'];",
     'const v = Reflect.get(facts, "params");',
+    'const v = facts["par" + "ams"];',
+    'const v = facts[`par${"ams"}`];',
+    'const v = Reflect.get(facts, "par" + "ams");',
   ]) {
     it(`fails on a direct read by string key: ${source}`, () => {
       const problems = usedByViolations({ "x.ts": source }, BUNDLE);
@@ -305,6 +308,12 @@ describe("params used-by lint: a v1 Check reads only check or both constants", (
       expect(problems[0]).to.include("outside a checkParam call");
     });
   }
+
+  it("allows a read of facts by a single literal key other than params", () => {
+    const source =
+      'const n = facts["now"]; const m = Reflect.get(facts, "now");';
+    expect(usedByViolations({ "x.ts": source }, BUNDLE)).to.deep.equal([]);
+  });
 
   it("ignores the import of checkParam, comments and plain strings that mention params", () => {
     const source = [
