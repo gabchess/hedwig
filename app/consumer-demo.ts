@@ -5,9 +5,6 @@
  * Usage: see app/README.md
  */
 import { createHash } from "crypto";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
 import { AnchorProvider, Wallet } from "@anchor-lang/core";
 import {
   HEDWIG_PROGRAM_ID,
@@ -29,19 +26,17 @@ import {
   clusterApiUrl,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
+import {
+  CONSUMER_DEMO_KEYPAIR_PATH,
+  assertDevnetGenesisHash,
+  loadOrGenerateKeypair,
+  resolveKeypairPath,
+} from "./revoke-demo-lib";
 
 const CONSUMER_PROGRAM_ID = new PublicKey(
   "52D3pTYvMwLYbiigY5xg55n4HmtEzTKCEicx1Cojzo9a"
 );
 const ACTOR_FUNDING_LAMPORTS = 20_000_000;
-
-function loadKeypair(): Keypair {
-  const walletPath =
-    process.env.ANCHOR_WALLET ||
-    path.join(os.homedir(), ".config", "solana", "id.json");
-  const raw = fs.readFileSync(walletPath, "utf-8");
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
-}
 
 function discriminator(namespace: "account" | "global", name: string): Buffer {
   return createHash("sha256")
@@ -66,7 +61,20 @@ async function sendActorInstruction(
 async function main() {
   const rpcUrl = process.env.HELIUS_RPC_URL || clusterApiUrl("devnet");
   const connection = new Connection(rpcUrl, "confirmed");
-  const payer = loadKeypair();
+
+  // Before any key is read or any transaction is signed: an RPC URL can
+  // name any cluster, so the cluster's own answer decides.
+  assertDevnetGenesisHash(await connection.getGenesisHash());
+
+  const keypair = resolveKeypairPath(process.env, CONSUMER_DEMO_KEYPAIR_PATH);
+  console.log(`[setup] keypair: ${keypair.path} (${keypair.source})`);
+  const payer = loadOrGenerateKeypair(keypair.path);
+  const payerLamports = await connection.getBalance(payer.publicKey);
+  if (payerLamports < ACTOR_FUNDING_LAMPORTS) {
+    throw new Error(
+      `Wallet ${payer.publicKey.toBase58()} has too little SOL on devnet. Fund it with: solana airdrop 1 ${payer.publicKey.toBase58()} --url devnet`
+    );
+  }
   const actor = Keypair.generate();
 
   const consumerAccount = await connection.getAccountInfo(CONSUMER_PROGRAM_ID);

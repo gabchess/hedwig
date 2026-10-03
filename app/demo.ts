@@ -7,9 +7,6 @@
  *
  * Usage: see app/README.md
  */
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
 import { AnchorProvider, Wallet } from "@anchor-lang/core";
 import {
   createHedwigProgram,
@@ -24,15 +21,12 @@ import {
   sendSetRoleEnabled,
 } from "@hedwig-sol/sdk";
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-
-function loadKeypair(): Keypair {
-  const walletPath =
-    process.env.ANCHOR_WALLET ||
-    path.join(os.homedir(), ".config", "solana", "id.json");
-  const raw = fs.readFileSync(walletPath, "utf-8");
-  const secret = Uint8Array.from(JSON.parse(raw));
-  return Keypair.fromSecretKey(secret);
-}
+import {
+  LIFECYCLE_DEMO_KEYPAIR_PATH,
+  assertDevnetGenesisHash,
+  loadOrGenerateKeypair,
+  resolveKeypairPath,
+} from "./revoke-demo-lib";
 
 function randomOrgName(): string {
   const suffix = Math.random().toString(36).slice(2, 10);
@@ -43,7 +37,13 @@ async function main() {
   const rpcUrl = process.env.HELIUS_RPC_URL || clusterApiUrl("devnet");
   const connection = new Connection(rpcUrl, "confirmed");
 
-  const payer = loadKeypair();
+  // Before any key is read or any transaction is signed: an RPC URL can
+  // name any cluster, so the cluster's own answer decides.
+  assertDevnetGenesisHash(await connection.getGenesisHash());
+
+  const keypair = resolveKeypairPath(process.env, LIFECYCLE_DEMO_KEYPAIR_PATH);
+  console.log(`[setup] keypair: ${keypair.path} (${keypair.source})`);
+  const payer = loadOrGenerateKeypair(keypair.path);
   const wallet = new Wallet(payer);
   const provider = new AnchorProvider(connection, wallet, {
     commitment: "confirmed",
