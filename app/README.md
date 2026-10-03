@@ -21,15 +21,18 @@ in the separate devnet reference consumer through CPI.
   tree or under `~/.config/solana`, `~/secrets` or a `target/deploy`
   directory. The default applies only when the variable is unset.
 
-Fund the demo key on devnet after its first run prints the public key:
+For `demo` and `consumer-demo`, fund the key on devnet after the first run
+prints the public key. `revoke-demo` funds its own key from the faucet.
 
 ```bash
 solana airdrop 1 <the-printed-pubkey> --url devnet
 ```
 
-Each demo checks the balance before it sends anything: the lamports it spends,
-5,000 per signature, and the rent-exempt minimum the key must keep. If the key
-holds less, the demo stops and prints the amount it needs.
+`demo` and `consumer-demo` check the balance before they send anything: the
+lamports they spend, 5,000 per signature, and the rent-exempt minimum the key
+must keep. If the key holds less, the demo stops and prints the amount it
+needs. `revoke-demo` asks the faucet for 1 SOL when its key holds less than
+0.05 SOL.
 
 Every demo asks the RPC endpoint for its genesis hash before it loads a key or
 signs anything, and stops unless the answer is devnet's.
