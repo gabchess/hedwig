@@ -223,16 +223,29 @@ describe("token tax rule: an unknown token reads its own file's constant", () =>
     }
   });
 
-  it("a constant that is not a non-negative number is no bound", () => {
-    for (const value of [-1, "230", Number.NaN, Number.POSITIVE_INFINITY]) {
-      const params = withConstant(
-        SLIPPAGE_FILE,
-        "tax_plus_honest_tolerance_max_bps",
-        value
-      );
-      expect(taxRow(taxed(0, 0, params)).code, String(value)).to.equal(
-        "SWAP_TAX_BOUND_MISSING"
-      );
+  it("a constant that is not a whole number of basis points is no bound", () => {
+    for (const value of [
+      -1,
+      "230",
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      77.5,
+      10001,
+    ]) {
+      for (const [file, key] of [
+        [SLIPPAGE_FILE, "tax_plus_honest_tolerance_max_bps"],
+        [SLIPPAGE_FILE, "tolerance_floor_bps"],
+        [UNKNOWN_FILE, "tax_plus_honest_tolerance_deny_above_bps"],
+      ]) {
+        const params = withConstant(file, key, value);
+        const response =
+          key === "tax_plus_honest_tolerance_deny_above_bps"
+            ? unknownOut(0, params)
+            : taxed(0, 0, params);
+        expect(taxRow(response).code, `${key} ${String(value)}`).to.equal(
+          "SWAP_TAX_BOUND_MISSING"
+        );
+      }
     }
   });
 
@@ -249,6 +262,51 @@ describe("token tax rule: an unknown token reads its own file's constant", () =>
         "SWAP_TAX_BOUND_MISSING"
       );
     }
+  });
+});
+
+describe("token tax rule: the legs together pick the bound and the class", () => {
+  const unlistedIn = (tax: number) =>
+    consultFloor(
+      swapOf(WETH, UNLISTED_TOKEN),
+      swapFacts([
+        taxEntry(UNLISTED_TOKEN.contractAddress, { ...SIM, taxBps: tax }),
+        WETH_TAX,
+      ])
+    );
+
+  it("an unlisted tokenIn with a known tokenOut reads the unknown-token bound", () => {
+    const room = TAX_UNKNOWN - TOL_FLOOR;
+    expect(room).to.be.below(TAX_MAX - TOL_FLOOR);
+    const above = unlistedIn(room + 1);
+    expect(taxRow(above).status).to.equal("FAIL");
+    expect(taxRow(above).code).to.equal("SWAP_TAX_EXCEEDS_BOUND");
+    expect(above.verdict).to.equal("DENY");
+    expect(taxRow(unlistedIn(room)).status).to.equal("PASS");
+  });
+
+  it("one simulation leg makes the PASS simulated, whichever leg it is", () => {
+    for (const entries of [
+      [taxEntry(ASSET_ADDRESS, { ...SIM, taxBps: 0 }), WETH_TAX],
+      [USDC_TAX, taxEntry(WETH_ADDRESS, { ...SIM, taxBps: 0 })],
+    ]) {
+      const tax = taxRow(consultFloor(swapAt(CAP - 1), swapFacts(entries)));
+      expect(tax.status).to.equal("PASS");
+      expect(tax.code).to.equal("SWAP_TAX_WITHIN_BOUND_SIMULATED");
+    }
+  });
+
+  it("a sellBlocked entry denies even when its leg has a second entry", () => {
+    const response = consultFloor(
+      swapAt(CAP - 1),
+      swapFacts([
+        USDC_TAX,
+        taxEntry(ASSET_ADDRESS, { ...SIM, sellBlocked: true }),
+        WETH_TAX,
+      ])
+    );
+    expect(taxRow(response).code).to.equal("SWAP_TOKEN_SELL_BLOCKED");
+    expect(response.verdict).to.equal("DENY");
   });
 });
 

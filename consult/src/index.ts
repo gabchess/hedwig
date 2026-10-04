@@ -1,4 +1,4 @@
-import { combineResponses, makeConsult } from "./core";
+import { makeConsult } from "./core";
 import { CATALOG, assetKnownTo } from "./catalog";
 import { consultFloor } from "./floor-profile";
 import type { ConsultRequest, Policy } from "./catalog";
@@ -81,22 +81,6 @@ export const consult: (
  * denies without either. `consult` is unchanged and runs none of these.
  */
 export { consultFloor };
-
-/**
- * The floor and the owner's policy on one request. The worse verdict wins, so
- * a cap the request exceeds denies though the floor passed, and nothing in a
- * policy turns a floor DENY into a pass. Rows are merged by Condition id.
- */
-export function consultWithFloor(
-  request: ConsultRequest,
-  policy: Policy,
-  facts?: unknown
-): ConsultResponse {
-  return combineResponses(
-    consultFloor(request, facts),
-    consult(request, policy, facts)
-  );
-}
 
 /**
  * True when the request's pay asset is known: a code-table entry, or a

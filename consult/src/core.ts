@@ -415,7 +415,10 @@ export function unknownResponse(
 // owner's, into one. The worse verdict wins: a FAIL in either denies, and an
 // ALLOW needs both to proceed. A row named in both keeps its worse status, so
 // the merged list has one row per Condition id. `support` and `band` are
-// recomputed over the merged rows, after the verdict, like any response.
+// recomputed over the merged rows, after the verdict, like any response, and
+// then clamped: the lower score wins, so the merged support is never above
+// either input (ADR 0026). Not a package export: the cross-wire merge of a
+// hosted answer with a local one belongs to the layer that renders it.
 export function combineResponses(
   first: ConsultResponse,
   second: ConsultResponse
@@ -430,12 +433,16 @@ export function combineResponses(
       byId.set(result.id, result);
     }
   }
-  return finalizeResponse(
+  const merged = finalizeResponse(
     second.question,
     [...byId.values()],
     [...new Set([...first.floorIds, ...second.floorIds])],
     first.proceed && second.proceed
   );
+  const support = Math.min(merged.support, first.support, second.support);
+  return support === merged.support
+    ? merged
+    : Object.freeze({ ...merged, support, band: bandOf(support) });
 }
 
 function isOversized(value: unknown): boolean {

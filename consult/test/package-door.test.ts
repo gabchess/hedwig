@@ -31,16 +31,15 @@ describe("package door", () => {
     ]);
   });
 
-  it("the package root exports only consult, the floor entry points and assetKnownTo at runtime", () => {
+  it("the package root exports only consult, consultFloor and assetKnownTo at runtime", () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const door = require("../src/index");
     expect(Object.keys(door)).to.have.members([
       "consult",
       "consultFloor",
-      "consultWithFloor",
       "assetKnownTo",
     ]);
-    expect(Object.keys(door)).to.have.length(4);
+    expect(Object.keys(door)).to.have.length(3);
   });
 
   it("the package root never exports the profile itself, a catalog or a validator", () => {
@@ -51,6 +50,8 @@ describe("package door", () => {
       "CATALOG",
       "validateFloorProfile",
       "consultWith",
+      "consultWithFloor",
+      "combineResponses",
       "makeConsult",
     ]) {
       expect(door, name).to.not.have.property(name);

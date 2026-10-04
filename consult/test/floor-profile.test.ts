@@ -1,12 +1,15 @@
 import { expect } from "chai";
 
-import { consult, consultFloor, consultWithFloor } from "../src";
+import { consult, consultFloor } from "../src";
+import { combineResponses } from "../src/core";
 import { CATALOG, POLICY_READING_CONDITION_IDS } from "../src/catalog";
 import type { ConsultRequest, Policy } from "../src/catalog";
 import { FLOOR_PROFILE } from "../src/floor-profile";
 import { SLIPPAGE_MEV_PARAMS_ID } from "../src/params";
 import {
+  ASSET_ADDRESS,
   CHAIN_ID,
+  WETH_ADDRESS,
   makePolicy,
   makeRequest,
   makeSwapPolicy,
@@ -20,10 +23,12 @@ import {
   FAKE_USDT,
   NONE,
   NOW,
+  FLOOR_NUMBERS,
   SLIPPAGE_FILE,
   SLIPPAGE_ID,
   TAX_ID,
   THIN_TOKEN,
+  UNKNOWN_FILE,
   UNLISTED_TOKEN,
   USDC_TAX,
   WETH_TAX,
@@ -34,10 +39,24 @@ import {
   swapAt,
   swapFacts,
   swapOf,
+  taxEntry,
   thinSignals,
   usdtRegistryFact,
   withoutConstant,
 } from "./floor-fixtures";
+
+// The owner's answer and the floor's on one request, merged as a caller that
+// held both a policy and a params bundle would. Not a package export.
+function consultWithFloor(
+  request: ConsultRequest,
+  policy: Policy,
+  facts?: unknown
+) {
+  return combineResponses(
+    consultFloor(request, facts),
+    consult(request, policy, facts)
+  );
+}
 
 function payFacts(extra: Record<string, unknown> = {}) {
   return { now: NOW, params: floorBundle(), ...extra };
@@ -274,7 +293,7 @@ describe("floor profile: a swap with no policy", () => {
     expect(response.proceed).to.equal(false);
   });
 
-  it("a request key naming a tax, on the request or its action, moves nothing", () => {
+  it("a request key naming a tax, on the request or its action, is inert", () => {
     const request = {
       ...swapAt(CAP - 1),
       tokenTax: [{ taxBps: 0 }],
@@ -283,6 +302,80 @@ describe("floor profile: a swap with no policy", () => {
     const response = consultFloor(request as never, swapFacts([]));
     expect(row(response, TAX_ID).code).to.equal("SWAP_TAX_FACT_MISSING");
     expect(response.verdict).to.equal("UNKNOWN");
+  });
+});
+
+describe("floor profile: evidence never echoes a params value", () => {
+  // The four test constants: 77, 13, 230, 170. The inputs below put no digit
+  // run of these into a derived bps or a tax.
+  const VALUES = [
+    FLOOR_NUMBERS[SLIPPAGE_FILE].tolerance_cap_deny_above_bps,
+    FLOOR_NUMBERS[SLIPPAGE_FILE].tolerance_floor_bps,
+    FLOOR_NUMBERS[SLIPPAGE_FILE].tax_plus_honest_tolerance_max_bps,
+    FLOOR_NUMBERS[UNKNOWN_FILE].tax_plus_honest_tolerance_deny_above_bps,
+  ].map(String);
+
+  const taxed = (request: ConsultRequest, entries: Record<string, unknown>[]) =>
+    consultFloor(request, swapFacts(entries));
+
+  it("slippage rows, PASS and FAIL, name the rule and give no ceiling", () => {
+    const rows = [
+      row(consultFloor(swapAt(40), swapFacts()), SLIPPAGE_ID),
+      row(consultFloor(swapAt(90), swapFacts()), SLIPPAGE_ID),
+    ];
+    expect(rows.map((r) => r.status)).to.deep.equal(["PASS", "FAIL"]);
+    for (const r of rows) {
+      for (const value of VALUES) {
+        expect(r.evidence).to.not.include(value);
+      }
+    }
+    expect(rows[0].evidence).to.include("40 bps");
+    expect(rows[1].evidence).to.include("90 bps");
+  });
+
+  it("tax rows, PASS and FAIL on both bounds, give no bound, tolerance or total", () => {
+    const sim = (address: string, taxBps: number) =>
+      taxEntry(address, { source: "simulation", taxBps });
+    const unlisted = UNLISTED_TOKEN.contractAddress;
+    const rows = [
+      row(taxed(swapAt(40), [USDC_TAX, WETH_TAX]), TAX_ID),
+      row(
+        taxed(swapAt(40), [sim(ASSET_ADDRESS, 100), sim(WETH_ADDRESS, 20)]),
+        TAX_ID
+      ),
+      row(
+        taxed(swapAt(40), [sim(ASSET_ADDRESS, 120), sim(WETH_ADDRESS, 125)]),
+        TAX_ID
+      ),
+      row(
+        consultFloor(
+          swapOf(UNLISTED_TOKEN),
+          swapFacts([USDC_TAX, sim(unlisted, 100)])
+        ),
+        TAX_ID
+      ),
+      row(
+        consultFloor(
+          swapOf(UNLISTED_TOKEN),
+          swapFacts([USDC_TAX, sim(unlisted, 160)])
+        ),
+        TAX_ID
+      ),
+    ];
+    expect(rows.map((r) => r.status)).to.deep.equal([
+      "PASS",
+      "PASS",
+      "FAIL",
+      "PASS",
+      "FAIL",
+    ]);
+    for (const r of rows) {
+      for (const value of VALUES) {
+        expect(r.evidence, r.evidence).to.not.include(value);
+      }
+    }
+    expect(rows[2].evidence).to.include("120");
+    expect(rows[2].evidence).to.include("125");
   });
 });
 
@@ -415,6 +508,23 @@ describe("floor profile: the owner layer on top", () => {
         );
       }
     }
+  });
+
+  it("the merged support never exceeds the lower of the floor's and the owner's", () => {
+    const request = swapAt(CAP - 1);
+    const floor = consultFloor(request, swapFacts());
+    const owner = consult(request, { permits: true } as Policy, swapFacts());
+    expect(floor.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(owner.verdict).to.equal("UNKNOWN");
+    const merged = consultWithFloor(
+      request,
+      { permits: true } as Policy,
+      swapFacts()
+    );
+    expect(merged.verdict).to.equal("UNKNOWN");
+    expect(merged.support).to.be.at.most(
+      Math.min(floor.support, owner.support)
+    );
   });
 
   it("an unknown action type is UNKNOWN on the floor path too", () => {

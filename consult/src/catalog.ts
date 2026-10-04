@@ -403,7 +403,7 @@ export function describe(value: unknown): string {
 
 const EVM_ADDRESS_SHAPE = /^0x[0-9a-fA-F]{40}$/;
 
-export function isEvmChain(chainId: unknown): boolean {
+function isEvmChain(chainId: unknown): boolean {
   return typeof chainId === "string" && chainId.startsWith("eip155:");
 }
 
@@ -875,7 +875,7 @@ function checkTargetIsCanonical(
 
 // 78 digits covers uint256's maximum value; anything longer cannot be a real
 // amount, and rejecting it here means BigInt() never has to parse it.
-export const AMOUNT_SHAPE = /^(0|[1-9]\d{0,77})$/;
+const AMOUNT_SHAPE = /^(0|[1-9]\d{0,77})$/;
 
 interface AmountWithinCapCodes {
   readonly pass: string;

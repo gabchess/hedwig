@@ -118,24 +118,30 @@ function recordingPolicy(touched: string[]): Policy {
   ) as Policy;
 }
 
+// Each probe runs twice: once with no params, so a checker stops at its params
+// gate, and once with the fixture bundle, so it reaches the comparisons after
+// that gate. A policy read placed after the gate shows only on the second run.
 function policyTouches(catalog: Catalog): string[] {
   const touched: string[] = [];
   for (const conditions of Object.values(catalog)) {
     for (const condition of conditions) {
       for (const probe of PROBES) {
-        const before = touched.length;
-        try {
-          condition.check(probe.request, {
-            policy: recordingPolicy(touched),
-            facts: probe.facts,
-            param: () => undefined,
-          });
-        } catch {
-          // A checker that throws on a probe shape is not a policy read.
+        for (const withParams of [false, true]) {
+          const before = touched.length;
+          const reader = paramReader(floorBundle(), PARAM_READS);
+          try {
+            condition.check(probe.request, {
+              policy: recordingPolicy(touched),
+              facts: probe.facts,
+              param: withParams ? reader : () => undefined,
+            });
+          } catch {
+            // A checker that throws on a probe shape is not a policy read.
+          }
+          touched
+            .splice(before)
+            .forEach((what) => touched.push(`${condition.id}: ${what}`));
         }
-        touched
-          .splice(before)
-          .forEach((what) => touched.push(`${condition.id}: ${what}`));
       }
     }
   }
@@ -382,6 +388,42 @@ describe("floor profile lint: planted violations fail it", () => {
       );
       expect(policyTouches(planted).length).to.be.greaterThan(0);
     }
+  });
+
+  it("rule 2: a policy read placed after the params gate is still seen", () => {
+    for (const id of [SLIPPAGE_FLOOR_ID, TAX_RULE_ID]) {
+      const real = FLOOR_PROFILE.swap.find((m) => m.id === id)!;
+      const sneaky: ConditionDefinition = {
+        ...real,
+        check: (request, context) => {
+          const outcome = real.check(request, context);
+          if (outcome.status === "PASS") {
+            void (context.policy as unknown as Record<string, unknown>)
+              .taxOverride;
+          }
+          return outcome;
+        },
+      };
+      const planted = withSwap((members) =>
+        members.map((m) => (m.id === id ? sneaky : m))
+      );
+      expect(validateFloorProfile(planted)).to.equal(undefined);
+      expect(policyTouches(planted), id).to.include(`${id}: get taxOverride`);
+      expect(lint(planted), id).to.not.deep.equal([]);
+    }
+  });
+
+  it("rule 2: the profile source names a policy only as its fixed FLOOR_POLICY", () => {
+    const source = readFileSync(
+      join(REPO_ROOT, "consult", "src", "floor-profile.ts"),
+      "utf8"
+    )
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("//"))
+      .join("\n");
+    expect(source.match(/\.policy\b/g) ?? []).to.deep.equal([]);
+    expect(source.match(/\bpolicy\s*[:=]/g) ?? []).to.deep.equal([]);
+    expect(source.match(/FLOOR_POLICY/g)).to.have.length(2);
   });
 
   it("rule 3: a ceiling spelled in code instead of read through context.param", () => {

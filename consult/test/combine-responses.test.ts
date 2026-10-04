@@ -21,12 +21,13 @@ const result = (
 const response = (
   results: ConditionResult[],
   proceed: boolean,
-  floorIds: string[]
+  floorIds: string[],
+  support = 1
 ): ConsultResponse => ({
   question: "Should this agent proceed?",
   proceed,
   verdict: proceed ? "ALLOW_UNDER_POLICY" : "UNKNOWN",
-  support: 0,
+  support,
   band: "red",
   results,
   floorIds,
@@ -96,5 +97,18 @@ describe("combineResponses", () => {
     );
     expect(denied.support).to.equal(0);
     expect(denied.band).to.equal("red");
+  });
+
+  it("the merged support never exceeds the lower of the two inputs, and the band follows it", () => {
+    const high = response([result("a", "PASS")], true, ["a"], 0.9);
+    const low = response([result("b", "UNVERIFIED")], false, ["b"], 0.15);
+    for (const merged of [
+      combineResponses(high, low),
+      combineResponses(low, high),
+    ]) {
+      expect(merged.verdict).to.equal("UNKNOWN");
+      expect(merged.support).to.be.at.most(0.15);
+      expect(merged.band).to.equal("red");
+    }
   });
 });

@@ -6,6 +6,14 @@
 // not in CATALOG, because the owner path has no params bundle and they would
 // turn every local swap UNKNOWN.
 //
+// A throw at import means a profile defect. `index.ts` imports this module, so
+// the same throw also stops `consult` and `describeCatalog`.
+//
+// The profile reads no policy field and no Condition in it may. Lint rule 2
+// (floor-profile-lint.test.ts) probes each member with and without params, and
+// the fixed FLOOR_POLICY below is the runtime guarantee: a hidden read sees
+// only `{ permits: true }`.
+//
 // Shipped Conditions that read a policy field stay in the owner layer,
 // unchanged: for pay, recipient-matches-policy, amount-within-cap,
 // chain-matches-intent, role-requirement-met and
@@ -18,7 +26,6 @@ import {
   CATALOG,
   deepFreeze,
   describe,
-  isAmount,
   isUnixSecond,
   isWholeBps,
   ownLookup,
@@ -98,13 +105,11 @@ function checkSlippageWithinFloorCeiling(
       ? "SWAP_FLOOR_SLIPPAGE_WITHIN_CEILING"
       : "SWAP_FLOOR_SLIPPAGE_EXCEEDS_CEILING",
     evidenceClass: "caller-stated",
+    // Names the rule and the request's own derived bps, never the ceiling:
+    // the ceiling is a params value and ADR 0027 keeps it out of public text.
     evidence: within
-      ? `slippage against the stated quote is ${shape.derivedBps.toString()} bps, within the ceiling ${describe(
-          ceiling
-        )}`
-      : `slippage against the stated quote is at least ${shape.derivedBps.toString()} bps, above the ceiling ${describe(
-          ceiling
-        )}`,
+      ? `slippage against the stated quote is ${shape.derivedBps.toString()} bps, within the params ceiling`
+      : `slippage against the stated quote is at least ${shape.derivedBps.toString()} bps, above the params ceiling`,
   };
 }
 
@@ -286,20 +291,22 @@ function checkTokenTaxWithinBound(
     SLIPPAGE_MEV_PARAMS_ID,
     "tolerance_floor_bps"
   )?.value;
-  if (!isAmount(boundValue) || !isAmount(toleranceValue)) {
+  if (!isWholeBps(boundValue) || !isWholeBps(toleranceValue)) {
     return unverified(
       "SWAP_TAX_BOUND_MISSING",
-      "the tax bound or the honest tolerance floor is not in the params bundle as a number"
+      "the tax bound or the honest tolerance floor is not in the params bundle as a whole number of basis points"
     );
   }
 
   const total = taxes[0] + taxes[1] + toleranceValue;
   const within = total <= boundValue;
+  // The two taxes are Facts. The tolerance floor, the total and the bound are
+  // params values, so none of them is printed (ADR 0027 rule 7).
   const evidence = `tax ${describe(taxes[0])} + ${describe(
     taxes[1]
-  )} bps plus the tolerance floor ${describe(toleranceValue)} is ${describe(
-    total
-  )} bps, ${within ? "within" : "above"} the bound ${describe(boundValue)}`;
+  )} bps plus the tolerance floor is ${
+    within ? "within" : "above"
+  } the params bound`;
   const code = !within
     ? "SWAP_TAX_EXCEEDS_BOUND"
     : canonical
