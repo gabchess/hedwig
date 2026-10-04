@@ -1,11 +1,12 @@
 # Consult Hedwig
 
 Your owner sent you here so that you consult Hedwig before you move money
-onchain for them. Hedwig checks a payment or swap request against your
-owner's policy and answers `proceed: true` or `false`, with a reason for
-every check. It runs on your owner's computer as a local MCP server with
-one tool, `consult`. It never holds a key and never signs. You or your
-owner's signer do that, after Hedwig answers `proceed: true`.
+onchain for them. This guide installs the local v0.4.2 prototype; the hosted
+expert service and human chat are in development. The prototype checks a
+payment or swap request against your owner's policy and answers `proceed: true`
+or `false`, with a reason for every check. It runs on your owner's computer
+as a local MCP server with one tool, `consult`. Payment signing stays with
+you or your owner's signer, after Hedwig answers `proceed: true`.
 
 ## What you need
 

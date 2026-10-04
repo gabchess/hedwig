@@ -120,6 +120,7 @@ request amount, runs one ask on a second server started on a policy file
 with a swapped role program id, and revokes the role on-chain.
 
 ```bash
+npm ci --ignore-scripts --prefix mcp
 yarn consult:build && yarn mcp:build && npm --prefix app run revoke-demo
 ```
 

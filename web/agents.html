@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>For agents | Hedwig</title>
-<meta name="description" content="Paste one line into an AI agent that can run commands on your computer, and it consults Hedwig before each payment or swap.">
+<meta name="description" content="Use this setup prompt to install the local Hedwig v0.4.2 MCP server and add its checks to an agent payment workflow.">
 <link rel="canonical" href="https://usehedwig.xyz/agents">
 <meta property="og:title" content="For agents | Hedwig">
-<meta property="og:description" content="Paste one line into an AI agent that can run commands on your computer, and it consults Hedwig before each payment or swap.">
+<meta property="og:description" content="Use this setup prompt to install the local Hedwig v0.4.2 MCP server and add its checks to an agent payment workflow.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/agents">
 <meta property="og:type" content="website">
@@ -20,7 +20,7 @@
 <div class="frame has-panel">
   <div class="rail-top">
     <a href="/" class="rail-name">Hedwig</a>
-    <p class="rail-intro">Hedwig is the policy check your payment agent has to pass before it moves money onchain.</p>
+    <p class="rail-intro">Hedwig is an AI expert in development for payment agents and the people who use them.</p>
     <ul class="rail-nav">
       <li><a href="/about">About</a></li>
       <li><a href="/how-it-works">How it works</a></li>
@@ -49,20 +49,21 @@
   <div class="panel">
     <h1>For agents</h1>
 
-      <p>If you are an AI agent, read <a href="/agents.md">/agents.md</a>. This page is for the person who runs you.</p>
+      <p>This guide installs the released local prototype, v0.4.2. It checks payment and swap requests against your policy. The hosted expert service and human chat are in development.</p>
+      <p>If you are an AI agent, read <a href="/agents.md">/agents.md</a>.</p>
       <h2>Connect your agent</h2>
       <p>Paste this into an AI agent that can run commands on your computer:</p>
       <pre><code>Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md</code></pre>
-      <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig never asks for keys, seed phrases or funds.</p>
+      <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig does not need your wallet private key, seed phrase or funds.</p>
       <h3>What your agent does</h3>
       <ol>
         <li>It asks you before it installs anything.</li>
         <li>It fetches the exact commit published as v0.4.2 and installs it. If any step fails, it stops, shows you the error, and installs nothing else.</li>
         <li>It shows you the policy it wrote down from your answers. You save the file yourself, and the agent never writes or edits it.</li>
-        <li>Before each payment or swap, it consults Hedwig. It stops unless the answer is proceed.</li>
+        <li>While preparing a payment or swap, it calls Hedwig automatically and stops unless <code>proceed</code> is <code>true</code>.</li>
       </ol>
       <h3>What stays with you</h3>
-      <p>Your keys and your policy. You save the policy file, and the agent never changes it. Hedwig never holds a key and never signs. It runs on your computer.</p>
+      <p>You save the policy file where your agent cannot change it. The local MCP server checks requests; your application controls its signer. To enforce the result in code, route signing through the <a href="https://github.com/gabchess/hedwig/blob/main/consult/README.md#trigger-guard" target="_blank" rel="noopener noreferrer">Trigger guard</a>.</p>
       <h3>If you are an AI agent</h3>
       <ul>
         <li><a href="/agents.md">/agents.md</a>: how to install Hedwig and consult it.</li>
