@@ -77,12 +77,15 @@ const SOURCE_NAMES: Readonly<Record<string, readonly string[]>> = {
 // Outside the catalog, a literal compared against may only be 0 or 1.
 const COMPARED_NUMBERS = new Set(["0", "1", "0n", "1n"]);
 // Comparisons in mcp/src against another number, each read by a reviewer:
-// wire-format sizes, an HTTP status and a parity test. A new one fails the
-// scan until its number is read and its text is added here.
+// wire-format sizes, an HTTP status, a parity test and the JSON-RPC version.
+// A new one fails the scan until its number is read and its text is added
+// here.
 const REVIEWED_COMPARISONS = new Set([
   "mcp/src/readers/pda.ts: bytes.length !== 32",
+  'mcp/src/readers/registry-asset.ts: entry.jsonrpc !== "2.0"',
   "mcp/src/readers/registry-asset.ts: signatures.length !== 2",
   "mcp/src/readers/registry-asset.ts: response.status !== 200",
+  'mcp/src/readers/solana-role.ts: body.jsonrpc !== "2.0"',
   "mcp/src/readers/solana-role.ts: pair.length !== 2",
   "mcp/src/readers/solana-role.ts: response.status !== 200",
   "mcp/src/readers/wire.ts: hex.length % 2 === 1",
@@ -105,6 +108,21 @@ const ARITHMETIC = new Set([
   ts.SyntaxKind.PercentToken,
   ts.SyntaxKind.AsteriskAsteriskToken,
 ]);
+const BITWISE = new Set([
+  ts.SyntaxKind.AmpersandToken,
+  ts.SyntaxKind.BarToken,
+  ts.SyntaxKind.CaretToken,
+  ts.SyntaxKind.LessThanLessThanToken,
+  ts.SyntaxKind.GreaterThanGreaterThanToken,
+  ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken,
+]);
+// Operators a compared operand is searched through for a constant: `h - 4999`
+// and `h ^ 4999` both give 4999. A mask, `bytes[31] & 0x80`, is left alone.
+const SEARCHED = new Set<ts.SyntaxKind>(
+  [...ARITHMETIC, ...BITWISE].filter(
+    (kind) => kind !== ts.SyntaxKind.AmpersandToken
+  )
+);
 // A string that reads as a decimal number: "4999", " 49.99 ", "-5e3".
 const DECIMAL = /^\s*[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?\s*$/i;
 const NUMBER_PARSERS = new Set(["Number", "BigInt", "parseInt", "parseFloat"]);
@@ -128,6 +146,10 @@ const isSign = (node: ts.Node): node is ts.PrefixUnaryExpression =>
   ts.isPrefixUnaryExpression(node) &&
   (node.operator === ts.SyntaxKind.MinusToken ||
     node.operator === ts.SyntaxKind.PlusToken);
+
+const isBitwiseNot = (node: ts.Node): node is ts.PrefixUnaryExpression =>
+  ts.isPrefixUnaryExpression(node) &&
+  node.operator === ts.SyntaxKind.TildeToken;
 
 // A wrapper or a sign around a literal: `-5`, `+(4999)`.
 function unwrap(node: ts.Node): { outer: ts.Node; negative: boolean } {
@@ -167,8 +189,20 @@ function arithmetic(
         return l / r;
       case ts.SyntaxKind.PercentToken:
         return l % r;
-      default:
+      case ts.SyntaxKind.AsteriskAsteriskToken:
         return l ** r;
+      case ts.SyntaxKind.AmpersandToken:
+        return l & r;
+      case ts.SyntaxKind.BarToken:
+        return l | r;
+      case ts.SyntaxKind.CaretToken:
+        return l ^ r;
+      case ts.SyntaxKind.LessThanLessThanToken:
+        return l << r;
+      case ts.SyntaxKind.GreaterThanGreaterThanToken:
+        return l >> r;
+      default:
+        return l >>> r;
     }
   } catch {
     return undefined;
@@ -218,7 +252,15 @@ function fold(node: ts.Node | undefined): Constant | undefined {
     }
     return minus ? -Number(value) : Number(value);
   }
-  if (ts.isBinaryExpression(node) && ARITHMETIC.has(node.operatorToken.kind)) {
+  if (isBitwiseNot(node)) {
+    const value: any = fold(node.operand);
+    return value === undefined ? undefined : ~value;
+  }
+  if (
+    ts.isBinaryExpression(node) &&
+    (ARITHMETIC.has(node.operatorToken.kind) ||
+      BITWISE.has(node.operatorToken.kind))
+  ) {
     const left = fold(node.left);
     const right = fold(node.right);
     return left === undefined || right === undefined
@@ -332,18 +374,19 @@ function valueSites(path: string, source: string): Site[] {
   }));
 }
 
-// The constant parts of a compared operand, through wrappers, signs and
-// arithmetic: `h - 4999` gives 4999, and `4999 + 1` gives 5000.
+// The constant parts of a compared operand, through wrappers, signs, `~`,
+// arithmetic and SEARCHED bitwise operators: `h - 4999` gives 4999, and
+// `4999 + 1` gives 5000.
 function constantParts(node: ts.Node, out: ts.Node[]): void {
   if (fold(node) !== undefined) {
     out.push(node);
   } else if (isWrapper(node)) {
     constantParts(node.expression, out);
-  } else if (isSign(node)) {
+  } else if (isSign(node) || isBitwiseNot(node)) {
     constantParts(node.operand, out);
   } else if (
     ts.isBinaryExpression(node) &&
-    ARITHMETIC.has(node.operatorToken.kind)
+    SEARCHED.has(node.operatorToken.kind)
   ) {
     constantParts(node.left, out);
     constantParts(node.right, out);
@@ -351,7 +394,9 @@ function constantParts(node: ts.Node, out: ts.Node[]): void {
 }
 
 // Every number compared against: an operand of <, <=, >, >=, ==, ===, !=
-// or !==, or an argument of Math.min or Math.max.
+// or !==, or an argument of Math.min or Math.max. A constant string counts
+// when JavaScript reads it as a finite number ("4999", "0x1387", "2.0"); ""
+// reads as 0.
 function comparedSites(
   path: string,
   source: string
@@ -369,8 +414,12 @@ function comparedSites(
       const parts: ts.Node[] = [];
       constantParts(operand, parts);
       for (const part of parts) {
-        const value = fold(part);
-        if (value !== undefined && typeof value !== "string") {
+        const folded = fold(part);
+        const value = typeof folded === "string" ? Number(folded) : folded;
+        if (
+          typeof value === "bigint" ||
+          (typeof value === "number" && Number.isFinite(value))
+        ) {
           found.push({
             text: render(value),
             declaredAs: undefined,
@@ -677,12 +726,18 @@ describe("params boundary: no value reaches the public tree", function () {
       expect(thresholdLiterals(catalog, source), source).to.deep.equal([]);
     }
     for (const source of [
-      'if (body.jsonrpc !== "2.0") {}',
       "const max = Math.max(a, b);",
       "if ((bytes[31] & 0x80) !== 0) {}",
+      'if (value[i] === "1") {}',
+      'if (text === "") {}',
+      'if (prefix === "0x") {}',
     ]) {
       expect(thresholdLiterals(other, source), source).to.deep.equal([]);
     }
+    const role = join(REPO_ROOT, "mcp", "src", "readers", "solana-role.ts");
+    const pinned = 'if (body.jsonrpc !== "2.0") {}';
+    expect(thresholdLiterals(role, pinned)).to.deep.equal([]);
+    expect(thresholdLiterals(other, pinned)).to.have.length(1);
   });
 
   it("constants.ts holds a numeric literal only under an allowlisted exported name", () => {
@@ -757,8 +812,8 @@ describe("params used-by check: a v1 Check reads only check or both constants", 
   });
 });
 
-// The eleven known leak shapes, then four more from code review. 4999 is an
-// example number, not a real value. Each fixture must fail its scan.
+// The eleven known leak shapes, then the shapes found in review since. 4999
+// is an example number, not a real value. Each fixture must fail its scan.
 const at = (...parts: string[]) => join(REPO_ROOT, ...parts);
 const CATALOG = at("consult", "src", "catalog.ts");
 const READER = at("mcp", "src", "readers", "x.ts");
@@ -900,6 +955,138 @@ const LEAK_SHAPES: readonly (readonly [
     generatedNameHits,
     at("mcp", "src", "readers", "x.ts"),
     'const name = "params" + ".generated";',
+  ],
+  [
+    "a numeric string compared in an mcp reader",
+    thresholdLiterals,
+    READER,
+    'const leak = holders >= "4999";',
+  ],
+  [
+    "a hex string compared in an mcp reader",
+    thresholdLiterals,
+    READER,
+    'const leak = holders >= "0x1387";',
+  ],
+  [
+    "an octal string compared in an mcp reader",
+    thresholdLiterals,
+    READER,
+    'const leak = holders >= "0o11607";',
+  ],
+  [
+    "a binary string compared in an mcp reader",
+    thresholdLiterals,
+    READER,
+    'const leak = holders >= "0b1001110000111";',
+  ],
+  [
+    "a left shift on a compared value in an mcp reader",
+    thresholdLiterals,
+    READER,
+    "const leak = (holders << 12) > 0;",
+  ],
+  [
+    "a right shift on a compared value in an mcp reader",
+    thresholdLiterals,
+    READER,
+    "const leak = (holders >> 12) > 0;",
+  ],
+  [
+    "an unsigned right shift on a compared value in an mcp reader",
+    thresholdLiterals,
+    READER,
+    "const leak = (holders >>> 12) > 0;",
+  ],
+  [
+    "a bitwise or on a compared value in an mcp reader",
+    thresholdLiterals,
+    READER,
+    "const leak = (holders | 4999) === holders;",
+  ],
+  [
+    "a bitwise xor on a compared value in an mcp reader",
+    thresholdLiterals,
+    READER,
+    "const leak = (holders ^ 4999) === 0;",
+  ],
+  [
+    "a bitwise not on a compared value in an mcp reader",
+    thresholdLiterals,
+    READER,
+    "const leak = ~(holders - 4999) < 0;",
+  ],
+  [
+    "a bitwise and of hex strings in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    'const HOLDERS_MIN = "0x1387" & "0xffff";',
+  ],
+  [
+    "a bitwise or of allowed numbers in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    "const HOLDERS_MIN = 200 | 1;",
+  ],
+  [
+    "a bitwise xor of allowed numbers in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    "const HOLDERS_MIN = 200 ^ 1;",
+  ],
+  [
+    "a left shift of allowed numbers in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    "const HOLDERS_MIN = 200 << 1;",
+  ],
+  [
+    "a right shift of allowed numbers in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    "const HOLDERS_MIN = (10000 >> 1) - 1;",
+  ],
+  [
+    "an unsigned right shift of allowed numbers in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    "const HOLDERS_MIN = (10000 >>> 1) - 1;",
+  ],
+  [
+    "a bitwise not of allowed numbers in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    "const HOLDERS_MIN = ~1;",
+  ],
+  [
+    "BigInt() of a hex string in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    'const HOLDERS_MIN = BigInt("0x1387");',
+  ],
+  [
+    "a reviewed comparison copied into another mcp file",
+    thresholdLiterals,
+    READER,
+    "if (response.status !== 200) {}",
+  ],
+  [
+    "a reviewed source name reused in another consult/src file",
+    thresholdLiterals,
+    CATALOG,
+    "const STATUS_RANK = 4999;",
+  ],
+  [
+    "a template that folds to a number in catalog.ts",
+    thresholdLiterals,
+    CATALOG,
+    'const HOLDERS_MIN = `49${""}99`;',
+  ],
+  [
+    "an in check for the params key",
+    paramsKeyReads,
+    CATALOG,
+    'const leak = "params" in facts;',
   ],
 ];
 
