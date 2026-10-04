@@ -125,12 +125,27 @@ export function checkParam(
   return CHECK_READABLE.includes(constant.used_by) ? constant : undefined;
 }
 
+// The params file the three market-signal Conditions read.
+export const UNKNOWN_TOKEN_PARAMS_ID =
+  "defi-param-unknown-token-thresholds.json";
+
 // Every constant a Condition may read, as [params id, key]. `context.param`
 // returns undefined for a pair not listed here, so this list is the whole set
 // of constants consult can read, and the used-by check reads it as data. A
 // Check adds its pair here when it starts reading one.
 export const PARAM_READS: readonly (readonly [string, string])[] =
-  Object.freeze([]);
+  Object.freeze(
+    [
+      "liquidity_abs_deny_below_usd",
+      "liquidity_abs_pass_at_or_above_usd",
+      "holders_deny_below",
+      "holders_pass_at_or_above",
+      "activity_window_hours",
+      "activity_min_distinct_counterparties",
+      "activity_recent_event_max_age_hours",
+      "qualifying_event_min_usd",
+    ].map((key) => Object.freeze([UNKNOWN_TOKEN_PARAMS_ID, key] as const))
+  );
 
 export type ParamReader = (
   paramsId: string,

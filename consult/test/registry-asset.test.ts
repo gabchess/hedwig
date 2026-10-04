@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "chai";
 
-import { consult } from "../src";
+import { assetKnownTo, consult } from "../src";
 import {
   BASE_CHAIN_ID,
   BASE_USDC_ADDRESS,
@@ -26,6 +26,11 @@ import {
 
 const ETHEREUM_USDT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const LOOKALIKE_USDT = "0x" + "7".repeat(40);
+const MARKET_CONDITION_IDS = [
+  "asset-liquidity-sufficient",
+  "asset-holders-sufficient",
+  "asset-activity-sufficient",
+];
 const REGISTRY_CONDITION_IDS = [
   "asset-is-canonical",
   "target-is-canonical",
@@ -695,6 +700,7 @@ describe("registry Fact: never turns another Condition's result into PASS", () =
   it("every non-registry row is identical with and without a valid Fact, across the corpus and its USDT variants", () => {
     let compared = 0;
     let factRead = 0;
+    let knownFlips = 0;
     CORPUS.forEach((entry) => {
       [entry.request, usdtVariant(entry.request)].forEach((request) => {
         const baseFacts = withNow(entry.facts);
@@ -718,9 +724,29 @@ describe("registry Fact: never turns another Condition's result into PASS", () =
         );
         const others = (response: ConsultResponse) =>
           response.results.filter(
-            (r) => !REGISTRY_CONDITION_IDS.includes(r.id)
+            (r) =>
+              !REGISTRY_CONDITION_IDS.includes(r.id) &&
+              !MARKET_CONDITION_IDS.includes(r.id)
           );
         expect(others(withFact), entry.id).to.deep.equal(others(without));
+        // The market rows read the same row by design: a confirmed row at
+        // the asset's own address makes the asset known, and a known asset
+        // needs no reading. They change only to NOT_REQUIRED, and only then.
+        const known = assetKnownTo(request as never, facts);
+        for (const id of MARKET_CONDITION_IDS) {
+          const after = withFact.results.find((r) => r.id === id);
+          const before = without.results.find((r) => r.id === id);
+          if (
+            before !== undefined &&
+            known &&
+            !assetKnownTo(request as never, baseFacts)
+          ) {
+            expect(after?.code, entry.id).to.match(/_NOT_REQUIRED$/);
+            knownFlips += 1;
+          } else {
+            expect(after, entry.id).to.deep.equal(before);
+          }
+        }
         compared += others(without).length;
         if (without.verdict === "DENY") {
           expect(withFact.verdict, entry.id).to.equal("DENY");
@@ -733,6 +759,7 @@ describe("registry Fact: never turns another Condition's result into PASS", () =
     // or the chain on purpose: swap-facts-now-zero, swap-facts-array and
     // swap-prototype-key-chain-id. None is skipped for lack of facts.now.
     expect(factRead).to.equal(136);
+    expect(knownFlips).to.be.greaterThan(0);
   });
 
   it("a Fact alone cannot lift a request whose other Conditions fail", () => {

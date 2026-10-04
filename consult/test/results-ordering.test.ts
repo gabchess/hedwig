@@ -41,6 +41,9 @@ describe("results ordering", () => {
       "target-is-canonical",
       "role-requirement-met",
       "authorization-window-within-ceiling",
+      "asset-liquidity-sufficient",
+      "asset-holders-sufficient",
+      "asset-activity-sufficient",
     ]);
   });
 

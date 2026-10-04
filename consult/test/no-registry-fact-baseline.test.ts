@@ -92,9 +92,12 @@ export function baselineCases(): BaselineCase[] {
   ];
 }
 
-// Recorded once from main (929ce4c), before the registry Fact existed. A
-// failure here means a request with no registry Fact changed its answer:
-// fix the code, never re-record this file to make the test pass.
+// Recorded once from main (929ce4c), before the registry Fact existed, and
+// re-recorded once when the three market-signal Conditions joined the pay
+// Floor: each pay response gained their three rows, and `support` moved
+// only through them. No verdict or `proceed` changed. A failure here means
+// a request with no registry Fact changed its answer: fix the code, never
+// re-record this file to make the test pass.
 const BASELINE: Record<string, unknown> = JSON.parse(
   readFileSync(
     join(__dirname, "fixtures", "no-registry-fact-baseline.json"),

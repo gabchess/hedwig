@@ -75,5 +75,127 @@
         "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       }
     }
+  },
+  "defi-param-unknown-token-thresholds.json": {
+    "liquidity_abs_deny_below_usd": {
+      "value": "fixture value, not a threshold",
+      "unit": "usd",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "liquidity_abs_pass_at_or_above_usd": {
+      "value": "fixture value, not a threshold",
+      "unit": "usd",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "holders_deny_below": {
+      "value": "fixture value, not a threshold",
+      "unit": "holders",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "holders_pass_at_or_above": {
+      "value": "fixture value, not a threshold",
+      "unit": "holders",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "activity_window_hours": {
+      "value": "fixture value, not a threshold",
+      "unit": "hours",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "activity_min_distinct_counterparties": {
+      "value": "fixture value, not a threshold",
+      "unit": "wallets",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "activity_recent_event_max_age_hours": {
+      "value": "fixture value, not a threshold",
+      "unit": "hours",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "qualifying_event_min_usd": {
+      "value": "fixture value, not a threshold",
+      "unit": "usd",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    }
   }
 }

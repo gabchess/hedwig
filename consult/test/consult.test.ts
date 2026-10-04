@@ -27,6 +27,9 @@ const FLOOR_IDS = [
   "target-is-canonical",
   "role-requirement-met",
   "authorization-window-within-ceiling",
+  "asset-liquidity-sufficient",
+  "asset-holders-sufficient",
+  "asset-activity-sufficient",
 ];
 
 function deepFreeze<T>(value: T): T {
@@ -58,7 +61,7 @@ describe("consult", () => {
     expect(response.band).to.equal("green");
     expect(response.advisory).to.equal(true);
     expect(response.floorIds).to.have.members(FLOOR_IDS);
-    expect(response.results).to.have.length(8);
+    expect(response.results).to.have.length(11);
     response.results.forEach((result) => {
       expect(result.status).to.equal("PASS");
       expect(result.evidence).to.be.a("string").that.is.not.empty;
