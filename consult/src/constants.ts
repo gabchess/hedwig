@@ -26,6 +26,15 @@ export const MAX_ROLE_FACT_AGE_SECONDS = 60;
 // `confirmed` read counts as `unconfirmed`. Same ceiling as the role fact.
 export const MAX_REGISTRY_LIVE_READ_AGE_SECONDS = 60;
 
+// How old a market reading (liquidity, holders, activity) may be, in
+// seconds, before its Condition stops trusting it. Each dimension of
+// facts.marketSignals is dated on its own.
+export const MAX_MARKET_READING_AGE_SECONDS = 60;
+
+// A unit conversion, not a threshold: the market constants count time in
+// hours, and facts count it in unix seconds.
+export const SECONDS_PER_HOUR = 3600;
+
 // How far out an EIP-3009 authorization's validBefore may sit, in seconds,
 // before authorization-window-within-ceiling stops accepting it. A policy's
 // own maxSeconds must fall at or under this ceiling: the owner can ask for a

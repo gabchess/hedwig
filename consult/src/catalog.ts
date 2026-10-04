@@ -2,9 +2,12 @@ import {
   EVIDENCE_CLASS_WEIGHTS,
   EVIDENCE_ECHO_LIMIT,
   MAX_AUTHORIZATION_WINDOW_SECONDS,
+  MAX_MARKET_READING_AGE_SECONDS,
   MAX_REGISTRY_LIVE_READ_AGE_SECONDS,
   MAX_ROLE_FACT_AGE_SECONDS,
+  SECONDS_PER_HOUR,
 } from "./constants";
+import { UNKNOWN_TOKEN_PARAMS_ID } from "./params";
 import type { ParamReader } from "./params";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
 
@@ -150,11 +153,39 @@ export interface RegistryVaultFact {
   liveReadAt: number;
 }
 
+// Market readings for one token, from the owner's own RPC only: pool
+// balances through eth_call, transfers through eth_getLogs. A value from a
+// hosted index never enters this Fact; that dimension is left out, so its
+// Condition answers UNVERIFIED. Each dimension carries `readAt`, the unix
+// second its read began. `liquidity.usd` is the pools' value in USD,
+// `holders.count` the number of addresses with a balance, and
+// `activity.transfers` every transfer the read saw from `since` to
+// `readAt`, each with its sender and its value in USD.
+//
+// Size cap: the core drops ALL facts, not just this one, when the facts JSON
+// passes MAX_INPUT_JSON_LENGTH (64 KiB). Every transfer is listed, so a long
+// activity list (several hundred transfers) loses `now`, the params bundle
+// and every reading, and each market Condition answers READING_MISSING: a
+// thin token reads UNKNOWN, not DENY. It fails closed, with the wrong
+// evidence.
+export interface MarketSignalsFact {
+  chainId: string;
+  contractAddress: string;
+  liquidity?: { usd: number; readAt: number };
+  holders?: { count: number; readAt: number };
+  activity?: {
+    readAt: number;
+    since: number;
+    transfers: { at: number; sender: string; usd: number }[];
+  };
+}
+
 export interface Facts {
   now?: number;
   solanaRole?: RoleFact;
   registryAsset?: RegistryAssetFact;
   registryVault?: RegistryVaultFact;
+  marketSignals?: MarketSignalsFact;
 }
 
 // One flat shape covering every action type this catalog knows: pay's
@@ -1285,6 +1316,402 @@ export function deepFreeze<T>(value: T): T {
 
 const REFERENCE_ROOT = "consult/references/pay";
 
+// --- market signals for an unknown pay asset ------------------------------
+
+// True when the request's asset is a code-table entry, or a registry row
+// whose live read is `confirmed`, at the request's own address. A listed
+// symbol at another address, or a row whose live read is `mismatch` or
+// `unconfirmed`, is not known.
+export function assetKnownTo(request: ConsultRequest, facts: unknown): boolean {
+  const action = ownLookup<unknown>(request, "action");
+  const asset = ownLookup<unknown>(action, "asset");
+  const entry = canonicalAddressFor(
+    ownLookup<unknown>(action, "chainId"),
+    ownLookup<unknown>(asset, "symbol"),
+    facts
+  );
+  return (
+    entry !== undefined &&
+    (entry.source === "code-table" || entry.liveRead === "confirmed") &&
+    sameEvmAddress(entry.address, ownLookup(asset, "contractAddress")) === true
+  );
+}
+
+const isUnixSecond = (value: unknown): value is number =>
+  typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+
+const isAmount = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+// Every listed constant as a non-negative number, or undefined when any one
+// is missing, mislabelled or not a number. A constant reaches here only
+// with its provenance (params id, asOf, sha256 and scrub record), since
+// checkParam refuses a bundle where any constant lacks one.
+function readThresholds(
+  param: ParamReader,
+  keys: readonly string[]
+): Readonly<Record<string, number>> | undefined {
+  const values: Record<string, number> = {};
+  for (const key of keys) {
+    const value = param(UNKNOWN_TOKEN_PARAMS_ID, key)?.value;
+    if (!isAmount(value)) {
+      return undefined;
+    }
+    values[key] = value;
+  }
+  return values;
+}
+
+type MarketJudgement = {
+  outcome: "pass" | "fail" | "band" | "uncovered";
+  evidence: string;
+};
+
+interface MarketDimension {
+  // The facts.marketSignals field this dimension reads.
+  readonly field: "liquidity" | "holders" | "activity";
+  readonly constants: readonly string[];
+  wellFormed(reading: object, readAt: number): boolean;
+  judge(
+    reading: object,
+    thresholds: Readonly<Record<string, number>>,
+    now: number
+  ): MarketJudgement | undefined;
+}
+
+// A dimension read as one number against a deny line and a pass line: under
+// the deny line is FAIL, at or above the pass line is PASS, and between the
+// two is the UNKNOWN band, which answers UNVERIFIED. A deny line above the
+// pass line is no usable threshold.
+function bandDimension(
+  field: "liquidity" | "holders",
+  valueKey: string,
+  isValue: (value: unknown) => value is number,
+  denyKey: string,
+  passKey: string,
+  noun: (value: number) => string
+): MarketDimension {
+  return {
+    field,
+    constants: [denyKey, passKey],
+    wellFormed: (reading) => isValue(ownLookup(reading, valueKey)),
+    judge: (reading, thresholds) => {
+      const value = ownLookup<number>(reading, valueKey) as number;
+      const deny = thresholds[denyKey];
+      const pass = thresholds[passKey];
+      if (deny > pass) {
+        return undefined;
+      }
+      return value < deny
+        ? { outcome: "fail", evidence: `${noun(value)} is under the deny line` }
+        : value >= pass
+        ? {
+            outcome: "pass",
+            evidence: `${noun(value)} is at or above the pass line`,
+          }
+        : {
+            outcome: "band",
+            evidence: `${noun(value)} is between the deny and pass lines`,
+          };
+    },
+  };
+}
+
+const LIQUIDITY: MarketDimension = bandDimension(
+  "liquidity",
+  "usd",
+  isAmount,
+  "liquidity_abs_deny_below_usd",
+  "liquidity_abs_pass_at_or_above_usd",
+  (usd) => `pool liquidity of ${describe(usd)} USD`
+);
+
+const HOLDERS: MarketDimension = bandDimension(
+  "holders",
+  "count",
+  (value): value is number =>
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0,
+  "holders_deny_below",
+  "holders_pass_at_or_above",
+  (count) => `a holder count of ${describe(count)}`
+);
+
+interface Transfer {
+  at: number;
+  sender: string;
+  usd: number;
+}
+
+function isTransfer(
+  value: unknown,
+  since: number,
+  readAt: number
+): value is Transfer {
+  const at = ownLookup<unknown>(value, "at");
+  const sender = ownLookup<unknown>(value, "sender");
+  return (
+    isUnixSecond(at) &&
+    at >= since &&
+    at <= readAt &&
+    typeof sender === "string" &&
+    EVM_ADDRESS_SHAPE.test(sender) &&
+    isAmount(ownLookup(value, "usd"))
+  );
+}
+
+// Transfers the read saw from `since` to `readAt`. Only a transfer inside
+// the window, worth more than zero and at least the qualifying minimum,
+// counts: a zero-value transfer is the address-poisoning vector. None is
+// FAIL. PASS needs enough distinct senders and a recent newest transfer;
+// anything between is the UNKNOWN band. A read that starts after the
+// window opens cannot say what the window held.
+const ACTIVITY: MarketDimension = {
+  field: "activity",
+  constants: [
+    "activity_window_hours",
+    "activity_min_distinct_counterparties",
+    "activity_recent_event_max_age_hours",
+    "qualifying_event_min_usd",
+  ],
+  wellFormed: (reading, readAt) => {
+    const since = ownLookup<unknown>(reading, "since");
+    const transfers = ownLookup<unknown>(reading, "transfers");
+    return (
+      isUnixSecond(since) &&
+      since <= readAt &&
+      Array.isArray(transfers) &&
+      transfers.every((transfer) => isTransfer(transfer, since, readAt))
+    );
+  },
+  judge: (reading, thresholds, now) => {
+    const windowStart =
+      now - thresholds.activity_window_hours * SECONDS_PER_HOUR;
+    if ((ownLookup<number>(reading, "since") as number) > windowStart) {
+      return {
+        outcome: "uncovered",
+        evidence: "the activity read starts after the window opens",
+      };
+    }
+    const minUsd = thresholds.qualifying_event_min_usd;
+    const qualifying = (
+      ownLookup<Transfer[]>(reading, "transfers") as Transfer[]
+    ).filter(
+      (transfer) =>
+        transfer.at >= windowStart && transfer.usd > 0 && transfer.usd >= minUsd
+    );
+    if (qualifying.length === 0) {
+      return {
+        outcome: "fail",
+        evidence: "no qualifying transfer in the activity window",
+      };
+    }
+    const senders = new Set(
+      qualifying.map((transfer) => transfer.sender.toLowerCase())
+    ).size;
+    const newestAge =
+      now - Math.max(...qualifying.map((transfer) => transfer.at));
+    const evidence = `${qualifying.length} qualifying transfers from ${senders} distinct senders, the newest ${newestAge} seconds old`;
+    return senders >= thresholds.activity_min_distinct_counterparties &&
+      newestAge <=
+        thresholds.activity_recent_event_max_age_hours * SECONDS_PER_HOUR
+      ? { outcome: "pass", evidence: `${evidence}, meets the pass lines` }
+      : { outcome: "band", evidence: `${evidence}, short of the pass lines` };
+  },
+};
+
+interface MarketCodes {
+  readonly notRequired: string;
+  readonly sufficient: string;
+  readonly below: string;
+  readonly thresholdUnavailable: string;
+  readonly readingMissing: string;
+  readonly readingMalformed: string;
+  readonly subjectMismatch: string;
+  readonly ageUnknown: string;
+  readonly stale: string;
+  readonly unknownBand: string;
+  readonly windowUncovered?: string;
+}
+
+// The one order every market Condition follows. A known asset passes with
+// no read at all. For an unknown asset the reading must be present, about
+// this chain and address, well-formed, and dated within
+// MAX_MARKET_READING_AGE_SECONDS of facts.now; its thresholds come only
+// through context.param. A market PASS never stands in for identity:
+// asset-is-canonical still decides that.
+function makeMarketChecker(
+  id: string,
+  dimension: MarketDimension,
+  codes: MarketCodes
+): ConditionChecker {
+  const name = dimension.field;
+  return (request, context) => {
+    const unverified = (code: string, evidence: string): CheckerOutcome => ({
+      id,
+      status: "UNVERIFIED",
+      code,
+      evidenceClass: "not-verifiable",
+      evidence,
+    });
+    if (assetKnownTo(request, context.facts)) {
+      return {
+        id,
+        status: "PASS",
+        code: codes.notRequired,
+        evidenceClass: "static-registry",
+        evidence: `the asset is known, so no ${name} reading is needed`,
+      };
+    }
+    const signals = ownLookup<unknown>(context.facts, "marketSignals");
+    const reading = ownLookup<unknown>(signals, name);
+    if (reading === undefined) {
+      return unverified(codes.readingMissing, `no ${name} reading in facts`);
+    }
+    const { chainId, asset } = request.action;
+    if (
+      ownLookup(signals, "chainId") !== chainId ||
+      sameEvmAddress(
+        ownLookup(signals, "contractAddress"),
+        asset?.contractAddress
+      ) !== true
+    ) {
+      return unverified(
+        codes.subjectMismatch,
+        `the ${name} reading is not about the request's asset on ${describe(
+          chainId
+        )}`
+      );
+    }
+    const readAt = ownLookup<unknown>(reading, "readAt");
+    if (
+      reading === null ||
+      typeof reading !== "object" ||
+      Array.isArray(reading) ||
+      !isUnixSecond(readAt) ||
+      !dimension.wellFormed(reading, readAt)
+    ) {
+      return unverified(
+        codes.readingMalformed,
+        `the ${name} reading is not well-formed`
+      );
+    }
+    const now = readFactNow(context.facts);
+    if (now === undefined) {
+      return unverified(
+        codes.ageUnknown,
+        `no facts.now to date the ${name} reading`
+      );
+    }
+    const age = now - readAt;
+    if (age < 0 || age > MAX_MARKET_READING_AGE_SECONDS) {
+      return unverified(
+        codes.stale,
+        age < 0
+          ? `the ${name} reading is dated ${-age} seconds in the future`
+          : `the ${name} reading is ${age} seconds old`
+      );
+    }
+    const thresholds = readThresholds(context.param, dimension.constants);
+    const judged =
+      thresholds === undefined
+        ? undefined
+        : dimension.judge(reading, thresholds, now);
+    if (thresholds === undefined || judged === undefined) {
+      return unverified(
+        codes.thresholdUnavailable,
+        `no usable ${name} threshold in the params bundle`
+      );
+    }
+    const evidence = judged.evidence;
+    switch (judged.outcome) {
+      case "pass":
+        return {
+          id,
+          status: "PASS",
+          code: codes.sufficient,
+          evidenceClass: "onchain-read",
+          evidence,
+        };
+      case "fail":
+        return {
+          id,
+          status: "FAIL",
+          code: codes.below,
+          evidenceClass: "onchain-read",
+          evidence,
+        };
+      case "band":
+        return unverified(codes.unknownBand, evidence);
+      case "uncovered":
+        // Only a dimension with a window, so with this code, judges it.
+        return unverified(
+          codes.windowUncovered ?? codes.thresholdUnavailable,
+          evidence
+        );
+      default: {
+        const unhandled: never = judged.outcome;
+        return unhandled;
+      }
+    }
+  };
+}
+
+// One market Condition's full catalog entry. The codes follow one pattern,
+// `ASSET_<DIMENSION>_<OUTCOME>`, so the three entries cannot drift apart.
+function marketCondition(
+  id: string,
+  question: string,
+  dimension: MarketDimension
+): ConditionDefinition {
+  const prefix = `ASSET_${dimension.field.toUpperCase()}`;
+  const codes: MarketCodes = {
+    notRequired: `${prefix}_NOT_REQUIRED`,
+    sufficient: `${prefix}_SUFFICIENT`,
+    below: `${prefix}_BELOW_THRESHOLD`,
+    thresholdUnavailable: `${prefix}_THRESHOLD_UNAVAILABLE`,
+    readingMissing: `${prefix}_READING_MISSING`,
+    readingMalformed: `${prefix}_READING_MALFORMED`,
+    subjectMismatch: `${prefix}_SUBJECT_MISMATCH`,
+    ageUnknown: `${prefix}_READING_AGE_UNKNOWN`,
+    stale: `${prefix}_READING_STALE`,
+    unknownBand: `${prefix}_IN_UNKNOWN_BAND`,
+    ...(dimension.field === "activity"
+      ? { windowUncovered: `${prefix}_WINDOW_UNCOVERED` }
+      : {}),
+  };
+  const unverified = [
+    codes.thresholdUnavailable,
+    codes.readingMissing,
+    codes.readingMalformed,
+    codes.subjectMismatch,
+    codes.ageUnknown,
+    codes.stale,
+    codes.unknownBand,
+    ...(codes.windowUncovered === undefined ? [] : [codes.windowUncovered]),
+  ];
+  return {
+    id,
+    isFloor: true,
+    question,
+    reference: `${REFERENCE_ROOT}/${id}.md`,
+    codes: {
+      pass: [codes.notRequired, codes.sufficient],
+      fail: [codes.below],
+      unverified,
+    },
+    codeEvidenceClass: {
+      [codes.notRequired]: "static-registry",
+      [codes.sufficient]: "onchain-read",
+      [codes.below]: "onchain-read",
+      ...Object.fromEntries(
+        unverified.map((code) => [code, "not-verifiable" as const])
+      ),
+    },
+    policyFields: [],
+    check: makeMarketChecker(id, dimension, codes),
+  };
+}
+
 const PAY_FLOOR: ConditionDefinition[] = [
   {
     id: "recipient-matches-policy",
@@ -1531,6 +1958,21 @@ const PAY_FLOOR: ConditionDefinition[] = [
     policyFields: ["authorizationWindow"],
     check: checkAuthorizationWindowWithinCeiling,
   },
+  marketCondition(
+    "asset-liquidity-sufficient",
+    "Is the pay asset known, or is an unknown asset's pool liquidity sufficient?",
+    LIQUIDITY
+  ),
+  marketCondition(
+    "asset-holders-sufficient",
+    "Is the pay asset known, or does an unknown asset have enough holders?",
+    HOLDERS
+  ),
+  marketCondition(
+    "asset-activity-sufficient",
+    "Is the pay asset known, or does an unknown asset show recent transfer activity?",
+    ACTIVITY
+  ),
 ];
 
 // Frozen at module load: a caller can never splice, push, or reassign its

@@ -1,5 +1,5 @@
 import { makeConsult } from "./core";
-import { CATALOG } from "./catalog";
+import { CATALOG, assetKnownTo } from "./catalog";
 import type { ConsultRequest, Policy } from "./catalog";
 import type { ConsultResponse } from "./core";
 
@@ -10,6 +10,7 @@ export type {
   ConsultAction,
   ConsultRequest,
   Facts,
+  MarketSignalsFact,
   Policy,
   RegistryAssetFact,
   RegistryCodeHashRead,
@@ -49,7 +50,10 @@ export type {
  * and no older than 60 seconds. A different address is FAIL whatever the
  * live read says. `registryVault` is the same kind of row for an ERC-4626
  * vault plus the live chain read's results, each its own field; no Condition
- * reads it yet. consult() never reads a clock or a chain itself.
+ * reads it yet. `marketSignals` carries an unknown pay asset's liquidity,
+ * holder and transfer readings from the owner's own RPC, each dated within
+ * 60 seconds of `now`; a known asset needs none. consult() never reads a
+ * clock or a chain itself.
  * `facts.params` carries the service's constants. The core takes it out of
  * `facts` before any Condition runs, and a Condition reads one listed,
  * check or both constant through `context.param`. This is not a sandbox:
@@ -65,3 +69,11 @@ export const consult: (
   policy: Policy,
   facts?: unknown
 ) => ConsultResponse = makeConsult(CATALOG);
+
+/**
+ * True when the request's pay asset is known: a code-table entry, or a
+ * registry row whose live read is `confirmed`, at the request's own
+ * address. A known asset needs no market reading. A service reads market
+ * signals only for an asset this answers false for.
+ */
+export { assetKnownTo };

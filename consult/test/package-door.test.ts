@@ -31,10 +31,10 @@ describe("package door", () => {
     ]);
   });
 
-  it("the package root exports only consult at runtime", () => {
+  it("the package root exports only consult and assetKnownTo at runtime", () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const door = require("../src/index");
-    expect(Object.keys(door)).to.deep.equal(["consult"]);
+    expect(Object.keys(door)).to.deep.equal(["consult", "assetKnownTo"]);
   });
 
   it("the guard subpath exports only runTriggerGuard at runtime", () => {
