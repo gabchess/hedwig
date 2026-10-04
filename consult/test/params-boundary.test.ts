@@ -54,6 +54,7 @@ const CONSTANT_NAMES = new Set([
   "MAX_ROLE_FACT_AGE_SECONDS",
   "MAX_REGISTRY_LIVE_READ_AGE_SECONDS",
   "MAX_MARKET_READING_AGE_SECONDS",
+  "MAX_TAX_READING_AGE_SECONDS",
   "SECONDS_PER_HOUR",
   "MAX_AUTHORIZATION_WINDOW_SECONDS",
   "EVIDENCE_CLASS_WEIGHTS",
@@ -695,6 +696,22 @@ describe("params boundary: no value reaches the public tree", function () {
     expect(thresholdLiterals(other, "const timeoutMs = 4999;")).to.deep.equal(
       []
     );
+  });
+
+  it("the threshold scan covers the floor profile: a ceiling or a bound spelled in it fails", () => {
+    const floor = join(REPO_ROOT, "consult", "src", "floor-profile.ts");
+    for (const source of [
+      "const ceiling = 77;",
+      "const within = shape.derivedBps <= 77n;",
+      "const within = total <= 230;",
+      "const known = 170;",
+    ]) {
+      expect(thresholdLiterals(floor, source), source).to.not.deep.equal([]);
+    }
+    expect(
+      thresholdLiterals(floor, "const bps = isWholeBps(x) && x === 0;")
+    ).to.deep.equal([]);
+    expect(thresholdLiterals(floor, "if (x > 100) {}")).to.not.deep.equal([]);
   });
 
   it("the threshold scan sees a compared literal under parentheses, a sign or a type wrapper", () => {

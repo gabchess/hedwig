@@ -196,6 +196,68 @@
         "date": "2000-01-02",
         "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
+    },
+    "tax_plus_honest_tolerance_deny_above_bps": {
+      "value": "fixture value, not a threshold",
+      "unit": "bps",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-unknown-token-thresholds.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    }
+  },
+  "defi-param-slippage-mev.json": {
+    "tolerance_floor_bps": {
+      "value": "fixture value, not a threshold",
+      "unit": "bps",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "both",
+      "id": "defi-param-slippage-mev.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "tolerance_cap_deny_above_bps": {
+      "value": "fixture value, not a threshold",
+      "unit": "bps",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-slippage-mev.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "tax_plus_honest_tolerance_max_bps": {
+      "value": "fixture value, not a threshold",
+      "unit": "bps",
+      "status": "fixture",
+      "source_ids": [],
+      "used_by": "check",
+      "id": "defi-param-slippage-mev.json",
+      "asOf": "2000-01-01",
+      "paramsSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "scrub": {
+        "reviewer": "fixture-reviewer",
+        "date": "2000-01-02",
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
     }
   }
 }
