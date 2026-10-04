@@ -18,6 +18,7 @@ function weightsOf(value: number): Weights {
     "onchain-read": value,
     "owner-policy": value,
     "static-registry": value,
+    simulated: value,
     "caller-stated": value,
     "not-verifiable": value,
   };

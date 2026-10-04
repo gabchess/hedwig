@@ -134,12 +134,15 @@ describe("market signals: three Floor Conditions for an unknown pay asset", () =
     expect(MAX_MARKET_READING_AGE_SECONDS).to.equal(60);
   });
 
-  it("reads exactly its eight constants, all from the unknown-token file", () => {
-    const market = PARAM_READS.filter(([id]) => id === MARKET_PARAMS_ID);
-    expect(market.map(([, key]) => key)).to.have.members(
-      Object.keys(THRESHOLDS)
+  it("reads exactly its eight constants from the unknown-token file; the file's one other listed read is the floor profile's tax bound", () => {
+    const listed = PARAM_READS.filter(([id]) => id === MARKET_PARAMS_ID).map(
+      ([, key]) => key
     );
-    expect(market).to.have.length(8);
+    expect(listed).to.have.members([
+      ...Object.keys(THRESHOLDS),
+      "tax_plus_honest_tolerance_deny_above_bps",
+    ]);
+    expect(listed).to.have.length(9);
   });
 
   describe("a known asset", () => {
