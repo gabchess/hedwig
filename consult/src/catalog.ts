@@ -161,6 +161,13 @@ export interface RegistryVaultFact {
 // `holders.count` the number of addresses with a balance, and
 // `activity.transfers` every transfer the read saw from `since` to
 // `readAt`, each with its sender and its value in USD.
+//
+// Size cap: the core drops ALL facts, not just this one, when the facts JSON
+// passes MAX_INPUT_JSON_LENGTH (64 KiB). Every transfer is listed, so a long
+// activity list (several hundred transfers) loses `now`, the params bundle
+// and every reading, and each market Condition answers READING_MISSING: a
+// thin token reads UNKNOWN, not DENY. It fails closed, with the wrong
+// evidence.
 export interface MarketSignalsFact {
   chainId: string;
   contractAddress: string;
@@ -1635,8 +1642,16 @@ function makeMarketChecker(
         };
       case "band":
         return unverified(codes.unknownBand, evidence);
-      default:
-        return unverified(codes.windowUncovered as string, evidence);
+      case "uncovered":
+        // Only a dimension with a window, so with this code, judges it.
+        return unverified(
+          codes.windowUncovered ?? codes.thresholdUnavailable,
+          evidence
+        );
+      default: {
+        const unhandled: never = judged.outcome;
+        return unhandled;
+      }
     }
   };
 }

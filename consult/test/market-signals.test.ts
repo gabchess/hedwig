@@ -4,7 +4,10 @@ import { expect } from "chai";
 
 import { assetKnownTo, consult } from "../src";
 import { BASE_CHAIN_ID } from "../src/catalog";
-import { MAX_MARKET_READING_AGE_SECONDS } from "../src/constants";
+import {
+  MAX_INPUT_JSON_LENGTH,
+  MAX_MARKET_READING_AGE_SECONDS,
+} from "../src/constants";
 import { PARAM_READS } from "../src/params";
 import type { ConsultResponse } from "../src";
 import { CHAIN_ID, SWAP_NOW, makePolicy, makeRequest } from "./fixtures";
@@ -430,16 +433,36 @@ describe("market signals: three Floor Conditions for an unknown pay asset", () =
     });
 
     it("activity: a sender counts once, whatever its letter case", () => {
+      // 2 addresses in 2 spellings each: 4 spellings reach the minimum, 2
+      // senders do not.
       const min = THRESHOLDS.activity_min_distinct_counterparties;
-      const same = Array.from({ length: min }, (_, i) => ({
-        at: NOW,
-        sender:
-          i % 2 === 0
-            ? SENDERS[0]
-            : SENDERS[0].toUpperCase().replace("0X", "0x"),
-        usd: minUsd,
-      }));
-      expect(activity(same)).to.equal("ASSET_ACTIVITY_IN_UNKNOWN_BAND");
+      const upper = (address: string) => "0x" + address.slice(2).toUpperCase();
+      const spellings = [SENDERS[0], SENDERS[1]].flatMap((address) => [
+        address,
+        upper(address),
+      ]);
+      expect(spellings).to.have.length(min);
+      const from = (addresses: string[]) =>
+        addresses.map((sender) => ({ at: NOW, sender, usd: minUsd }));
+      expect(activity(from(spellings))).to.equal(
+        "ASSET_ACTIVITY_IN_UNKNOWN_BAND"
+      );
+      expect(activity(from(SENDERS.slice(0, min).map(upper)))).to.equal(
+        "ASSET_ACTIVITY_SUFFICIENT"
+      );
+    });
+
+    it("activity: with a qualifying minimum of 0, a zero-value transfer still never counts", () => {
+      const run = (usd: number) =>
+        row(
+          runUnknown(
+            activityOf(SENDERS.map((sender) => ({ at: NOW, sender, usd }))),
+            bundleWith({ ...THRESHOLDS, qualifying_event_min_usd: 0 })
+          ),
+          "asset-activity-sufficient"
+        ).code;
+      expect(run(0)).to.equal("ASSET_ACTIVITY_BELOW_THRESHOLD");
+      expect(run(0.01)).to.equal("ASSET_ACTIVITY_SUFFICIENT");
     });
 
     it("activity: a read that does not cover the whole window is UNVERIFIED", () => {
@@ -540,6 +563,33 @@ describe("market signals: three Floor Conditions for an unknown pay asset", () =
           JSON.stringify(transfers)
         ).to.equal("ASSET_ACTIVITY_READING_MALFORMED");
       }
+    });
+
+    it("facts over the size cap count as no facts: a thin token is UNKNOWN, never PASS or ALLOW", () => {
+      // A transfer list this long pushes facts past MAX_INPUT_JSON_LENGTH,
+      // so the core drops every Fact, `now` and the params bundle with it.
+      const transfers = Array.from({ length: 1000 }, (_, i) => ({
+        at: NOW,
+        sender: SENDERS[i % SENDERS.length],
+        usd: 0,
+      }));
+      const signals = bridgedSignals({
+        liquidity: { usd: 12, readAt: NOW },
+        holders: { count: 3, readAt: NOW },
+        activity: { readAt: NOW, since: NOW - WINDOW, transfers },
+      });
+      const facts = marketFacts(signals);
+      expect(JSON.stringify(facts).length).to.be.greaterThan(
+        MAX_INPUT_JSON_LENGTH
+      );
+      const { request, policy } = unknownPay();
+      const response = consult(request, policy, facts);
+      expect(codes(response)).to.deep.equal(each("READING_MISSING"));
+      for (const id of MARKET_IDS) {
+        expect(row(response, id).status).to.equal("UNVERIFIED");
+      }
+      expect(response.verdict).to.equal("UNKNOWN");
+      expect(response.proceed).to.equal(false);
     });
 
     it("wrong subject: another address or another chain", () => {
