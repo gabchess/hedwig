@@ -1,5 +1,6 @@
-import { makeConsult } from "./core";
+import { combineResponses, makeConsult } from "./core";
 import { CATALOG, assetKnownTo } from "./catalog";
+import { consultFloor } from "./floor-profile";
 import type { ConsultRequest, Policy } from "./catalog";
 import type { ConsultResponse } from "./core";
 
@@ -16,6 +17,7 @@ export type {
   RegistryCodeHashRead,
   RegistryLiveRead,
   RegistryVaultFact,
+  TokenTaxFact,
 } from "./catalog";
 
 /**
@@ -69,6 +71,32 @@ export const consult: (
   policy: Policy,
   facts?: unknown
 ) => ConsultResponse = makeConsult(CATALOG);
+
+/**
+ * The fixed floor with no policy: the Conditions that read no policy field,
+ * code-owned, plus the swap's params slippage ceiling and token transfer tax
+ * rule. A caller cannot supply, edit or remove it. It reads its numbers
+ * through `facts.params` and the swap's tax readings from `facts.tokenTax`;
+ * without them those Checks answer UNKNOWN, and a `sellBlocked` reading
+ * denies without either. `consult` is unchanged and runs none of these.
+ */
+export { consultFloor };
+
+/**
+ * The floor and the owner's policy on one request. The worse verdict wins, so
+ * a cap the request exceeds denies though the floor passed, and nothing in a
+ * policy turns a floor DENY into a pass. Rows are merged by Condition id.
+ */
+export function consultWithFloor(
+  request: ConsultRequest,
+  policy: Policy,
+  facts?: unknown
+): ConsultResponse {
+  return combineResponses(
+    consultFloor(request, facts),
+    consult(request, policy, facts)
+  );
+}
 
 /**
  * True when the request's pay asset is known: a code-table entry, or a

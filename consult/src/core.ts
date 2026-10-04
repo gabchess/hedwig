@@ -411,6 +411,33 @@ export function unknownResponse(
   );
 }
 
+// Folds two responses to the same request, such as the floor's and the
+// owner's, into one. The worse verdict wins: a FAIL in either denies, and an
+// ALLOW needs both to proceed. A row named in both keeps its worse status, so
+// the merged list has one row per Condition id. `support` and `band` are
+// recomputed over the merged rows, after the verdict, like any response.
+export function combineResponses(
+  first: ConsultResponse,
+  second: ConsultResponse
+): ConsultResponse {
+  const byId = new Map<string, ConditionResult>();
+  for (const result of [...first.results, ...second.results]) {
+    const kept = byId.get(result.id);
+    if (
+      kept === undefined ||
+      STATUS_RANK[result.status] < STATUS_RANK[kept.status]
+    ) {
+      byId.set(result.id, result);
+    }
+  }
+  return finalizeResponse(
+    second.question,
+    [...byId.values()],
+    [...new Set([...first.floorIds, ...second.floorIds])],
+    first.proceed && second.proceed
+  );
+}
+
 function isOversized(value: unknown): boolean {
   try {
     const json = JSON.stringify(value);
