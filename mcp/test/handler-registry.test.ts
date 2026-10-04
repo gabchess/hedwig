@@ -53,6 +53,7 @@ const POLICY = {
   chainId: "eip155:143",
   approvedRecipients: [OWNER],
   perActionCaps: { pay: "1000000" },
+  perActionCapAssets: { pay: MONAD_USDC },
   role: { mode: "not-required" },
   authorizationWindow: { mode: "not-required" },
 };
