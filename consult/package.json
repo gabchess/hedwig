@@ -25,6 +25,11 @@
       "types": "./dist/canonical.d.ts",
       "require": "./dist/canonical.js",
       "default": "./dist/canonical.js"
+    },
+    "./registry-keys": {
+      "types": "./dist/registry-keys.d.ts",
+      "require": "./dist/registry-keys.js",
+      "default": "./dist/registry-keys.js"
     }
   }
 }

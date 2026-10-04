@@ -4,6 +4,10 @@ Versions track what ships, code or docs.
 
 ## Unreleased
 
+### Added
+
+- The `mcp` server reads a signed registry row for a token or deposit vault that the code table does not list, checks both signatures and a sequence ratchet, confirms the contract's code hash on chain, and passes the result to `consult` as `registryAsset` and `registryVault` facts. The registry host and RPC URLs come from `HEDWIG_REGISTRY_URL` and `HEDWIG_EVM_RPC_URL_<chain number>`, and with no keys set in `consult` every row is refused. The ratchet, the highest sequence seen per row, lives in the file named by `HEDWIG_REGISTRY_RATCHET_FILE`, default `~/.hedwig/registry-ratchet.json`. The file is append-only, so several server processes can share it without losing an entry. When that file cannot be written, the ratchet stays in memory for the life of the process. A file with any line that is not a key and a positive integer sequence, or a last line with no newline, makes the Reader refuse every row until the owner fixes the file (remove only the bad line, and end the file with a newline) or deletes it, which resets the saved sequences.
+
 ### Changed
 
 - A per-action cap names the asset it is written for in a new policy field, `perActionCapAssets`, and applies only to an amount of that asset. The `amount-within-cap` Check answers `UNKNOWN` when the request's asset differs from the cap's asset or cannot be read, when the cap names no asset, and for the swap's `amountIn` the same way. A same-asset request answers as before. Add `perActionCapAssets` to an existing policy.

@@ -1,3 +1,6 @@
+import { homedir } from "node:os";
+import { join } from "node:path";
+
 // Reads the Solana role reader's own environment lazily, the first time a
 // request actually names a cluster requiring it, then memoizes the result:
 // a server whose every policy has "not-required" or no role never reads or
@@ -106,4 +109,93 @@ export function getSolanaClusterConfig(
 // process.env and observe a fresh read. Never called outside a test.
 export function __resetSolanaClusterConfigForTests(): void {
   cache.clear();
+}
+
+// The registry Reader's own environment, read lazily and memoized the same
+// way. HEDWIG_REGISTRY_URL names the host that serves the signed rows: it is
+// configuration, never a constant host and never anything a request or the
+// policy can name. HEDWIG_EVM_RPC_URL_<chain number> names the RPC for one
+// EVM chain (the hosted service's Alchemy URL, key in its path). The
+// Reader asks for a chain's RPC only after it holds a verified row for that
+// chain, so a caller cannot make this module read or log a variable for a
+// chain no signed row names. Like the Solana config, nothing here ever logs a
+// URL, only the name of a variable that is missing or unusable.
+
+export interface RegistryConfig {
+  baseUrl: string;
+  ratchetFile: string;
+}
+
+function isUsableRegistryBase(raw: string): boolean {
+  if (!isUsableRpcUrl(raw)) {
+    return false;
+  }
+  const parsed = new URL(raw);
+  return parsed.search === "" && parsed.hash === "";
+}
+
+// Pure and env-injectable, like readClusterConfig. The base URL loses any
+// trailing slash so the Reader appends its own fixed paths. The ratchet file
+// defaults to a file under the user's home; an unwritable location is the
+// Reader's memory fallback, not a configuration error.
+export function readRegistryConfig(
+  env: NodeJS.ProcessEnv = process.env
+): RegistryConfig | undefined {
+  const rawUrl = env.HEDWIG_REGISTRY_URL?.trim();
+  if (!rawUrl) {
+    console.error("HEDWIG_REGISTRY_URL is not set");
+    return undefined;
+  }
+  if (!isUsableRegistryBase(rawUrl)) {
+    console.error("HEDWIG_REGISTRY_URL is not a usable URL");
+    return undefined;
+  }
+  const ratchetFile =
+    env.HEDWIG_REGISTRY_RATCHET_FILE?.trim() ||
+    join(homedir(), ".hedwig", "registry-ratchet.json");
+  return { baseUrl: rawUrl.replace(/\/+$/, ""), ratchetFile };
+}
+
+let registryConfigCache: { value: RegistryConfig | undefined } | undefined;
+
+export function getRegistryConfig(): RegistryConfig | undefined {
+  if (!registryConfigCache) {
+    registryConfigCache = { value: readRegistryConfig(process.env) };
+  }
+  return registryConfigCache.value;
+}
+
+export function readEvmRpcUrl(
+  chainNumber: number,
+  env: NodeJS.ProcessEnv = process.env
+): string | undefined {
+  if (!Number.isSafeInteger(chainNumber) || chainNumber < 1) {
+    return undefined;
+  }
+  const urlVar = `HEDWIG_EVM_RPC_URL_${chainNumber}`;
+  const rawUrl = env[urlVar]?.trim();
+  if (!rawUrl) {
+    console.error(`${urlVar} is not set`);
+    return undefined;
+  }
+  if (!isUsableRpcUrl(rawUrl)) {
+    console.error(`${urlVar} is not a usable URL`);
+    return undefined;
+  }
+  return rawUrl;
+}
+
+const evmRpcCache = new Map<number, string | undefined>();
+
+export function getEvmRpcUrl(chainNumber: number): string | undefined {
+  if (!evmRpcCache.has(chainNumber)) {
+    evmRpcCache.set(chainNumber, readEvmRpcUrl(chainNumber, process.env));
+  }
+  return evmRpcCache.get(chainNumber);
+}
+
+// Test-only, like __resetSolanaClusterConfigForTests.
+export function __resetRegistryConfigForTests(): void {
+  registryConfigCache = undefined;
+  evmRpcCache.clear();
 }

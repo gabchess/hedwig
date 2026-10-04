@@ -18,7 +18,7 @@ import { expect } from "chai";
 const CONSULT_ROOT = resolve(__dirname, "..");
 
 describe("package door", () => {
-  it("exports exactly the package root and the introspect, guard and canonical subpaths", () => {
+  it("exports exactly the package root and the introspect, guard, canonical and registry-keys subpaths", () => {
     const pkg = JSON.parse(
       readFileSync(join(CONSULT_ROOT, "package.json"), "utf8")
     );
@@ -27,6 +27,7 @@ describe("package door", () => {
       "./introspect",
       "./guard",
       "./canonical",
+      "./registry-keys",
     ]);
   });
 
@@ -46,6 +47,17 @@ describe("package door", () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const door = require("../src/canonical");
     expect(Object.keys(door)).to.deep.equal(["canonicalAddressFor"]);
+  });
+
+  it("the registry-keys subpath exports only the two key constants, both empty until the signing sitting", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const door = require("../src/registry-keys");
+    expect(Object.keys(door)).to.deep.equal([
+      "REGISTRY_PUBLIC_KEY_A",
+      "REGISTRY_PUBLIC_KEY_B",
+    ]);
+    expect(door.REGISTRY_PUBLIC_KEY_A).to.equal("");
+    expect(door.REGISTRY_PUBLIC_KEY_B).to.equal("");
   });
 
   describe("deep import paths", () => {

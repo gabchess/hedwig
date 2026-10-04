@@ -113,10 +113,48 @@ export interface RegistryAssetFact {
   liveReadAt: number;
 }
 
+// A registry row for one ERC-4626 vault, plus every result of the Reader's
+// one chain read, each kept as its own field so a Check can name each cause
+// separately (nothing here is collapsed into one flag, and nothing here is
+// judged: the Reader only reports). Like RegistryAssetFact, consult checks
+// no signature; the caller passes only a row whose signatures its Reader
+// already checked, and whose `asset` equals the canonical token's address.
+// `upgradeable` is `none` or `eip1967`. A proxy row pins `implementation`
+// (address and the sha256 of its code); a `none` row has none. `expiresAt`
+// and `liveReadAt` are unix seconds.
+//
+// The live results come from one batch: `vaultCodeHash` is sha256 of the
+// vault's code against the row, `implementationSlot` is the 32 byte
+// EIP-1967 implementation slot word (lowercase hex) or "unread",
+// `implementationCodeHash` is sha256 of the code at the pinned address
+// (proxy rows only), `assetRead` is the address `asset()` returned or
+// "unread", `preview` is the `previewDeposit` share count as an integer
+// string or `{ failed: true }` (a revert, a missing amount or any read
+// failure, never a 0), and `blockNumber` is the block the batch reported
+// (absent when it could not be read).
+export type RegistryCodeHashRead = "match" | "mismatch" | "unread";
+
+export interface RegistryVaultFact {
+  chainId: string;
+  contractAddress: string;
+  asset: string;
+  upgradeable: "none" | "eip1967";
+  implementation?: { address: string; codeSha256: string };
+  expiresAt: number;
+  vaultCodeHash: RegistryCodeHashRead;
+  implementationSlot: string;
+  implementationCodeHash?: RegistryCodeHashRead;
+  assetRead: string;
+  preview: { shares: string } | { failed: true };
+  blockNumber?: number;
+  liveReadAt: number;
+}
+
 export interface Facts {
   now?: number;
   solanaRole?: RoleFact;
   registryAsset?: RegistryAssetFact;
+  registryVault?: RegistryVaultFact;
 }
 
 // One flat shape covering every action type this catalog knows: pay's
