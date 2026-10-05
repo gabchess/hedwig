@@ -67,7 +67,7 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
   "authorizationWindow": { "mode": "not-required" }
 }</code></pre>
       <p>Set your allowed chain, recipients, action caps and requirements for a Solana role or an EIP-3009 authorization window. Swap policies also set slippage and deadline ceilings and your addresses.</p>
-      <p>Hedwig pins the file when the server starts. Changes return <code>UNKNOWN</code> until the original bytes are restored or the server restarts. Review the file before restarting, and keep it where your agent cannot write it.</p>
+      <p>Hedwig pins the file when the server starts. Changed bytes return <code>UNKNOWN</code> with <code>ADAPTER_POLICY_CHANGED</code>. Restore the original bytes after an unintended edit. A restart pins the file's current contents, so review any intended policy change before restarting. Keep the file where your agent cannot write it.</p>
       <h2>What your agent sends</h2>
       <p>One argument, <code>request</code>, holding the payment it's about to sign:</p>
       <pre><code>{
