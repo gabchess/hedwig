@@ -1871,7 +1871,7 @@ describe("registry Reader", function () {
       ]);
     });
 
-    it("a hybrid native/contract input does not take the native shortcut", async () => {
+    it("a hybrid native/contract input is refused before every outbound call", async () => {
       const world = nativeWorld();
       expect(
         await gatherRegistry(
@@ -1879,19 +1879,29 @@ describe("registry Reader", function () {
           depsFor(world)
         )
       ).to.deep.equal({});
-      expect(rowLog(world).map((entry) => entry.url)).to.not.include(
-        `${BASE}/${MONAD_PATH}`
-      );
+      expect(world.log).to.have.length(0);
     });
 
-    it("native input on another network does not use the Monad shortcut", async () => {
+    for (const tokenIn of [
+      { kind: "native", symbol: "ETH" },
+      { kind: "native", symbol: "MON", unexpected: "caller text" },
+      { kind: "native" },
+    ]) {
+      it("a malformed native input is refused before every outbound call", async () => {
+        const world = nativeWorld();
+        expect(
+          await gatherRegistry(nativeSwap(tokenIn), depsFor(world))
+        ).to.deep.equal({});
+        expect(world.log).to.have.length(0);
+      });
+    }
+
+    it("native input on another network is refused before every outbound call", async () => {
       const world = nativeWorld();
       const request = nativeSwap();
       request.action.chainId = "eip155:10143";
       expect(await gatherRegistry(request, depsFor(world))).to.deep.equal({});
-      expect(rowLog(world).map((entry) => entry.url)).to.not.include(
-        `${BASE}/${MONAD_PATH}`
-      );
+      expect(world.log).to.have.length(0);
     });
 
     for (const [name, evidence] of [

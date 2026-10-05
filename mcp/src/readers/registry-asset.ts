@@ -553,6 +553,14 @@ function readLookup(request: unknown): Lookup | undefined {
   const chainNumber = Number(matched[1]);
   const nativeInput =
     action.type === "swap" && isNativeMonadInput(chainId, action.tokenIn);
+  if (
+    action.type === "swap" &&
+    isObject(action.tokenIn) &&
+    action.tokenIn.kind === "native" &&
+    !nativeInput
+  ) {
+    return undefined;
+  }
 
   let symbols: Array<string | undefined>;
   switch (action.type) {
