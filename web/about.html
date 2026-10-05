@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>About | Hedwig</title>
-<meta name="description" content="Hedwig is an AI expert in development for payment agents and their users. The open-source prototype checks payment and swap requests through MCP.">
+<meta name="description" content="Hedwig helps payment agents check transactions before signing. See the Monad swap example and the expert we're building to explain the findings.">
 <link rel="canonical" href="https://usehedwig.xyz/about">
 <meta property="og:title" content="About | Hedwig">
-<meta property="og:description" content="Hedwig is an AI expert in development for payment agents and their users. The open-source prototype checks payment and swap requests through MCP.">
+<meta property="og:description" content="Hedwig helps payment agents check transactions before signing. See the Monad swap example and the expert we're building to explain the findings.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/about">
 <meta property="og:type" content="website">
@@ -32,9 +32,10 @@
   </div>
   <main class="panel" id="main" tabindex="-1">
     <h1>About Hedwig</h1>
-    <p>Imagine asking your AI agent to swap fifty USDC for a token. We're building Hedwig to check that proposal while the agent prepares the trade, then explain the result.</p>
-    <p>The expert will combine current blockchain data with curated knowledge of DeFi, onchain payments, security and opsec. People will also be able to ask it about a vault, a transaction or an assessment.</p>
-    <p>The <a href="/docs">local prototype</a> checks payment and swap requests against an owner's policy. The expert service and chat are in development.</p>
+    <p>Hedwig helps payment agents check transactions before signing. We're also building an expert their owners can talk to about the findings.</p>
+    <p>Imagine asking your agent to swap 10 MON for USDC on Monad. The demo in development will check the proposed output token against the verified USDC address on the same network. If the addresses differ, Hedwig will flag it and show the correct address with its source. Your agent keeps control of signing and execution.</p>
+    <p>The expert will draw on current blockchain data and four knowledge areas: DeFi, onchain payments, security and opsec. Through chat, you'll be able to ask why a transaction was flagged or learn about a vault you're considering.</p>
+    <p>The <a href="/docs">local checker</a> is available now for payment and swap requests. Hosted assessment and chat are in development. Read <a href="/how-it-works">how it works</a> for the checks and their limits.</p>
     <p>The core is <a href="https://github.com/gabchess/hedwig" target="_blank" rel="noopener noreferrer">open source</a>. Our curated knowledge stays private.</p>
   </main>
   <div class="art">

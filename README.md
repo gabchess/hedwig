@@ -35,7 +35,7 @@ Payment and swap references currently cover Ethereum and Base. Slippage checks c
 
 A Monad demo in development will check a proposed swap of 10 MON for USDC. It will warn when the output token address differs from the verified USDC address on the same network and show the correct address with its source.
 
-The assessment will use a fast scoring model to evaluate current blockchain evidence and curated knowledge. To help owners understand the findings, a separate API-backed language model will explain the original result without changing it or executing transactions.
+The assessment will use a fast scoring model to evaluate current blockchain evidence and four curated knowledge areas: DeFi, onchain payments, security and opsec. To help owners understand the findings, a separate API-backed language model will explain the original result without changing it or executing transactions.
 
 After funding, we plan to train and evaluate an open explanation model on permitted data, using rented cloud GPUs for training and hosting. Private assessment histories will let authorized users review earlier findings.
 
