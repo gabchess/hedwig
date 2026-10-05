@@ -4,7 +4,7 @@
   <img src="docs/logo.svg" alt="Hedwig mark" width="240" height="160">
 </p>
 
-<p align="center"><strong>An AI expert for payment agents and the people who use them.</strong></p>
+<p align="center"><strong>Check the transaction before your agent signs.</strong></p>
 
 <p align="center"><a href="https://usehedwig.xyz">usehedwig.xyz</a></p>
 
@@ -12,9 +12,9 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?labelColor=0d0b16" alt="license: MIT"></a>
 </p>
 
-Hedwig is being built to assess crypto payments and explain the risks. In the intended workflow, a payment agent automatically calls Hedwig through MCP while preparing a payment or swap. Hedwig checks the proposal against blockchain data and curated knowledge, then returns an assessment before the payment agent executes it. People will also be able to chat with Hedwig about DeFi, payments and blockchain security.
+Hedwig is a safety-check eval gate for agentic finance, built to help payment agents check onchain transactions before signing and help their owners understand the findings.
 
-The hosted expert and chat are in development. This repository contains the working local payment and swap checker, MCP server, Trigger guard and Solana role program.
+Use the [agent guide](docs/agents.md) to run the local checker. The hosted assessment and chat are in development. Your payment agent keeps control of signing and execution.
 
 [Website](https://usehedwig.xyz) · [Founder pitch](https://youtu.be/LpKqZql87vk) · [Recorded devnet proof](docs/deployment/evidence/2026-09-27-revoke-demo.md) · [Install guide for agents](docs/agents.md)
 
@@ -33,11 +33,13 @@ Payment and swap references currently cover Ethereum and Base. Slippage checks c
 
 ## Where Hedwig is going
 
-The expert service will combine current chain data with private, curated knowledge in four areas: DeFi, onchain payments, security and operational security. A fast scoring model is planned to assess that evidence and produce an explanation agents and people can inspect.
+A Monad demo in development will check a proposed swap of 10 MON for USDC. It will warn when the output token address differs from the verified USDC address on the same network and show the correct address with its source.
 
-Verified token and contract lookup, broader vault checks, sandwich-risk assessment and general chat are in development. Registry readers exist on `main`, but their signing keys are not configured, so live registry lookup remains inactive. The curated knowledge stays private while the core remains open source. Adapting an open model is a later research step using reviewed examples and consented data.
+The assessment will use a fast scoring model to evaluate current blockchain evidence and curated knowledge. To help owners understand the findings, a separate API-backed language model will explain the original result without changing it or executing transactions.
 
-## Run the local prototype
+After funding, we plan to train and evaluate an open explanation model on permitted data, using rented cloud GPUs for training and hosting. Private assessment histories will let authorized users review earlier findings.
+
+## Run the local checker
 
 Use Node.js 22+ and Yarn. These commands test the current development branch:
 
