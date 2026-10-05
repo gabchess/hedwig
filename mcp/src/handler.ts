@@ -40,6 +40,15 @@ export function __setRegistryKeysForTests(
   registryKeys = keys ?? PINNED_REGISTRY_KEYS;
 }
 
+// Tests can give fixture reads more time or force a deadline. Production
+// keeps the fixed 800 ms limit; requests, policies and responses cannot set it.
+let registryDeadlineMs = REGISTRY_DEADLINE_MS;
+export function __setRegistryDeadlineForTests(
+  deadlineMs: number | undefined
+): void {
+  registryDeadlineMs = deadlineMs ?? REGISTRY_DEADLINE_MS;
+}
+
 const ADAPTER_REFERENCE = "consult/references/core.md";
 
 // A stop signal every failure below shares: an agent that catches a thrown
@@ -174,7 +183,7 @@ export async function handleConsult(
     gatherRegistry(request, {
       fetch: globalThis.fetch,
       now: () => Math.floor(Date.now() / 1000),
-      deadlineMs: REGISTRY_DEADLINE_MS,
+      deadlineMs: registryDeadlineMs,
       keys: registryKeys,
       registry: () => {
         const config = getRegistryConfig();

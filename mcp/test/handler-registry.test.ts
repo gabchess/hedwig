@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
 
-import { __setRegistryKeysForTests, handleConsult } from "../src/handler";
+import {
+  __setRegistryDeadlineForTests,
+  __setRegistryKeysForTests,
+  handleConsult,
+} from "../src/handler";
 import {
   __resetRegistryConfigForTests,
   __resetSolanaClusterConfigForTests,
@@ -104,6 +108,7 @@ describe("handleConsult: the registry Reader wired end to end", function () {
     __resetRegistryConfigForTests();
     __resetSolanaClusterConfigForTests();
     __setRegistryKeysForTests(keys.pub);
+    __setRegistryDeadlineForTests(5000);
   });
 
   afterEach(() => {
@@ -119,6 +124,7 @@ describe("handleConsult: the registry Reader wired end to end", function () {
     __resetRegistryConfigForTests();
     __resetSolanaClusterConfigForTests();
     __setRegistryKeysForTests(undefined);
+    __setRegistryDeadlineForTests(undefined);
   });
 
   const row = (
@@ -145,6 +151,34 @@ describe("handleConsult: the registry Reader wired end to end", function () {
 
     expect(row(result, "asset-is-canonical")?.status).to.not.equal("PASS");
     expect(result.proceed).to.equal(false);
+  });
+
+  it("a hanging registry read aborts and answers UNKNOWN at the injected deadline", async () => {
+    __setRegistryDeadlineForTests(20);
+    let signal: AbortSignal | null | undefined;
+    globalThis.fetch = ((_input: unknown, init?: RequestInit) => {
+      signal = init?.signal;
+      return new Promise<Response>(() => undefined);
+    }) as typeof fetch;
+    const stuffed = { deadlineMs: 60000, registryDeadlineMs: 60000 };
+    writeFileSync(policyPath, JSON.stringify({ ...POLICY, ...stuffed }));
+
+    const result = await handleConsult(
+      {
+        ...stuffed,
+        request: {
+          ...PAY_MONAD,
+          ...stuffed,
+          action: { ...PAY_MONAD.action, ...stuffed },
+        },
+      },
+      policyPath
+    );
+
+    expect(signal?.aborted).to.equal(true);
+    expect(result.verdict).to.equal("UNKNOWN");
+    expect(result.proceed).to.equal(false);
+    expect(row(result, "asset-is-canonical")?.status).to.not.equal("PASS");
   });
 
   it("no RPC key configured answers unconfirmed, never a pass", async () => {
@@ -272,21 +306,14 @@ describe("handleConsult: the registry Reader wired end to end", function () {
     const bothStarted = new Promise<void>((resolve) => {
       release = resolve;
     });
-    // How the first call to reach the gate was released: by the other
-    // Reader starting (parallel), or by the timeout (one after the other).
-    let firstReleasedBy: string | undefined;
+    // Both readers must start before either fixture answers. Their own
+    // deadlines still bound a regression that runs them in sequence.
     const gate = async (kind: string) => {
       started.add(kind);
       if (started.size === 2) {
         release();
       }
-      const releasedBy = await Promise.race([
-        bothStarted.then(() => "other reader"),
-        new Promise<string>((resolve) =>
-          setTimeout(() => resolve("timeout"), 400)
-        ),
-      ]);
-      firstReleasedBy = firstReleasedBy ?? releasedBy;
+      await bothStarted;
     };
     const solanaBody = JSON.stringify({
       jsonrpc: "2.0",
@@ -317,7 +344,7 @@ describe("handleConsult: the registry Reader wired end to end", function () {
 
     const result = await handleConsult({ request: PAY_MONAD }, policyPath);
 
-    expect(firstReleasedBy).to.equal("other reader");
+    expect([...started]).to.have.members(["solana", "registry"]);
     expect(row(result, "asset-is-canonical")?.status).to.equal("PASS");
     expect(row(result, "role-requirement-met")?.status).to.equal("PASS");
   });

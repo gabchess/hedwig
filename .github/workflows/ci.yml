@@ -51,6 +51,12 @@ jobs:
           yarn mcp:build
           yarn mcp:test
 
+      - name: Repeat the concurrent registry persistence check
+        run: |
+          for attempt in 1 2 3 4 5; do
+            yarn mcp:test --grep "loses no entry when several server processes write one file"
+          done
+
       - name: Install demo app dependencies
         run: npm ci --prefix app
 
