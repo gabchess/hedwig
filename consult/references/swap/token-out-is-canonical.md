@@ -29,6 +29,19 @@ dated after `facts.now`, counts as `unconfirmed`.
   only at the row's own address. Any other address is FAIL, whatever the
   live read says.
 
+## Read-only native MON output
+
+With an explicit native MON input on `eip155:143`, USDC output identity also
+requires the signed row's Circle source. The reader validates the exact public
+documentation URL and retrieval time, and checks `eth_chainId` in the same
+RPC batch. A wrong address returns FAIL; a matching address passes only this
+identity check after a fresh chain confirmation. Native execution stays blocked.
+
+The output result's `canonicalAsset` carries the full same-network address
+and `issuerSource` URL and Unix-seconds retrieval time. It is separate from
+the 120-character prose limit. Missing, expired or malformed source evidence
+cannot prove identity. These references never trigger a network request.
+
 ## Sources
 
 - Circle Developer Docs, "USDC Contract Addresses": https://developers.circle.com/stablecoins/usdc-contract-addresses

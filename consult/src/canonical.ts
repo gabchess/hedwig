@@ -3,5 +3,9 @@
 // registry Fact in facts) without running consult(). It carries no checker
 // and no verdict: a caller reaches it only through the
 // `@hedwig/consult/canonical` subpath, and index.ts never re-exports it.
-export { canonicalAddressFor } from "./catalog";
+export {
+  canonicalAddressFor,
+  isNativeMonadInput,
+  MONAD_USDC_ISSUER_URL,
+} from "./catalog";
 export type { CanonicalAddress } from "./catalog";

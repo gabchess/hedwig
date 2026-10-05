@@ -28,6 +28,14 @@ dated after `facts.now`, counts as `unconfirmed`.
   live-read codes apply only at the row's own address. Any other address is
   FAIL, whatever the live read says.
 
+## Read-only native MON input
+
+For the read-only Monad path, use `tokenIn: {kind: "native", symbol: "MON"}`
+on `eip155:143`, with no `contractAddress`. Native input always returns
+UNVERIFIED while its execution checks remain unfinished. Hybrid native/contract
+shapes are unverified. An ERC-20 named MON uses the ordinary contract path.
+This input lets the reader look up the USDC output; it cannot authorize a swap.
+
 ## Sources
 
 - Circle Developer Docs, "USDC Contract Addresses": https://developers.circle.com/stablecoins/usdc-contract-addresses
