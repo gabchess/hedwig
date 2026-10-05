@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Roadmap | Hedwig</title>
-<meta name="description" content="Released payment checks, work on the expert service and human chat, and planned coverage for more onchain risks.">
+<title>Hedwig roadmap | Transaction checks for agentic finance</title>
+<meta name="description" content="Run Hedwig's local transaction checker. See the Monad assessment and chat in development and plans for an open explanation model after funding.">
 <link rel="canonical" href="https://usehedwig.xyz/roadmap">
-<meta property="og:title" content="Roadmap | Hedwig">
-<meta property="og:description" content="Released payment checks, work on the expert service and human chat, and planned coverage for more onchain risks.">
+<meta property="og:title" content="Hedwig roadmap | Transaction checks for agentic finance">
+<meta property="og:description" content="Run Hedwig's local transaction checker. See the Monad assessment and chat in development and plans for an open explanation model after funding.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/roadmap">
 <meta property="og:type" content="website">
@@ -33,13 +33,13 @@
   <main class="panel" id="main" tabindex="-1">
     <h1>Roadmap</h1>
     <h2>Available now</h2>
-    <p>The local v0.4.2 prototype checks payments and swaps through MCP. It includes a signing guard and a <a href="/proof">recorded Solana devnet role-revocation run</a>.</p>
+    <p>The open-source v0.4.2 checker runs locally and checks proposed payments and swaps against your policy. Follow the <a href="/docs">install guide</a> to connect it to your agent.</p>
+    <p>A <a href="/proof">recorded role-revocation run on Solana's test network</a> shows how an agent's permission can be removed.</p>
     <h2>In development</h2>
-    <p>The expert service will combine current blockchain data with curated knowledge and a fast scoring model. A chat will let people ask about DeFi, payments and transaction assessments.</p>
-    <p>As of 4 October 2026, the signed registry reader and additional token checks are on main. The hosted lookup is still in development.</p>
-    <h2>Planned</h2>
-    <p>Broader checks for tokens, vaults, slippage, transfer taxes and sandwich risk, with evidence for each supported chain.</p>
-    <p>Over time, we plan to adapt an open model with LoRA or QLoRA using reviewed data and conversations shared with consent.</p>
+    <p>A Monad demo in development will check a proposed swap of 10 MON for USDC. It will warn when the output token address differs from the verified USDC address on the same network and show the correct address with its source. The payment agent keeps control of signing and execution.</p>
+    <p>Owners will be able to ask Hedwig why a transaction was flagged and ask questions about DeFi and payments. The chat will explain the original assessment. Hosted checks and chat are in development.</p>
+    <h2>After funding</h2>
+    <p>With funding, we plan to train and evaluate Hedwig's explanation model and host it in the cloud. Owners will get a private history of their transaction checks.</p>
     <p>For release dates and changes, see the <a href="https://github.com/gabchess/hedwig/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">changelog</a>.</p>
   </main>
   <div class="art">
