@@ -1,6 +1,6 @@
 # Hedwig
 
-> Hedwig helps payment agents check onchain transactions before signing. The released local checker checks payment and swap requests against the owner's policy through MCP. Hosted assessment and chat are in development.
+> Hedwig is built to help agents and humans check an onchain payment before they sign.
 
 ## Pages
 
@@ -15,9 +15,11 @@
 
 ## Product direction
 
-The planned assessment will use a fast scoring model with current blockchain evidence and four curated knowledge areas: DeFi, onchain payments, security and opsec. An integrated agent will call Hedwig while preparing a transaction and receive a score with reasons before signing. The payment agent keeps control of signing and execution. A separate API-backed language model will explain the original assessment without changing it or executing transactions. The released local checker uses deterministic rules.
+Local MCP checks follow the owner's policy. Signing stays with the caller.
 
-The Monad demo in development will check a proposed swap of 10 MON for USDC, flag an output token address that differs from the verified USDC address on the same network, and show the correct address with its source. Training and hosting an open explanation model on permitted data, plus private assessment histories, are planned after funding.
+In development: a Monad token-address check, fast scoring from blockchain evidence and four knowledge areas (DeFi, payments, security, opsec), and a separate chat model to explain the result. Chat cannot change the decision or execute transactions.
+
+Open-model training on permitted data, GPU hosting and private assessment history are planned after funding.
 
 ## For AI assistants
 
