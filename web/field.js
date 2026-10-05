@@ -18,7 +18,6 @@
   var UNIT = 20;
   var PAUSE_KEY = "hedwig-motion";
   var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)");
-  var PHONE = window.matchMedia("(max-width: 959px)");
 
   // ---------- Tokens, read from style.css ----------
   var css = getComputedStyle(document.documentElement);
@@ -134,7 +133,8 @@
     cell = H / N; // the owl fills the column height, as it does today
     cols = Math.max(N, Math.ceil(W / cell));
     vis = Math.max(1, Math.min(cols, Math.floor(W / cell + 1e-6)));
-    ox = PHONE.matches ? Math.floor((Math.ceil(W / cell) - N) / 2) : 0;
+    // Center the owl in wider fields while keeping it on the cell grid.
+    ox = Math.floor((Math.ceil(W / cell) - N) / 2);
     if (ox < 0) ox = 0;
     gap = cell >= 10 ? 1 : 0;
     if (cursor) {

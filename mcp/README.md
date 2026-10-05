@@ -75,9 +75,10 @@ The registry configuration is reserved for a release with usable signing keys:
 An unconfirmed contract code hash cannot pass. The sequence file appends one
 JSON line per increase so processes can share it. If writing fails, the
 process retains its sequences in memory. A malformed line or missing final
-newline causes all entries to be refused until the owner repairs the file.
-Deleting it resets the saved sequences. While the keys remain empty, the
-server reads none of these variables.
+newline causes admissions to be refused without updating their sequences.
+Each caller must check the admission result. Persistently malformed data
+requires owner repair; deleting the file resets the saved sequences.
+While the keys remain empty, the server reads none of these variables.
 
 ## Register with a client
 

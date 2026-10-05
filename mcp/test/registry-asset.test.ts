@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import {
+  appendFileSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -885,6 +886,73 @@ describe("registry Reader", function () {
       );
     });
 
+    function runWorker(
+      prefix: string,
+      count: number,
+      retryMs: number,
+      onStderr?: (output: string) => void
+    ): Promise<{ code: number | null; stderr: string }> {
+      return new Promise((resolve, reject) => {
+        const child = spawn(
+          process.execPath,
+          [
+            "-r",
+            "ts-node/register/transpile-only",
+            join(__dirname, "ratchet-worker.ts"),
+            ratchetFile,
+            prefix,
+            String(count),
+            "0",
+            String(retryMs),
+          ],
+          {
+            env: {
+              ...process.env,
+              TS_NODE_PROJECT: join(__dirname, "..", "tsconfig.test.json"),
+            },
+            stdio: ["ignore", "ignore", "pipe"],
+            timeout: 8000,
+          }
+        );
+        let stderr = "";
+        child.stderr.on("data", (chunk: Buffer) => {
+          stderr += chunk.toString();
+          onStderr?.(stderr);
+        });
+        child.on("error", reject);
+        child.on("close", (code) => resolve({ code, stderr }));
+      });
+    }
+
+    it("the worker retries the same key after an incomplete line is finished", async () => {
+      writeFileSync(ratchetFile, '{"key":"seed","sequence":5');
+      let completed = false;
+      const result = await runWorker("retry", 2, 1000, (output) => {
+        if (!completed && output.includes("not a list of sequences")) {
+          // The child has already rejected its first key. Finish the writer's
+          // line only after that rejection, without relying on a timed sleep.
+          completed = true;
+          appendFileSync(ratchetFile, "}\n");
+        }
+      });
+      expect(completed).to.equal(true);
+      expect(result.code, result.stderr).to.equal(0);
+      expect(lines(ratchetFile)).to.deep.equal([
+        { key: "seed", sequence: 5 },
+        { key: "token:retry:0", sequence: 5 },
+        { key: "token:retry:1", sequence: 5 },
+      ]);
+    });
+
+    it("the worker exits unsuccessfully when rejection does not clear", async () => {
+      const corrupt = "not a sequence\n";
+      writeFileSync(ratchetFile, corrupt);
+      const result = await runWorker("blocked", 1, 50);
+      expect(result.code, result.stderr).to.equal(1);
+      expect(result.stderr).to.include("timed out admitting token:blocked:0");
+      expect(readFileSync(ratchetFile, "utf8")).to.equal(corrupt);
+    });
+
     it("loses no entry when several server processes write one file", async function () {
       this.timeout(60000);
       const workers = 4;
@@ -921,7 +989,16 @@ describe("registry Reader", function () {
             })
         )
       );
+      const persisted = readFileSync(ratchetFile, "utf8");
+      expect(persisted.endsWith("\n")).to.equal(true);
+      expect(lines(ratchetFile)).to.have.length(workers * perWorker);
       const fresh = createRatchet(ratchetFile);
+      for (let w = 0; w < workers; w += 1) {
+        for (let i = 0; i < perWorker; i += 1) {
+          expect(fresh.admit(`token:${w}:${i}`, 5)).to.equal(true);
+        }
+      }
+      expect(readFileSync(ratchetFile, "utf8")).to.equal(persisted);
       let lost = 0;
       for (let w = 0; w < workers; w += 1) {
         for (let i = 0; i < perWorker; i += 1) {
