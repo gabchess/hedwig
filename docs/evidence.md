@@ -1,4 +1,8 @@
-# Evidence, v0.4.0
+# Evidence
+
+Deployment records describe the dated devnet runs they link to. Tests cover
+local behavior. The hosted expert service, human chat and Monad demonstration
+remain in development.
 
 | Shipped | Proof |
 | --- | --- |

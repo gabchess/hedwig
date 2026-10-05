@@ -5,9 +5,8 @@ consumer. It distinguishes checks enforced by Hedwig from checks an integrating
 program must perform. The live Hedwig deployment contains all six reviewed
 instructions, including the `set_role_enabled` circuit breaker.
 
-Hedwig has not completed an external security review. The 29 core and 12
-consumer LiteSVM integration tests are evidence of the tested behaviors below,
-not a substitute for one.
+Hedwig has not completed an external security review. The core and consumer
+LiteSVM integration suites test the behaviors described below.
 
 ## Assets and security properties
 
@@ -102,6 +101,22 @@ approved.
 
 Hedwig returns `proceed`, a verdict, and one row per Condition. Acting on
 that answer is the caller's own step.
+
+The current catalog supports `pay` and `swap`, with built-in token and router
+addresses for Ethereum and Base. Slippage checks compare the supplied quote
+and minimum output with policy. The `support` number is calculated after the
+verdict and cannot authorize a payment.
+
+The registry reader in `main` verifies signed rows and chain observations,
+but its pinned public keys are currently empty. It therefore accepts no rows.
+The core trusts an integration to verify any registry facts it supplies.
+Vault facts have no consuming check yet, and `deposit` is not a supported
+action.
+
+Unknown pay assets have market-data checks that need fresh readings from the
+owner's RPC and the service's parameters. The public MCP server does not
+collect those readings or supply the parameters. Missing evidence stays
+UNVERIFIED; a market check cannot establish a token's identity.
 
 ### The Trigger guard
 
@@ -200,7 +215,7 @@ The upgrade authority is one deployer-controlled key on both programs.
 
 ## Test evidence
 
-The current 29-test core LiteSVM suite covers:
+The [core LiteSVM suite](programs/hedwig_sol/tests/) covers:
 
 - rejected non-authority role creation;
 - rejected non-admin assignment, revocation, and role toggling;
@@ -215,7 +230,7 @@ The current 29-test core LiteSVM suite covers:
   caller, so a future contributor cannot silently turn the documented
   integration contract into a signer requirement.
 
-The 12-test consumer suite covers:
+The [consumer suite](programs/hedwig_consumer/tests/) covers:
 
 - an authenticated member incrementing protected state;
 - a privileged third party that cannot be substituted for the actor;
@@ -226,11 +241,12 @@ The 12-test consumer suite covers:
 - a substituted Hedwig program; and
 - a role account with the wrong owner.
 
-The TypeScript SDK has 27 tests for PDA derivation, all six builders and senders,
+The [SDK suite](sdk/test/) covers PDA derivation, all six builders and senders,
 IDL vectors, UTF-8 limits, expiry conversion, signer forwarding, and provider
-failure. The payment check has 500 tests, the MCP server 165, and the demo app
-51. These suites do not establish independent adoption, upgrade-key
-operations, Squads governance, external review, or mainnet safety.
+failure. The [payment checks](consult/test/), [MCP tests](mcp/test/) and
+[demo app](app/) have their own suites. See [CI](.github/workflows/ci.yml) for
+the commands used to verify a commit. These suites establish the tested
+behaviors; deployment and external review need their own evidence.
 
 ## Out of scope for the current devnet program
 

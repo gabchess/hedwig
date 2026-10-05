@@ -19,7 +19,7 @@
 <div class="frame has-panel">
   <div class="rail-top">
     <a href="/" class="rail-name">Hedwig</a>
-    <p class="rail-intro">Hedwig is the policy check your payment agent has to pass before it moves money onchain.</p>
+    <p class="rail-intro">Hedwig is an AI expert in development for payment agents and the people who use them.</p>
     <ul class="rail-nav">
       <li><a href="/about">About</a></li>
       <li><a href="/how-it-works">How it works</a></li>
@@ -48,11 +48,11 @@
   <div class="panel">
     <h1>Docs</h1>
 
-      <p>Hedwig checks your agent's payment or swap against your policy before the agent signs. It runs on your computer as an MCP server with one tool, <code>consult</code>. Hedwig never holds a key and never signs.</p>
+      <p>This guide installs Hedwig v0.4.2, the released local prototype. Its MCP server checks payment and swap requests against your policy through one tool, <code>consult</code>. Your application keeps control of signing. The hosted expert service and human chat are in development; newer changes on main are documented in the repository.</p>
       <h2>Connect your agent</h2>
       <p>Paste this into an agent that can run commands on your computer:</p>
       <pre><code>Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md</code></pre>
-      <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig never asks for keys, seed phrases or funds.</p>
+      <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig does not need your wallet private key, seed phrase or funds.</p>
       <p>Your agent asks you before it installs anything. Then it asks for your policy, fetches the exact commit published as v0.4.2 and installs it, shows you the policy to save, registers the <code>consult</code> tool, and consults Hedwig before each payment or swap. You save the policy file yourself, and the agent never writes or edits it. The agent continues only when the answer is <code>proceed: true</code>.</p>
       <h2>Install it yourself</h2>
       <p>You need git, Node.js 22 or newer, and Yarn.</p>
@@ -60,7 +60,7 @@
 git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
 git checkout FETCH_HEAD &amp;&amp;
 yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &amp;&amp; yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
-      <p>This fetches the exact commit published as v0.4.2, by its full hash, and stops if any step fails. A wrong hash fails at the fetch, before the install runs. If a step fails, fix the error before you run anything else. If an earlier attempt left a <code>hedwig</code> folder, delete it before you retry.</p>
+      <p>This fetches the exact commit published as v0.4.2, by its full hash, and stops if any step fails. A wrong hash fails at the fetch, before the install runs. If a step fails, fix the error before you run anything else. If an earlier attempt left a <code>hedwig</code> folder, inspect its contents before choosing a fresh directory for the retry.</p>
       <p>Add it to your MCP client as a stdio server, with absolute paths for both the server and your policy file:</p>
       <pre><code>{
   "mcpServers": {

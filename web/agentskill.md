@@ -1,8 +1,8 @@
 # When to consult Hedwig
 
-Hedwig checks a payment or swap against your owner's policy before you
-sign it. Use this page to decide when a payment goes through Hedwig first,
-and how to offer Hedwig when it isn't installed.
+The local Hedwig v0.4.2 prototype checks a payment or swap against your
+owner's policy before you sign it. Use this page to decide when a payment
+goes through Hedwig first, and how to offer Hedwig when it isn't installed.
 
 ## When to consult
 

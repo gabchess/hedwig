@@ -1,10 +1,9 @@
 # Call Hedwig from an agent
 
-Hedwig checks a `pay` or `swap` request against the owner's policy and
-answers whether the agent should proceed. It runs on the owner's computer
-as a stdio MCP server with one tool, `consult`. It never holds a key and
-never signs. The agent, or the owner's own signer, does that, and only
-after Hedwig answers `proceed: true`.
+Hedwig's local prototype checks a `pay` or `swap` request against the owner's
+policy. It runs as a stdio MCP server with one tool, `consult`, which returns
+a decision and the result of each check. The integration must require
+`proceed: true` before calling its signer. The MCP server holds no signing key.
 
 ## Point an agent at Hedwig
 
@@ -35,6 +34,10 @@ install runs. If a step fails, stop and fix the error before you run
 anything else. If an earlier attempt left a `hedwig` folder, ask your
 owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
+
+Current `main` contains later work, including asset-specific caps and registry
+reader code. The commands above continue to install v0.4.2. The hosted expert
+service and human chat are in development.
 
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it
@@ -67,12 +70,17 @@ working directory, not the repo.
 The policy is the owner's file. Keep it outside the repo. It's a JSON file,
 and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
+This example includes `perActionCapAssets`, which current `main` requires to
+bind a cap to its token. The pinned v0.4.2 release does not enforce that field.
+The request below checks 1 USDC on Ethereum against this policy.
+
 ```json
 {
   "permits": true,
   "chainId": "eip155:1",
   "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
   "perActionCaps": { "pay": "1000000" },
+  "perActionCapAssets": { "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }
@@ -84,6 +92,7 @@ and when a key appears twice, the last one applies. The server pins the file's b
 | `chainId` | The one chain the owner allows, as a CAIP-2 id such as `eip155:1` or `eip155:8453`. |
 | `approvedRecipients` | Addresses the owner approved to receive a payment. |
 | `perActionCaps` | The largest amount per action type, as a decimal string in the same units as the request's amount. |
+| `perActionCapAssets` | On current `main`, the token contract whose base units each cap uses. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
 | `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |
 
@@ -149,6 +158,9 @@ Each row in `results` carries `id`, `question`, `status`, `code`,
 `evidence`, `evidenceClass` and `reference`, the path of the practice file
 that explains the check.
 
+`support` is computed from the checks after the verdict. It does not estimate
+the probability that a transaction is safe.
+
 ## Act on the verdict
 
 | `verdict` | When | What the agent does |
@@ -157,16 +169,16 @@ that explains the check.
 | `DENY` | At least one check failed. `results[0]` is a FAIL. | Stop. Tell the owner `results[0].code` and `results[0].evidence`. |
 | `UNKNOWN` | A check couldn't be completed, the policy doesn't permit, or the input was malformed. `PASS` rows can still appear, and can come first when every check passed. | Stop and ask the owner. Tell them the `code` and `evidence` of the first row whose `status` isn't `PASS`. If every row is `PASS`, tell them the policy doesn't permit the action. |
 
-A server error still comes back as a normal response with `verdict:
-"UNKNOWN"` and `proceed: false`, so one code path covers every answer.
-Every call reads the policy file and the clock again, so a payment whose
-terms changed gets checked on its new terms.
+Errors caught by the `consult` handler return `verdict: "UNKNOWN"` and
+`proceed: false`. Treat transport errors, unknown tools and a disconnected
+server as a stop too; they may produce no verdict. Every call reads the
+policy file and the clock again, so changed payment terms need a fresh check.
 
 ## Wrap a signer in code
 
 If your agent signs in code, `runTriggerGuard` from `@hedwig/consult/guard`
 runs the same check and calls your signer only when the verdict is
-`ALLOW_UNDER_POLICY`. See the
+`ALLOW_UNDER_POLICY`. Other signing paths remain the integration's responsibility. See the
 [Trigger guard](../consult/README.md#trigger-guard).
 
 ## Safety

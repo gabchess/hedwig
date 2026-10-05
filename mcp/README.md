@@ -1,21 +1,89 @@
 # @hedwig/mcp
 
-A stdio MCP server exposing one tool, `consult`, backed by `@hedwig/consult`.
-Run these from the repo root, with Node.js 22+ and Yarn. `mcp/test/fixtures/policy.json` is a policy file you can start with; pass its absolute path.
+A local stdio MCP server with one tool, `consult`, for checking payment and
+swap proposals. This guide describes current `main`. The [agent install
+guide](../docs/agents.md) pins the earlier v0.4.2 release.
+
+## Run
+
+Use Node.js 22+ and Yarn. From the repository root:
+
 ```sh
 yarn install --frozen-lockfile
 npm ci --ignore-scripts --prefix mcp
 yarn consult:build && yarn mcp:build
 HEDWIG_POLICY_FILE=/path/to/policy.json node mcp/dist/server.js
 ```
-`consult` takes `{ "request": <payment or swap request> }` and returns the same response `@hedwig/consult` returns: `question`, `proceed`, `band`, `verdict`, `support`, `results`, `floorIds`, `advisory: true`. `support` shows how much of the owner's checklist was proven and how strong the proof was; callers act on `proceed`. `results` lists the worst outcome first. The server supplies the facts itself on every call: the current time, and the role fact when the policy requires a role. The tool takes only `request`, so a caller supplies neither.
-The policy file is a regular JSON file of at most 256 KB; when a key appears twice, the last one applies.
-The server hashes the policy file's exact bytes (sha256) when it starts and reads the file again on every call. If the bytes differ from the start, because the file was edited, replaced, or swapped for a symlink to other content, `consult` answers `UNKNOWN` with the code `ADAPTER_POLICY_CHANGED` and writes one line to stderr naming `HEDWIG_POLICY_FILE`. Only a change to the file's bytes counts: identical bytes or a permissions change that keeps the file readable still answer normally. If the file was deleted, cannot be read, is larger than 256 KB (262,144 bytes), or was replaced by a directory or a FIFO, the code is `ADAPTER_POLICY_UNREADABLE`. If the file cannot be read when the server starts, the server still starts, and every call in that run answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`, even after the file is fixed.
-The pin lasts one server run. Every server start, meaning each client session or reconnect, hashes whatever the file holds then and accepts it with no warning. Review the policy file before you restart the server, or keep it where the agent's OS user cannot write it.
-A `pay` policy states the owner's authorization-window choice. Without an `authorizationWindow` field, that row answers UNVERIFIED and `proceed` stays false.
-A policy requiring a Solana role reads it through `HEDWIG_SOLANA_RPC_URL_DEVNET` / `_MAINNET` and `HEDWIG_SOLANA_FEE_PAYER_DEVNET` / `_MAINNET`, one pair per cluster. Without the pair set for the cluster a policy names, that role check answers UNVERIFIED. The policy's `role.member` field is optional: the server derives the member address itself from `role` and `holder`.
-For a token or deposit vault that the code table does not list, the server reads a signed registry row. `HEDWIG_REGISTRY_URL` names the registry host and `HEDWIG_EVM_RPC_URL_<chain number>` names the RPC for one EVM chain. Without the RPC variable the contract's code hash stays unconfirmed, and an unconfirmed row never passes. `HEDWIG_REGISTRY_RATCHET_FILE` names the file that holds the highest sequence seen per row, default `~/.hedwig/registry-ratchet.json`. The file is append-only, one JSON line per raised sequence, so several server processes can share it without losing an entry. When that file cannot be written, the ratchet stays in memory for the life of the process. A file with any line that is not a key and a positive integer sequence, or a last line with no newline, makes the server refuse every row until you fix the file (remove only the bad line, and end the file with a newline) or delete it, which resets the saved sequences. While `consult` ships no registry keys, every row is refused and the server reads none of these variables.
-Add it to your MCP client as a stdio server. Use absolute paths in `args` (for `server.js`) and in `HEDWIG_POLICY_FILE`: a relative path resolves against the client's working directory, not this repo.
+
+Start from [`mcp/test/fixtures/policy.json`](test/fixtures/policy.json), review
+it and save your policy outside the repository. Pass its absolute path. On
+current `main`, each cap needs a matching asset in `perActionCapAssets`. A
+`pay` policy must also state its `authorizationWindow` choice. Missing fields
+leave the relevant checks UNVERIFIED.
+
+## Call and response
+
+`consult` takes `{ "request": <payment or swap request> }`. The server reads
+the policy and supplies the current time and any required role observation.
+The caller cannot pass a policy or facts through the tool.
+
+The response contains `question`, `proceed`, `band`, `verdict`, `support`,
+`results`, `floorIds` and `advisory: true`. Act on `proceed`. The 0-to-1
+`support` value describes the evidence behind the checks after the verdict
+has been decided. Results list FAIL rows first, followed by UNVERIFIED and
+PASS. See the [payment-check guide](../consult/README.md) for shapes and limits.
+
+## Policy file
+
+The policy must be a regular JSON file of at most 256 KB (262,144 bytes).
+Duplicate keys use the last value. At startup, the server pins a SHA-256 hash
+of the file's bytes and compares every later read against it.
+
+| File state | Result |
+| --- | --- |
+| Bytes changed by an edit, replacement or symlink swap | `UNKNOWN` with `ADAPTER_POLICY_CHANGED`. |
+| Deleted, unreadable, oversized, a directory or a FIFO | `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. |
+| Unreadable at startup | Every call in that process stays `ADAPTER_POLICY_UNREADABLE`, even after a repair. |
+| Identical bytes, still readable | The policy is checked normally. |
+
+A changed file also produces a stderr message naming `HEDWIG_POLICY_FILE`.
+Every restart pins the file's current bytes without warning. Review the file
+before restarting, or store it where the agent's OS user cannot write it.
+
+## Chain observations
+
+A required Solana role uses `HEDWIG_SOLANA_RPC_URL_DEVNET` and
+`HEDWIG_SOLANA_FEE_PAYER_DEVNET`, or the corresponding `_MAINNET` pair. Missing
+configuration leaves the role check UNVERIFIED. `role.member` is optional;
+the server derives it from `role` and `holder`. Deployment evidence currently
+covers devnet.
+
+The registry reader currently accepts no entries because its two pinned
+signing keys are empty. Configuration alone cannot activate it. The code can
+verify signed token entries and collect vault observations, but the catalog
+has no vault condition or `deposit` action. The public server also does not
+collect unknown-token market signals or supply their thresholds.
+
+The registry configuration is reserved for a release with usable signing keys:
+
+| Variable | Purpose |
+| --- | --- |
+| `HEDWIG_REGISTRY_URL` | Host serving signed registry entries. |
+| `HEDWIG_EVM_RPC_URL_<chain number>` | RPC used to confirm contract code on that EVM chain. |
+| `HEDWIG_REGISTRY_RATCHET_FILE` | Saved highest sequence per entry, defaulting to `~/.hedwig/registry-ratchet.json`. |
+
+An unconfirmed contract code hash cannot pass. The sequence file appends one
+JSON line per increase so processes can share it. If writing fails, the
+process retains its sequences in memory. A malformed line or missing final
+newline causes all entries to be refused until the owner repairs the file.
+Deleting it resets the saved sequences. While the keys remain empty, the
+server reads none of these variables.
+
+## Register with a client
+
+Use absolute paths for `server.js` and `HEDWIG_POLICY_FILE`. Relative paths
+resolve against the client's working directory.
+
 ```json
 {
   "mcpServers": {

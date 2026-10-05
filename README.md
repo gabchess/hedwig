@@ -4,7 +4,7 @@
   <img src="docs/logo.svg" alt="Hedwig mark" width="240" height="160">
 </p>
 
-<p align="center"><strong>The safety trigger onchain agents check before they pay.</strong></p>
+<p align="center"><strong>An AI expert for payment agents and the people who use them.</strong></p>
 
 <p align="center"><a href="https://usehedwig.xyz">usehedwig.xyz</a></p>
 
@@ -12,35 +12,45 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?labelColor=0d0b16" alt="license: MIT"></a>
 </p>
 
-Hedwig is the payment check other agents consult before they sign. Run it as an MCP server in whatever app you already hand work to, or point an agent at the [agent guide](docs/agents.md). It is built for people or agents running x402 payment tools and agent wallets.
+Hedwig is being built to assess crypto payments and explain the risks. In the intended workflow, a payment agent automatically calls Hedwig through MCP while preparing a payment or swap. Hedwig checks the proposal against blockchain data and curated knowledge, then returns an assessment before the payment agent executes it. People will also be able to chat with Hedwig about DeFi, payments and blockchain security.
 
-To put the check in front of your own signer in code, use the [Trigger guard](consult/README.md#trigger-guard).
+The hosted expert and chat are in development. This repository contains the working local payment and swap checker, MCP server, Trigger guard and Solana role program.
 
-## Run it
+[Website](https://usehedwig.xyz) · [Founder pitch](https://youtu.be/LpKqZql87vk) · [Recorded devnet proof](docs/deployment/evidence/2026-09-27-revoke-demo.md) · [Install guide for agents](docs/agents.md)
 
-The payment check has no dependencies of its own; it needs Node.js 22+ and Yarn. It answers `proceed` for a payment or a swap against the owner's policy. Any check it cannot complete answers `UNKNOWN`, and `proceed` stays `false`:
+## What you can run today
+
+| Component | Current behavior |
+| --- | --- |
+| [Payment and swap check](consult/README.md) | Checks a supplied proposal against policy and available facts. Returns `ALLOW_UNDER_POLICY`, `DENY` or `UNKNOWN`, with reasons and missing evidence. |
+| [Local MCP server](mcp/README.md) | Exposes the checker to agents through stdio. The owner controls the policy file. |
+| [Trigger guard](consult/README.md#trigger-guard) | Calls the supplied signer only after an allow. Denied or unknown requests do not reach that signer through the guard. |
+| [Solana role program and SDK](sdk/README.md) | Records scoped roles with expiry and revocation. The public demonstration uses Solana devnet. |
+
+The current checker uses deterministic rules. Its `support` value, from 0 to 1, summarizes evidence coverage after the decision; it is not a probability that a transaction is safe. The caller supplies the proposal and can bypass the guard. An allow applies only to the checks and policy described in the answer.
+
+Payment and swap references currently cover Ethereum and Base. Slippage checks compare the supplied quote and minimum output with the owner's limit. They do not fetch a fresh quote or detect sandwich attacks. Monad proof is still in development.
+
+## Where Hedwig is going
+
+The expert service will combine current chain data with private, curated knowledge in four areas: DeFi, onchain payments, security and operational security. A fast scoring model is planned to assess that evidence and produce an explanation agents and people can inspect.
+
+Verified token and contract lookup, broader vault checks, sandwich-risk assessment and general chat are in development. Registry readers exist on `main`, but their signing keys are not configured, so live registry lookup remains inactive. The curated knowledge stays private while the core remains open source. Adapting an open model is a later research step using reviewed examples and consented data.
+
+## Run the local prototype
+
+Use Node.js 22+ and Yarn. These commands test the current development branch:
 
 ```sh
 git clone https://github.com/gabchess/hedwig.git
 cd hedwig
-yarn install
+yarn install --frozen-lockfile
 yarn consult:typecheck
 yarn consult:test
 ```
 
-The onchain role program builds and tests with Rust, Anchor CLI 1.0.2, Solana/Agave CLI 4.0.1+, Node.js 22+ and Yarn.
+For a pinned release and MCP setup, follow the [agent guide](docs/agents.md). It currently installs v0.4.2; later changes on `main` are labelled in the component guides. See [Contributing](CONTRIBUTING.md) for builds and checks by component, including the Solana toolchain.
 
-```sh
-cargo fmt --check
-cargo build
-cargo build-sbf --manifest-path programs/hedwig_consumer/Cargo.toml
-cargo build-sbf --manifest-path programs/hedwig_sol/Cargo.toml
-cargo test --workspace
-yarn sdk:typecheck
-yarn sdk:test
-yarn sdk:build
-npm ci --prefix app
-./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
-```
+## Documentation
 
-[Payment check](consult/README.md) · [MCP server](mcp/README.md) · [Agent guide](docs/agents.md) · [Role record](docs/role-record.md) · [SDK](sdk/README.md) · [Threat model](THREAT-MODEL.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Role record](docs/role-record.md) · [Evidence](docs/evidence.md) · [Threat model](THREAT-MODEL.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [MIT license](LICENSE)

@@ -1,6 +1,6 @@
 # Hedwig
 
-> Hedwig checks a payment agent's pay or swap request against its owner's policy before the agent signs. It runs on the owner's computer, never holds a key, and never signs.
+> Hedwig is an AI expert in development for payment agents and the people who use them. The released local prototype checks payment and swap requests against the owner's policy through MCP. The hosted expert service and human chat are in development.
 
 ## Pages
 
@@ -13,7 +13,13 @@
 - [Docs](https://usehedwig.xyz/docs)
 - [For agents](https://usehedwig.xyz/agents)
 
+## Product direction
+
+The planned expert service will assess current blockchain data with curated knowledge of DeFi, onchain payments, security and opsec, including blockchain risks. An integrated agent will call Hedwig automatically while preparing a transaction and receive findings before signing. The planned scoring model and chat are separate from the deterministic checks in the released prototype.
+
 ## For AI assistants
+
+The setup guides below install v0.4.2. Newer changes on main may use different configuration.
 
 - [Consult Hedwig](https://usehedwig.xyz/agents.md): how to install Hedwig with your owner's approval and consult it before you sign a payment for them.
 - [When to consult Hedwig](https://usehedwig.xyz/agentskill.md): which payments go through Hedwig first, and how to offer it when it isn't installed.

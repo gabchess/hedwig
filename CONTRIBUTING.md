@@ -1,10 +1,13 @@
 # Contributing to Hedwig
 
-Hedwig is the payment check, the MCP server and the onchain role program in this repository. Keep changes narrow, auditable, and matched to what the code does.
+This repository contains Hedwig's payment and swap checks, MCP server and Solana role program. Keep changes narrow and match public claims to the code and its evidence.
 
 ## Local checks
 
-Run the full local release checks before opening a PR:
+Run the checks for the components your PR changes and their callers. For
+documentation, verify examples and links against the relevant release or
+branch. Use the full block below for a release or a change across components.
+Install root dependencies with `yarn install --frozen-lockfile` first.
 
 ```bash
 cargo fmt --check
@@ -27,10 +30,10 @@ yarn mcp:build
 yarn mcp:test
 ```
 
-The tests use LiteSVM and do not require a network connection. Build both SBF
-artifacts before the workspace tests because the fixtures load them at compile
-time. CI runs these checks on every push and pull request, along with the Rust,
-app and MCP dependency audits.
+The Rust integration tests use LiteSVM. Test suites run offline; dependency
+installation and audits need a network connection. Build both SBF artifacts
+before the workspace tests because the fixtures load them at compile time.
+CI runs the checks on every push and pull request, along with dependency audits.
 
 ## Repo map
 
