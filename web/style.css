@@ -95,7 +95,6 @@ a:focus-visible, button:focus-visible {
   margin: 0 0 16px;
   font-size: 16px;
 }
-.home-copy .project-status { color: var(--muted); font-size: 13px; }
 .home-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0; }
 .home-actions a {
   display: inline-flex;
@@ -129,6 +128,30 @@ a:focus-visible, button:focus-visible {
   letter-spacing: -0.025em;
 }
 .panel p { margin: 0 0 18px; font-size: 15px; }
+.founder-photo {
+  display: block;
+  width: 160px;
+  height: 160px;
+  margin: 0 0 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 35% center;
+}
+.copy-prompt {
+  min-height: 44px;
+  margin-bottom: 18px;
+  padding: 8px 16px;
+  border: 0;
+  background: var(--text);
+  color: var(--ground);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.copy-prompt:disabled { cursor: wait; }
+.panel .copy-status { margin: 10px 0 18px; font-size: 13px; }
+.copy-status:empty { display: none; }
+#install-prompt:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
 .panel a { color: var(--blue); overflow-wrap: anywhere; }
 .panel h2, .panel h3 {
   margin: 28px 0 10px;

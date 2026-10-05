@@ -20,7 +20,7 @@
 <div class="frame has-panel">
   <div class="rail-top">
     <a href="/" class="rail-name" aria-label="Hedwig home">Hedwig</a>
-    <p class="rail-intro">Payment checks for AI agents.</p>
+    <p class="rail-intro">Payment checks for agents and humans.</p>
     <nav aria-label="Main">
       <ul class="rail-nav">
         <li><a href="/about">About</a></li>
@@ -33,12 +33,8 @@
   <main class="panel" id="main" tabindex="-1">
     <h1>Docs</h1>
 
-      <p>Install the local v0.4.2 prototype to check payments and swaps through the MCP tool <code>consult</code>. Your application controls signing. The expert service and chat are in development.</p>
-      <h2>Connect your agent</h2>
-      <p>Paste this into an agent that can run commands on your computer:</p>
-      <pre><code>Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md</code></pre>
-      <p>Before you send it, check that the link is exactly <code>https://usehedwig.xyz/agents.md</code>. Hedwig does not need your wallet private key, seed phrase or funds.</p>
-      <p>Your agent asks before installing the pinned release and shows you a policy based on your answers. You save the file yourself; the agent never edits it. For each payment or swap, it calls <code>consult</code> and continues only on <code>proceed: true</code>.</p>
+      <p>Hedwig v0.4.2 runs locally through MCP. Your application controls signing.</p>
+      <p><a href="/agents">Connect your agent</a> or follow the manual setup below.</p>
       <h2>Install it yourself</h2>
       <p>You need git, Node.js 22 or newer, and Yarn.</p>
       <pre><code>mkdir hedwig &amp;&amp; cd ./hedwig &amp;&amp; git init &amp;&amp;
