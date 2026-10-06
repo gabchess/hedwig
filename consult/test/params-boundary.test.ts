@@ -66,6 +66,8 @@ const CONSTANT_NAMES = new Set([
 // CATALOG_NUMBERS only inside one of these reviewed top-level declarations
 // of that file. A new file has none, so a number in it fails the scan.
 const SOURCE_NAMES: Readonly<Record<string, readonly string[]>> = {
+  // Public Router02 ABI layout and uint widths. No policy values live here.
+  "consult/src/monad-calldata.ts": ["ROUTER02_LAYOUT"],
   "consult/src/core.ts": ["STATUS_RANK"],
   "consult/src/support.ts": ["round2"],
   "consult/src/guard-internal.ts": [
@@ -697,6 +699,16 @@ describe("params boundary: no value reaches the public tree", function () {
     expect(thresholdLiterals(other, "const timeoutMs = 4999;")).to.deep.equal(
       []
     );
+  });
+
+  it("the decoder's ABI declaration does not exempt other literals or comparisons", () => {
+    const path = join(REPO_ROOT, "consult", "src", "monad-calldata.ts");
+    expect(thresholdLiterals(path, "const riskLimit = 4999;")).to.have.length(
+      1
+    );
+    expect(
+      thresholdLiterals(path, "function check(n) { return n < 4999; }")
+    ).not.to.deep.equal([]);
   });
 
   it("the public Monad chain ID exception does not admit a domain threshold", () => {
