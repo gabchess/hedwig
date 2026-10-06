@@ -10,24 +10,22 @@
 
 Hedwig is built to help agents and humans check an onchain payment before they sign.
 
-Your payment agent sends a proposal. Hedwig checks it against your rules and available evidence, then returns a result with reasons. The caller controls signing and execution.
+Hedwig checks a proposed payment or swap against your rules and available evidence, then returns a decision with reasons. Your wallet or app controls signing and execution.
 
-[Try Hedwig locally](https://usehedwig.xyz/agents): paste the setup prompt into your coding agent. The [agent guide](docs/agents.md) installs v0.4.2; component guides label later changes on `main`.
+[Try Hedwig](https://usehedwig.xyz/agents): give the setup prompt to a coding agent that supports local MCP tools. The [setup guide](docs/agents.md) installs v0.4.2; component guides label later changes on `main`.
 
-## Local checks
+## Run a local check
 
-The [local checker](consult/README.md) uses deterministic rules to return `ALLOW_UNDER_POLICY`, `DENY` or `UNKNOWN`, with reasons and missing evidence. Payment and swap references cover Ethereum and Base. Its `support` value measures evidence coverage, not safety probability.
+Set your policy and run the sample payment check. Change the recipient to see how the result changes. The sample sends no funds.
 
-Your payment agent controls signing and execution. The [trigger guard](consult/README.md#trigger-guard) covers calls routed through it. An allow applies only to the stated checks and policy. Slippage checks use supplied quotes; fresh quotes and sandwich detection remain unsupported.
+The [local checker](consult/README.md) returns `ALLOW_UNDER_POLICY`, `DENY` or `UNKNOWN`, with reasons and missing evidence. Its `support` value measures evidence coverage, not safety probability.
 
-See the [MCP server](mcp/README.md), [Solana SDK](sdk/README.md) and [recorded devnet proof](docs/deployment/evidence/2026-09-27-revoke-demo.md) for component details.
+The optional [Trigger guard](consult/README.md#trigger-guard) calls your signer only after an allowed result. It covers calls routed through it. An allow applies to the stated policy and checks; see the component guide for supported checks and limits.
 
-## Planned
+## In development
 
-Hosted assessment, human chat and a Monad swap demo are in development. A scoring model will assess blockchain evidence and curated knowledge in DeFi, onchain payments, security and opsec. A separate API-backed language model will explain the result without changing it or executing transactions.
-
-After funding, we plan to train and evaluate an open explanation model on permitted data, with cloud GPUs for training and hosting, and add private assessment histories.
+We are building an expert assessment service for payment agents and their users. The first planned workflows assess a Monad swap proposal and a Tempo token transfer, with Scout as the first caller. A fast scoring model will assess blockchain evidence and curated knowledge in DeFi, online security, blockchain security and onchain payments. The planned 0–1 score will come with reasons; a separate language model will explain the assessment on request and answer DeFi questions. Signing stays with the caller.
 
 ## Documentation
 
-[Build and test](CONTRIBUTING.md) · [Founder pitch](https://youtu.be/LpKqZql87vk) · [Evidence](docs/evidence.md) · [Threat model](THREAT-MODEL.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [MIT license](LICENSE)
+[Local checker](consult/README.md) · [MCP server](mcp/README.md) · [Solana SDK](sdk/README.md) · [Evidence](docs/evidence.md) · [Build and test](CONTRIBUTING.md) · [Threat model](THREAT-MODEL.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Founder pitch](https://youtu.be/LpKqZql87vk)

@@ -1,34 +1,22 @@
 # Hedwig
 
-> Hedwig is built to help agents and humans check an onchain payment before they sign.
+> Hedwig checks proposed payments and swaps against your rules and available evidence. Your wallet or app controls signing.
 
 ## Pages
 
-- [Home](https://usehedwig.xyz/)
-- [About](https://usehedwig.xyz/about)
-- [How it works](https://usehedwig.xyz/how-it-works)
-- [Proof](https://usehedwig.xyz/proof)
-- [Roadmap](https://usehedwig.xyz/roadmap)
-- [Team](https://usehedwig.xyz/team)
-- [Docs](https://usehedwig.xyz/docs)
-- [For agents](https://usehedwig.xyz/agents)
+- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Hedwig checks proposed payments and swaps against your rules and available evidence. Your wallet or app controls signing.
+- [About | Hedwig](https://usehedwig.xyz/about): Hedwig helps agents and humans check an onchain payment before signing, with reasons they can inspect.
+- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Your agent sends a proposed payment or swap. Hedwig checks it against your policy and returns a decision with reasons.
+- [Proof | Hedwig](https://usehedwig.xyz/proof): Inspect a recorded Solana devnet run covering an allowed request, an amount over the limit, missing evidence and a revoked role.
+- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Local MCP checks are available. Expert assessments for Monad and Tempo, followed by explanations and human chat, are in development.
+- [Team | Hedwig](https://usehedwig.xyz/team): Hi, I'm Gabe. I'm focused full time on Hedwig.
+- [Docs | Hedwig](https://usehedwig.xyz/docs): Connect Hedwig through local MCP, set your policy and inspect a sample payment check. Your application controls signing.
+- [Try Hedwig](https://usehedwig.xyz/agents): Connect Hedwig to a coding agent that supports local MCP tools. Copy the setup prompt, approve the install and run a sample check.
 
-## Product direction
+## Setup
 
-Local MCP checks follow the owner's policy. Signing stays with the caller.
+These guides install v0.4.2. Newer changes on main may use different configuration.
 
-In development: a Monad token-address check, fast scoring from blockchain evidence and four knowledge areas (DeFi, payments, security, opsec), and a separate chat model to explain the result. Chat cannot change the decision or execute transactions.
-
-Open-model training on permitted data, GPU hosting and private assessment history are planned after funding.
-
-## For AI assistants
-
-The setup guides below install v0.4.2. Newer changes on main may use different configuration.
-
-- [Consult Hedwig](https://usehedwig.xyz/agents.md): how to install Hedwig with your owner's approval and consult it before you sign a payment for them.
-- [When to consult Hedwig](https://usehedwig.xyz/agentskill.md): which payments go through Hedwig first, and how to offer it when it isn't installed.
-
-## Source
-
-- [GitHub](https://github.com/gabchess/hedwig), MIT license.
-- [How to call Hedwig](https://github.com/gabchess/hedwig/blob/main/docs/agents.md): request, response and verdicts.
+- [Consult Hedwig](https://usehedwig.xyz/agents.md): local setup and owner approval.
+- [When to consult Hedwig](https://usehedwig.xyz/agentskill.md): payment checks through MCP.
+- [Source](https://github.com/gabchess/hedwig)

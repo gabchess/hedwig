@@ -35,6 +35,18 @@ installation and audits need a network connection. Build both SBF artifacts
 before the workspace tests because the fixtures load them at compile time.
 CI runs the checks on every push and pull request, along with dependency audits.
 
+## Website copy
+
+Edit `web/page-copy.json` for page text and metadata, then run:
+
+```sh
+node web/sync-copy.js
+node web/sync-copy.js --check
+node scripts/site-copy.test.js
+```
+
+The script updates the static pages, agent index and sitemap. CI checks for drift, broken internal links and unreachable pages. Keep installation instructions aligned with the pinned release and inspect desktop and mobile layouts after editing.
+
 ## Repo map
 
 - Payment check: `consult/`
