@@ -23,6 +23,7 @@ import {
   signed,
 } from "./registry-helpers";
 import type { World } from "./registry-helpers";
+import swapFixture from "../../consult/test/fixtures/monad-router02.json";
 
 // Through handleConsult's real wiring: real env-driven config, a patched
 // global fetch standing in for the registry host, the RPC and (in one test)
@@ -214,6 +215,43 @@ describe("handleConsult: the registry Reader wired end to end", function () {
     expect(row(result, "token-out-is-canonical")?.status).to.equal("PASS");
     expect(result.proceed).to.equal(false);
     expect(result.support).to.equal(0);
+  });
+
+  it("a complete call with a fake output retains the sourced denial", async () => {
+    withIssuer();
+    const fake = "77".repeat(20);
+    const input = nativeSwap(`0x${fake}`);
+    input.action.target = "0xfe31f71c1b106eac32f1a19239c9a9a72ddfb900";
+    input.action.recipient = swapFixture.expected.recipient;
+    input.action.minOut = "9950000";
+    input.action.quotedOut = "10000000";
+    input.action.deadline = 1791320400;
+    const result = await handleConsult(
+      {
+        request: {
+          ...input,
+          transaction: {
+            from: swapFixture.expected.recipient,
+            to: input.action.target,
+            value: "10000000000000000000",
+            data:
+              swapFixture.data.slice(0, 490) +
+              fake +
+              swapFixture.data.slice(530),
+          },
+        },
+      },
+      policyPath
+    );
+    expect(row(result, "target-is-canonical")?.code).to.equal(
+      "SWAP_TARGET_ROUTER_UNKNOWN"
+    );
+    expect(row(result, "token-out-is-canonical"))
+      .to.have.property("canonicalAsset")
+      .that.includes({ contractAddress: MONAD_USDC });
+    expect(result.verdict).to.equal("DENY");
+    expect(result.support).to.equal(0);
+    expect(result.proceed).to.equal(false);
   });
 
   it("native output without issuer evidence remains unverified through the handler", async () => {

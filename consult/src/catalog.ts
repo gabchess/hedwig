@@ -10,6 +10,7 @@ import {
 import { UNKNOWN_TOKEN_PARAMS_ID } from "./params";
 import type { ParamReader } from "./params";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
+import { decodeMonadNativeSwap } from "./monad-calldata";
 
 export type SolanaCluster = "devnet" | "testnet" | "mainnet-beta";
 
@@ -245,8 +246,16 @@ export interface ConsultAction {
   approvalAmount?: string;
 }
 
+export interface EvmCallProposal {
+  from: string;
+  to: string;
+  data: string;
+  value: string;
+}
+
 export interface ConsultRequest {
   action: ConsultAction;
+  transaction?: EvmCallProposal;
   conditions?: string[];
 }
 
@@ -2037,6 +2046,74 @@ export const PAY_CATALOG: Catalog = deepFreeze({
 
 const SWAP_REFERENCE_ROOT = "consult/references/swap";
 
+function checkMonadCallBinding(
+  request: ConsultRequest
+): CheckerOutcome | undefined {
+  const id = "target-is-canonical";
+  const tx = request.transaction;
+  const action = request.action;
+  const decoded = decodeMonadNativeSwap(tx?.data);
+  if (
+    !decoded ||
+    tx === undefined ||
+    tx === null ||
+    typeof tx !== "object" ||
+    Array.isArray(tx) ||
+    Object.keys(tx).sort().join() !== "data,from,to,value" ||
+    !Object.values(tx).every((value) => typeof value === "string") ||
+    ![
+      tx.from,
+      tx.to,
+      action.target,
+      action.recipient,
+      action.tokenOut?.contractAddress,
+    ].every(
+      (value) =>
+        typeof value === "string" &&
+        EVM_ADDRESS_SHAPE.test(value) &&
+        BigInt(value) > 0n
+    ) ||
+    ![tx.value, action.amountIn, action.minOut, action.approvalAmount].every(
+      (value) => typeof value === "string" && AMOUNT_SHAPE.test(value)
+    ) ||
+    typeof action.deadline !== "number" ||
+    !Number.isSafeInteger(action.deadline) ||
+    action.deadline <= 0
+  ) {
+    return {
+      id,
+      status: "UNVERIFIED",
+      code: "MONAD_CALL_UNSUPPORTED",
+      evidenceClass: "not-verifiable",
+      evidence: "cannot confirm the supported unsigned native Monad call",
+    };
+  }
+  if (
+    tx.value !== decoded.amountIn ||
+    action.amountIn !== decoded.amountIn ||
+    sameEvmAddress(tx.to, "0xfe31f71c1b106eac32f1a19239c9a9a72ddfb900") !==
+      true ||
+    sameEvmAddress(tx.to, action.target) !== true ||
+    sameEvmAddress(tx.from, decoded.recipient) !== true ||
+    sameEvmAddress(action.recipient, decoded.recipient) !== true ||
+    sameEvmAddress(action.tokenOut?.contractAddress, decoded.tokenOut) !==
+      true ||
+    action.minOut !== decoded.amountOutMinimum ||
+    String(action.deadline) !== decoded.deadline ||
+    action.approvalAmount !== "0"
+  ) {
+    return {
+      id,
+      status: "FAIL",
+      code: "MONAD_CALL_INTENT_MISMATCH",
+      evidenceClass: "caller-stated",
+      evidence: "unsigned Monad call does not match the declared swap intent",
+    };
+  }
+  // Matching bytes do not prove deployment identity or live pool/quote facts.
+  return undefined;
+}
+
 // The router a swap calls must be a canonical Universal Router deployment
 // for the request's own chain.
 function checkSwapTargetIsCanonical(
@@ -2045,6 +2122,11 @@ function checkSwapTargetIsCanonical(
 ): CheckerOutcome {
   const id = "target-is-canonical";
   const { chainId, target } = request.action;
+
+  if (isNativeMonadInput(chainId, request.action.tokenIn)) {
+    const binding = checkMonadCallBinding(request);
+    if (binding) return binding;
+  }
 
   if (!isEvmChain(chainId)) {
     return {
@@ -2638,8 +2720,9 @@ const SWAP_FLOOR: ConditionDefinition[] = [
     reference: `${SWAP_REFERENCE_ROOT}/target-is-canonical.md`,
     codes: {
       pass: "SWAP_TARGET_IS_CANONICAL",
-      fail: ["SWAP_TARGET_NOT_CANONICAL"],
+      fail: ["SWAP_TARGET_NOT_CANONICAL", "MONAD_CALL_INTENT_MISMATCH"],
       unverified: [
+        "MONAD_CALL_UNSUPPORTED",
         "SWAP_TARGET_SHAPE_INVALID",
         "SWAP_TARGET_CHAIN_UNSUPPORTED",
         "SWAP_TARGET_ROUTER_UNKNOWN",
@@ -2648,6 +2731,8 @@ const SWAP_FLOOR: ConditionDefinition[] = [
     codeEvidenceClass: {
       SWAP_TARGET_IS_CANONICAL: "static-registry",
       SWAP_TARGET_NOT_CANONICAL: "static-registry",
+      MONAD_CALL_INTENT_MISMATCH: "caller-stated",
+      MONAD_CALL_UNSUPPORTED: "not-verifiable",
       SWAP_TARGET_SHAPE_INVALID: "not-verifiable",
       SWAP_TARGET_CHAIN_UNSUPPORTED: "not-verifiable",
       SWAP_TARGET_ROUTER_UNKNOWN: "not-verifiable",

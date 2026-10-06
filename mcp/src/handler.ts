@@ -99,6 +99,13 @@ function readPolicyRole(policy: unknown): unknown {
   return (policy as Record<string, unknown>).role;
 }
 
+function freezeArguments(value: unknown): void {
+  if (value !== null && typeof value === "object") {
+    Object.freeze(value);
+    Object.values(value).forEach(freezeArguments);
+  }
+}
+
 // The plain handler behind the one MCP tool. Takes the raw tool call
 // arguments exactly as the transport delivered them and the policy file
 // path (never taken from the arguments), and returns exactly what
@@ -113,8 +120,10 @@ export async function handleConsult(
   pin?: PolicyPin
 ): Promise<ConsultResponse> {
   let serialized: string;
+  let capturedArgs: unknown;
   try {
-    serialized = JSON.stringify(rawArgs) ?? "";
+    capturedArgs = structuredClone(rawArgs);
+    serialized = JSON.stringify(capturedArgs) ?? "";
   } catch {
     return unknownAdapterResponse(
       "ADAPTER_FAILED",
@@ -125,6 +134,14 @@ export async function handleConsult(
     return unknownAdapterResponse(
       "ADAPTER_INPUT_TOO_LARGE",
       "tool arguments exceed the size limit"
+    );
+  }
+  try {
+    freezeArguments(capturedArgs);
+  } catch {
+    return unknownAdapterResponse(
+      "ADAPTER_FAILED",
+      "tool arguments could not be captured"
     );
   }
 
@@ -146,8 +163,8 @@ export async function handleConsult(
   // request itself is handed to consult() exactly as received, with no
   // shape validation of its own.
   const request =
-    rawArgs !== null && typeof rawArgs === "object"
-      ? (rawArgs as Record<string, unknown>).request
+    capturedArgs !== null && typeof capturedArgs === "object"
+      ? (capturedArgs as Record<string, unknown>).request
       : undefined;
 
   // The Solana role Reader reads only the owner's policy file (read above)
@@ -205,7 +222,7 @@ export async function handleConsult(
   try {
     // The adapter is the only clock and the only reader consult() ever
     // sees: it supplies `now`, `solanaRole` and the registry facts as data
-    // on every call. Only `rawArgs.request` is read above and these facts
+    // on every call. Only the captured request is read above and these facts
     // are built here, so nothing a caller sends can become a fact.
     return consult(request as never, policyResult.policy as never, {
       now,
