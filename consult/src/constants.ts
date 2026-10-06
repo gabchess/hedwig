@@ -31,6 +31,10 @@ export const MAX_REGISTRY_LIVE_READ_AGE_SECONDS = 60;
 // facts.marketSignals is dated on its own.
 export const MAX_MARKET_READING_AGE_SECONDS = 60;
 
+// How old a token transfer-tax reading may be, in seconds, before its
+// Condition stops trusting it. Same ceiling as the market readings.
+export const MAX_TAX_READING_AGE_SECONDS = 60;
+
 // A unit conversion, not a threshold: the market constants count time in
 // hours, and facts count it in unix seconds.
 export const SECONDS_PER_HOUR = 3600;
@@ -50,6 +54,7 @@ export const EVIDENCE_CLASS_WEIGHTS: Readonly<Record<EvidenceClass, number>> =
     "onchain-read": 1.0,
     "owner-policy": 0.9,
     "static-registry": 0.6,
+    simulated: 0.55,
     "caller-stated": 0.5,
     "not-verifiable": 0,
   });

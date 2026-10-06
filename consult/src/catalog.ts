@@ -180,8 +180,26 @@ export interface MarketSignalsFact {
   };
 }
 
+// One transfer-tax reading for one token, from the service's own Reader and
+// never from a request field. `taxBps` is the larger of the buy and sell tax
+// the Reader measured, an integer in basis points. `sellBlocked` is true when
+// a sell of tokens the probe bought failed cleanly. `asOf` is the unix second
+// of the reading. `source` is `simulation` (a probe the Reader ran) or
+// `canonical` (a token the Reader read as a known contract with no tax, no
+// probe). A `canonical` entry counts only for a token the code table or a
+// confirmed registry row names at this exact address, and only at `taxBps` 0.
+export interface TokenTaxFact {
+  chainId: string;
+  address: string;
+  taxBps: number;
+  sellBlocked: boolean;
+  asOf: number;
+  source: "simulation" | "canonical";
+}
+
 export interface Facts {
   now?: number;
+  tokenTax?: TokenTaxFact[];
   solanaRole?: RoleFact;
   registryAsset?: RegistryAssetFact;
   registryVault?: RegistryVaultFact;
@@ -394,7 +412,10 @@ function isEvmChain(chainId: unknown): boolean {
 // differ only in case are the same recipient, so the comparison folds case
 // once both sides pass the shape check; a lookalike differs in its actual
 // hex digits and still fails.
-function sameEvmAddress(a: unknown, b: unknown): true | false | "invalid" {
+export function sameEvmAddress(
+  a: unknown,
+  b: unknown
+): true | false | "invalid" {
   if (
     typeof a !== "string" ||
     typeof b !== "string" ||
@@ -409,7 +430,7 @@ function sameEvmAddress(a: unknown, b: unknown): true | false | "invalid" {
 // Caller-influenced strings (a chain id, an action type, an asset symbol)
 // must never be used as an object key directly: "constructor" or "name"
 // resolve through the prototype chain instead of failing the lookup.
-function ownLookup<T>(source: unknown, key: unknown): T | undefined {
+export function ownLookup<T>(source: unknown, key: unknown): T | undefined {
   if (
     typeof key !== "string" ||
     source === null ||
@@ -426,7 +447,7 @@ function ownLookup<T>(source: unknown, key: unknown): T | undefined {
 // only clones and freezes. `facts` may be missing, malformed, or not an
 // object at all; this reads a well-formed field out of it or answers
 // undefined, never throwing either way.
-function readFactNow(facts: unknown): number | undefined {
+export function readFactNow(facts: unknown): number | undefined {
   if (facts === null || typeof facts !== "object" || Array.isArray(facts)) {
     return undefined;
   }
@@ -1325,22 +1346,42 @@ const REFERENCE_ROOT = "consult/references/pay";
 export function assetKnownTo(request: ConsultRequest, facts: unknown): boolean {
   const action = ownLookup<unknown>(request, "action");
   const asset = ownLookup<unknown>(action, "asset");
-  const entry = canonicalAddressFor(
+  return tokenKnownTo(
     ownLookup<unknown>(action, "chainId"),
     ownLookup<unknown>(asset, "symbol"),
+    ownLookup<unknown>(asset, "contractAddress"),
     facts
-  );
-  return (
-    entry !== undefined &&
-    (entry.source === "code-table" || entry.liveRead === "confirmed") &&
-    sameEvmAddress(entry.address, ownLookup(asset, "contractAddress")) === true
   );
 }
 
-const isUnixSecond = (value: unknown): value is number =>
+// The test behind assetKnownTo, for any token: the code table, or a registry
+// row whose live read is `confirmed`, names this symbol on this chain at
+// exactly this address.
+export function tokenKnownTo(
+  chainId: unknown,
+  symbol: unknown,
+  address: unknown,
+  facts: unknown
+): boolean {
+  const entry = canonicalAddressFor(chainId, symbol, facts);
+  return (
+    entry !== undefined &&
+    (entry.source === "code-table" || entry.liveRead === "confirmed") &&
+    sameEvmAddress(entry.address, address) === true
+  );
+}
+
+// A basis-point figure: a whole number from 0 to the full scale.
+export const isWholeBps = (value: unknown): value is number =>
+  typeof value === "number" &&
+  Number.isInteger(value) &&
+  value >= 0 &&
+  value <= 10000;
+
+export const isUnixSecond = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value > 0;
 
-const isAmount = (value: unknown): value is number =>
+export const isAmount = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0;
 
 // Every listed constant as a non-negative number, or undefined when any one
@@ -2094,17 +2135,36 @@ function makeTokenIsCanonicalChecker(
   };
 }
 
-// Every declared FAIL code below is checked BEFORE the ceiling comparison,
-// so a malformed number or a declared-vs-derived mismatch is always the
-// reason reported, never masked by a coincidentally-passing ceiling check.
-// The only division is by quotedOut, which is confirmed > 0n first.
-function checkSlippageWithinCeiling(
+export interface SlippageShapeCodes {
+  readonly amountsMalformed: string;
+  readonly quotedOutZero: string;
+  readonly minOutZero: string;
+  readonly minOutExceedsQuote: string;
+  readonly bpsMalformed: string;
+  readonly declaredMismatch: string;
+}
+
+export interface SlippageShape {
+  readonly quotedOut: bigint;
+  readonly minOut: bigint;
+  readonly derivedBps: bigint;
+}
+
+// The request-only half of a slippage check, shared by the owner's ceiling
+// and the floor's: every declared FAIL code is checked BEFORE any ceiling
+// comparison, so a malformed number or a declared-vs-derived mismatch is
+// always the reason reported, never masked by a coincidentally-passing
+// ceiling check. `approved` finishes the sentence "never what ..." in the
+// zero-amount evidence. The only division is by quotedOut, which is
+// confirmed > 0n first.
+export function readSlippageShape(
+  id: string,
   request: ConsultRequest,
-  context: ConditionContext
-): CheckerOutcome {
-  const id = "slippage-within-ceiling";
+  codes: SlippageShapeCodes,
+  failClass: EvidenceClass,
+  approved: string
+): CheckerOutcome | SlippageShape {
   const { quotedOut, minOut, slippageBps } = request.action;
-  const maxSlippageBps = context.policy.maxSlippageBps;
 
   if (
     typeof quotedOut !== "string" ||
@@ -2115,8 +2175,8 @@ function checkSlippageWithinCeiling(
     return {
       id,
       status: "FAIL",
-      code: "SLIPPAGE_AMOUNTS_MALFORMED",
-      evidenceClass: "owner-policy",
+      code: codes.amountsMalformed,
+      evidenceClass: failClass,
       evidence: `quotedOut "${describe(quotedOut)}" or minOut "${describe(
         minOut
       )}" is not a well-formed non-negative integer string`,
@@ -2130,26 +2190,26 @@ function checkSlippageWithinCeiling(
     return {
       id,
       status: "FAIL",
-      code: "SLIPPAGE_QUOTED_OUT_ZERO",
-      evidenceClass: "owner-policy",
-      evidence: "a quotedOut of 0 is never what the owner approved",
+      code: codes.quotedOutZero,
+      evidenceClass: failClass,
+      evidence: `a quotedOut of 0 is never what ${approved}`,
     };
   }
   if (minOutValue === 0n) {
     return {
       id,
       status: "FAIL",
-      code: "SLIPPAGE_MIN_OUT_ZERO",
-      evidenceClass: "owner-policy",
-      evidence: "a minOut of 0 is never what the owner approved",
+      code: codes.minOutZero,
+      evidenceClass: failClass,
+      evidence: `a minOut of 0 is never what ${approved}`,
     };
   }
   if (minOutValue > quotedOutValue) {
     return {
       id,
       status: "FAIL",
-      code: "SLIPPAGE_MIN_OUT_EXCEEDS_QUOTE",
-      evidenceClass: "owner-policy",
+      code: codes.minOutExceedsQuote,
+      evidenceClass: failClass,
       evidence: `minOut ${describe(minOut)} exceeds quotedOut ${describe(
         quotedOut
       )}`,
@@ -2164,8 +2224,8 @@ function checkSlippageWithinCeiling(
     return {
       id,
       status: "FAIL",
-      code: "SLIPPAGE_BPS_MALFORMED",
-      evidenceClass: "owner-policy",
+      code: codes.bpsMalformed,
+      evidenceClass: failClass,
       evidence: `slippageBps ${describe(
         slippageBps
       )} is not an integer in 0..10000`,
@@ -2178,20 +2238,59 @@ function checkSlippageWithinCeiling(
     return {
       id,
       status: "FAIL",
-      code: "SLIPPAGE_DECLARED_MISMATCH",
-      evidenceClass: "owner-policy",
+      code: codes.declaredMismatch,
+      evidenceClass: failClass,
       evidence: `declared slippageBps ${describe(
         slippageBps
       )} does not match the derived ${derivedBps.toString()} basis points`,
     };
   }
+  return {
+    quotedOut: quotedOutValue,
+    minOut: minOutValue,
+    derivedBps,
+  };
+}
 
-  if (
-    typeof maxSlippageBps !== "number" ||
-    !Number.isInteger(maxSlippageBps) ||
-    maxSlippageBps < 0 ||
-    maxSlippageBps > 10000
-  ) {
+// Cross-multiplied, so nothing is rounded: derivedBps rounds down, and a
+// swap a fraction of a basis point over the ceiling is still over it.
+export function slippageWithin(
+  shape: SlippageShape,
+  ceilingBps: number
+): boolean {
+  return (
+    (shape.quotedOut - shape.minOut) * 10000n <=
+    BigInt(ceilingBps) * shape.quotedOut
+  );
+}
+
+function checkSlippageWithinCeiling(
+  request: ConsultRequest,
+  context: ConditionContext
+): CheckerOutcome {
+  const id = "slippage-within-ceiling";
+  const maxSlippageBps = context.policy.maxSlippageBps;
+
+  const shape = readSlippageShape(
+    id,
+    request,
+    {
+      amountsMalformed: "SLIPPAGE_AMOUNTS_MALFORMED",
+      quotedOutZero: "SLIPPAGE_QUOTED_OUT_ZERO",
+      minOutZero: "SLIPPAGE_MIN_OUT_ZERO",
+      minOutExceedsQuote: "SLIPPAGE_MIN_OUT_EXCEEDS_QUOTE",
+      bpsMalformed: "SLIPPAGE_BPS_MALFORMED",
+      declaredMismatch: "SLIPPAGE_DECLARED_MISMATCH",
+    },
+    "owner-policy",
+    "the owner approved"
+  );
+  if ("status" in shape) {
+    return shape;
+  }
+  const { derivedBps } = shape;
+
+  if (!isWholeBps(maxSlippageBps)) {
     return {
       id,
       status: "UNVERIFIED",
@@ -2202,11 +2301,7 @@ function checkSlippageWithinCeiling(
     };
   }
 
-  // Cross-multiplied, so nothing is rounded: derivedBps rounds down, and a
-  // swap a fraction of a basis point over the ceiling is still over it.
-  const within =
-    (quotedOutValue - minOutValue) * 10000n <=
-    BigInt(maxSlippageBps) * quotedOutValue;
+  const within = slippageWithin(shape, maxSlippageBps);
   return {
     id,
     status: within ? "PASS" : "FAIL",

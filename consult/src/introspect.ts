@@ -15,7 +15,8 @@ import {
   deepFreeze,
   passCodesOf,
 } from "./catalog";
-import type { ConditionDefinition } from "./catalog";
+import type { Catalog, ConditionDefinition } from "./catalog";
+import { FLOOR_PROFILE } from "./floor-profile";
 
 export interface CatalogConditionDescription {
   readonly id: string;
@@ -42,6 +43,10 @@ export interface CatalogConditionDescription {
 export interface CatalogDescription {
   readonly actionTypes: readonly string[];
   readonly conditions: readonly CatalogConditionDescription[];
+  // The Conditions of the policy-free floor profile, in the same shape. A
+  // Condition the profile shares with the catalog appears in both lists; the
+  // two that exist only in the profile appear here alone.
+  readonly floorProfile: readonly CatalogConditionDescription[];
   // chainId -> symbol -> contract address.
   readonly canonicalAssets: Readonly<
     Record<string, Readonly<Record<string, string>>>
@@ -69,12 +74,12 @@ function conditionKey(definition: ConditionDefinition): string {
   });
 }
 
-function describeConditions(): CatalogConditionDescription[] {
+function describeConditions(catalog: Catalog): CatalogConditionDescription[] {
   const byKey = new Map<
     string,
     { actionTypes: string[]; definition: ConditionDefinition }
   >();
-  for (const [actionType, definitions] of Object.entries(CATALOG)) {
+  for (const [actionType, definitions] of Object.entries(catalog)) {
     for (const definition of definitions) {
       const key = conditionKey(definition);
       const existing = byKey.get(key);
@@ -121,8 +126,9 @@ function describeCanonicalRouters(): Record<string, Record<string, string>> {
  * Describes the catalog this package binds `consult()` to: every
  * Condition's id, which action type(s) it runs for, whether it is Floor,
  * its question, its declared codes and their evidence classes, and its
- * reference path, plus the canonical asset and router tables the Floor
- * checks compare requests against.
+ * reference path, the Conditions of the policy-free floor profile in the same
+ * shape, plus the canonical asset and router tables the Floor checks compare
+ * requests against.
  *
  * The returned structure carries no checker function and cannot be
  * mutated: it is a fresh object on every call, deep-frozen before it is
@@ -131,7 +137,8 @@ function describeCanonicalRouters(): Record<string, Record<string, string>> {
 export function describeCatalog(): CatalogDescription {
   return deepFreeze({
     actionTypes: Object.keys(CATALOG),
-    conditions: describeConditions(),
+    conditions: describeConditions(CATALOG),
+    floorProfile: describeConditions(FLOOR_PROFILE),
     canonicalAssets: describeCanonicalAssets(),
     canonicalRouters: describeCanonicalRouters(),
   });
