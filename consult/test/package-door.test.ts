@@ -43,10 +43,14 @@ describe("package door", () => {
     expect(Object.keys(door)).to.deep.equal(["runTriggerGuard"]);
   });
 
-  it("the canonical subpath exports only canonicalAddressFor at runtime", () => {
+  it("the canonical subpath exposes only lookup and read-only native metadata", () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const door = require("../src/canonical");
-    expect(Object.keys(door)).to.deep.equal(["canonicalAddressFor"]);
+    expect(Object.keys(door)).to.deep.equal([
+      "canonicalAddressFor",
+      "isNativeMonadInput",
+      "MONAD_USDC_ISSUER_URL",
+    ]);
   });
 
   it("the registry-keys subpath exports only the two key constants, both empty until the signing sitting", () => {

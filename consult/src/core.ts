@@ -4,7 +4,14 @@ import {
   type EvidenceClass,
   type Verdict,
 } from "./fold";
-import { deepFreeze, describe, passCodesOf, truncate } from "./catalog";
+import {
+  canonicalAddressFor,
+  deepFreeze,
+  describe,
+  isNativeMonadInput,
+  passCodesOf,
+  truncate,
+} from "./catalog";
 import type {
   Catalog,
   ConditionDefinition,
@@ -219,6 +226,27 @@ function runChecker(
     );
   }
 
+  // Keep the full source outside the capped prose. Re-read the validated
+  // fact here rather than forwarding arbitrary checker-supplied metadata.
+  const entry =
+    definition.id === "token-out-is-canonical" &&
+    (rawStatus === "PASS" || rawStatus === "FAIL") &&
+    isNativeMonadInput(request.action.chainId, request.action.tokenIn)
+      ? canonicalAddressFor(
+          request.action.chainId,
+          request.action.tokenOut?.symbol,
+          facts
+        )
+      : undefined;
+  const canonicalAsset =
+    entry?.source === "registry" && entry.issuerSource
+      ? deepFreeze({
+          chainId: request.action.chainId,
+          symbol: "USDC",
+          contractAddress: entry.address,
+          issuerSource: entry.issuerSource,
+        })
+      : undefined;
   return {
     id: rawId,
     question: definition.question,
@@ -227,6 +255,7 @@ function runChecker(
     evidence: rawEvidence,
     evidenceClass,
     reference: definition.reference,
+    ...(canonicalAsset ? { canonicalAsset } : {}),
   };
 }
 

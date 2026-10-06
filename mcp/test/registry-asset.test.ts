@@ -41,6 +41,7 @@ import {
   STEAK_CODE,
   USDT,
   USDT_CODE,
+  VERIFIED_AT,
   ZERO_WORD,
   emptyChain,
   envelope,
@@ -1815,6 +1816,154 @@ describe("registry Reader", function () {
   });
 
   describe("a swap", () => {
+    const issuerUrl =
+      "https://developers.circle.com/stablecoins/usdc-contract-addresses";
+    const issuerEvidence = (patch: Record<string, unknown> = {}) => [
+      {
+        origin: "circle.com",
+        url: issuerUrl,
+        retrievedAt: VERIFIED_AT,
+        ...patch,
+      },
+    ];
+    const nativeSwap = (
+      tokenIn: unknown = { kind: "native", symbol: "MON" }
+    ) => ({
+      action: {
+        type: "swap",
+        chainId: "eip155:143",
+        tokenIn,
+        tokenOut: { symbol: "USDC", contractAddress: MONAD_USDC },
+      },
+    });
+    const nativeWorld = (evidence: unknown = issuerEvidence()) =>
+      makeWorld(
+        files([[MONAD_PATH, monadUsdcRow({ patch: { evidence } })]]),
+        monadChain()
+      );
+
+    it("native MON selects the USDC output and retains its signed issuer source", async () => {
+      const world = nativeWorld();
+      const facts = await gatherRegistry(nativeSwap(), depsFor(world));
+      expect(facts.registryAsset?.symbol).to.equal("USDC");
+      expect(facts.registryAsset).to.include({ liveRead: "confirmed" });
+      expect(facts.registryAsset)
+        .to.have.property("issuerSource")
+        .that.deep.equals({
+          origin: "circle.com",
+          url: issuerUrl,
+          retrievedAt: Date.parse(VERIFIED_AT) / 1000,
+        });
+      expect(rowLog(world).map((entry) => entry.url)).to.deep.equal([
+        `${BASE}/${MONAD_PATH}`,
+      ]);
+    });
+
+    it("an ERC20 called MON does not take the native shortcut", async () => {
+      const world = nativeWorld();
+      const facts = await gatherRegistry(
+        nativeSwap({ symbol: "MON", contractAddress: USDT }),
+        depsFor(world)
+      );
+      expect(facts).to.deep.equal({});
+      expect(rowLog(world).map((entry) => entry.url)).to.deep.equal([
+        `${BASE}/v1/eip155-143/MON.json`,
+      ]);
+    });
+
+    it("a hybrid native/contract input is refused before every outbound call", async () => {
+      const world = nativeWorld();
+      expect(
+        await gatherRegistry(
+          nativeSwap({ kind: "native", symbol: "MON", contractAddress: USDT }),
+          depsFor(world)
+        )
+      ).to.deep.equal({});
+      expect(world.log).to.have.length(0);
+    });
+
+    for (const tokenIn of [
+      { kind: "native", symbol: "ETH" },
+      { kind: "native", symbol: "MON", unexpected: "caller text" },
+      { kind: "native" },
+    ]) {
+      it("a malformed native input is refused before every outbound call", async () => {
+        const world = nativeWorld();
+        expect(
+          await gatherRegistry(nativeSwap(tokenIn), depsFor(world))
+        ).to.deep.equal({});
+        expect(world.log).to.have.length(0);
+      });
+    }
+
+    it("native input on another network is refused before every outbound call", async () => {
+      const world = nativeWorld();
+      const request = nativeSwap();
+      request.action.chainId = "eip155:10143";
+      expect(await gatherRegistry(request, depsFor(world))).to.deep.equal({});
+      expect(world.log).to.have.length(0);
+    });
+
+    for (const [name, evidence] of [
+      ["missing", []],
+      ["wrong issuer", issuerEvidence({ origin: "attacker.test" })],
+      ["hostile URL", issuerEvidence({ url: "javascript:alert(1)" })],
+      [
+        "lookalike host",
+        issuerEvidence({
+          url: issuerUrl.replace("circle.com", "circle.com.attacker.test"),
+        }),
+      ],
+      [
+        "future retrieval",
+        issuerEvidence({ retrievedAt: "2026-10-11T00:00:00Z" }),
+      ],
+      [
+        "retrieval after row verification",
+        issuerEvidence({ retrievedAt: "2026-10-04T00:00:00Z" }),
+      ],
+      ["ambiguous issuer", [...issuerEvidence(), ...issuerEvidence()]],
+    ] as const) {
+      it(`native output with ${name} evidence has no trusted fact`, async () => {
+        const world = nativeWorld(evidence);
+        expect(
+          await gatherRegistry(nativeSwap(), depsFor(world))
+        ).to.deep.equal({});
+        expect(rpcLog(world)).to.have.length(0);
+      });
+    }
+
+    it("native output confirmation checks the RPC network in the same batch", async () => {
+      const world = nativeWorld();
+      await gatherRegistry(nativeSwap(), depsFor(world));
+      const calls = JSON.parse(rpcLog(world)[0]?.body ?? "[]");
+      expect(calls).to.deep.include({
+        jsonrpc: "2.0",
+        id: 4,
+        method: "eth_chainId",
+        params: [],
+      });
+    });
+
+    it("an RPC on another network never confirms native output identity", async () => {
+      const world = nativeWorld();
+      const realFetch = world.fetch;
+      world.fetch = (async (input: unknown, init?: RequestInit) => {
+        const response = await realFetch(input as string, init);
+        if (String(input) !== RPC_URL) return response;
+        const replies = JSON.parse(await response.text());
+        return new Response(
+          JSON.stringify(
+            replies.map((reply: { id: number }) =>
+              reply.id === 4 ? { jsonrpc: "2.0", id: 4, result: "0x1" } : reply
+            )
+          )
+        );
+      }) as typeof fetch;
+      const facts = await gatherRegistry(nativeSwap(), depsFor(world));
+      expect(facts.registryAsset?.liveRead).to.equal("unconfirmed");
+    });
+
     it("looks up the first symbol the code table does not list", async () => {
       const world = makeWorld(
         files([[MONAD_PATH, monadUsdcRow()]]),

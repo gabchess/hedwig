@@ -77,7 +77,8 @@ const SOURCE_NAMES: Readonly<Record<string, readonly string[]>> = {
 // Outside the catalog, a literal compared against may only be 0 or 1.
 const COMPARED_NUMBERS = new Set(["0", "1", "0n", "1n"]);
 // Comparisons in mcp/src against another number, each read by a reviewer:
-// wire-format sizes, an HTTP status, a parity test and the JSON-RPC version.
+// wire-format sizes, an HTTP status, a parity test, the JSON-RPC version
+// and Monad's public mainnet chain ID. Domain thresholds stay private.
 // A new one fails the scan until its number is read and its text is added
 // here.
 const REVIEWED_COMPARISONS = new Set([
@@ -85,6 +86,7 @@ const REVIEWED_COMPARISONS = new Set([
   'mcp/src/readers/registry-asset.ts: entry.jsonrpc !== "2.0"',
   "mcp/src/readers/registry-asset.ts: signatures.length !== 2",
   "mcp/src/readers/registry-asset.ts: response.status !== 200",
+  "mcp/src/readers/registry-asset.ts: base.chainNumber === 143",
   'mcp/src/readers/solana-role.ts: body.jsonrpc !== "2.0"',
   "mcp/src/readers/solana-role.ts: pair.length !== 2",
   "mcp/src/readers/solana-role.ts: response.status !== 200",
@@ -694,6 +696,22 @@ describe("params boundary: no value reaches the public tree", function () {
     );
     expect(thresholdLiterals(other, "const timeoutMs = 4999;")).to.deep.equal(
       []
+    );
+  });
+
+  it("the public Monad chain ID exception does not admit a domain threshold", () => {
+    const reader = join(
+      REPO_ROOT,
+      "mcp",
+      "src",
+      "readers",
+      "registry-asset.ts"
+    );
+    expect(
+      thresholdLiterals(reader, "if (base.chainNumber === 143) {}")
+    ).to.deep.equal([]);
+    expect(thresholdLiterals(reader, "if (holders === 143) {}")).to.have.length(
+      1
     );
   });
 

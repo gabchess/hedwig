@@ -3,7 +3,11 @@ import type { KeyObject } from "node:crypto";
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { canonicalAddressFor } from "@hedwig/consult/canonical";
+import {
+  canonicalAddressFor,
+  isNativeMonadInput,
+  MONAD_USDC_ISSUER_URL,
+} from "@hedwig/consult/canonical";
 import {
   REGISTRY_PUBLIC_KEY_A,
   REGISTRY_PUBLIC_KEY_B,
@@ -314,6 +318,7 @@ interface RowBase {
 interface TokenRow extends RowBase {
   type: "token";
   symbol: string;
+  issuerSource?: RegistryAssetFact["issuerSource"];
   proxy?: {
     slot: string;
     implementation: string;
@@ -386,9 +391,30 @@ function readTokenRow(
   if (typeof symbol !== "string" || !ROW_SYMBOL.test(symbol)) {
     return undefined;
   }
+  // Keep only the public issuer reference. Never forward RPC URLs or notes.
+  const candidates = Array.isArray(row.evidence)
+    ? row.evidence.filter(
+        (entry: unknown) => isObject(entry) && entry.origin === "circle.com"
+      )
+    : [];
+  const source = candidates.length === 1 ? candidates[0] : undefined;
+  const retrievedAt = isObject(source)
+    ? isoToSeconds(source.retrievedAt)
+    : undefined;
+  const issuerSource: RegistryAssetFact["issuerSource"] =
+    base.chainNumber === 143 &&
+    symbol === "USDC" &&
+    isObject(source) &&
+    source.url === MONAD_USDC_ISSUER_URL &&
+    retrievedAt !== undefined &&
+    retrievedAt > 0 &&
+    retrievedAt <= base.verifiedAt
+      ? { origin: "circle.com", url: MONAD_USDC_ISSUER_URL, retrievedAt }
+      : undefined;
+  const provenance = issuerSource ? { issuerSource } : {};
   const upgradeable = row.upgradeable;
   if (upgradeable === false) {
-    return { ...base, type: "token", symbol };
+    return { ...base, type: "token", symbol, ...provenance };
   }
   if (!isObject(upgradeable)) {
     return undefined;
@@ -414,6 +440,7 @@ function readTokenRow(
     ...base,
     type: "token",
     symbol,
+    ...provenance,
     proxy: { slot: expectedSlot, implementation, implementationCodeSha256 },
   };
 }
@@ -491,6 +518,7 @@ interface Lookup {
   chainNumber: number;
   // The first symbol the code table does not already list, if any.
   tokenSymbol?: string;
+  nativeInput: boolean;
   vault?: {
     address: string;
     // The deposit token's symbol, for the canonical-asset check.
@@ -523,6 +551,16 @@ function readLookup(request: unknown): Lookup | undefined {
     return undefined;
   }
   const chainNumber = Number(matched[1]);
+  const nativeInput =
+    action.type === "swap" && isNativeMonadInput(chainId, action.tokenIn);
+  if (
+    action.type === "swap" &&
+    isObject(action.tokenIn) &&
+    action.tokenIn.kind === "native" &&
+    !nativeInput
+  ) {
+    return undefined;
+  }
 
   let symbols: Array<string | undefined>;
   switch (action.type) {
@@ -531,7 +569,9 @@ function readLookup(request: unknown): Lookup | undefined {
       symbols = [symbolOf(action.asset)];
       break;
     case "swap":
-      symbols = [symbolOf(action.tokenIn), symbolOf(action.tokenOut)];
+      symbols = nativeInput
+        ? [symbolOf(action.tokenOut)]
+        : [symbolOf(action.tokenIn), symbolOf(action.tokenOut)];
       break;
     default:
       return undefined;
@@ -564,7 +604,7 @@ function readLookup(request: unknown): Lookup | undefined {
   if (tokenSymbol === undefined && vault === undefined) {
     return undefined;
   }
-  return { chainId, chainNumber, tokenSymbol, vault };
+  return { chainId, chainNumber, tokenSymbol, nativeInput, vault };
 }
 
 // --- the network ------------------------------------------------------------
@@ -837,6 +877,7 @@ async function readTokenStage(
       row.type !== "token" ||
       row.chainNumber !== lookup.chainNumber ||
       row.symbol !== lookup.tokenSymbol ||
+      (lookup.nativeInput && row.issuerSource === undefined) ||
       !Number.isSafeInteger(now) ||
       now <= 0 ||
       row.verifiedAt > now ||
@@ -885,13 +926,20 @@ async function liveReadTokenFact(
           }
         );
       }
+      if (lookup.nativeInput) {
+        calls.push({ id: 4, method: "eth_chainId", params: [] });
+      }
       const reply = await within(deadlineAt, controller, () =>
         postBatch(rpcUrl, calls, deps, controller)
       );
-      liveRead = liveReadOfToken(
-        row,
-        parseBatch(reply === TIMED_OUT ? undefined : reply, calls)
+      const results = parseBatch(
+        reply === TIMED_OUT ? undefined : reply,
+        calls
       );
+      liveRead =
+        lookup.nativeInput && blockOf(results.get(4)) !== lookup.chainNumber
+          ? "unconfirmed"
+          : liveReadOfToken(row, results);
     }
     return {
       chainId: lookup.chainId,
@@ -900,6 +948,7 @@ async function liveReadTokenFact(
       expiresAt: row.expiresAt,
       liveRead,
       liveReadAt,
+      ...(row.issuerSource ? { issuerSource: row.issuerSource } : {}),
     };
   } catch {
     return undefined;
