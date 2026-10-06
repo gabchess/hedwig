@@ -1,4 +1,5 @@
 import type { ConditionStatus, EvidenceClass } from "./fold";
+import type { RegistryAssetFact } from "./catalog";
 
 export type { EvidenceClass } from "./fold";
 
@@ -16,4 +17,9 @@ export interface ConditionResult {
   readonly evidence: string;
   readonly evidenceClass: EvidenceClass;
   readonly reference: string;
+  readonly canonicalAsset?: Readonly<
+    Pick<RegistryAssetFact, "chainId" | "symbol" | "contractAddress"> & {
+      issuerSource: NonNullable<RegistryAssetFact["issuerSource"]>;
+    }
+  >;
 }

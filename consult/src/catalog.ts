@@ -114,6 +114,27 @@ export interface RegistryAssetFact {
   expiresAt: number;
   liveRead: RegistryLiveRead;
   liveReadAt: number;
+  issuerSource?: {
+    origin: "circle.com";
+    url: string;
+    retrievedAt: number;
+  };
+}
+
+export const MONAD_USDC_ISSUER_URL =
+  "https://developers.circle.com/stablecoins/usdc-contract-addresses";
+
+// This marks a native input for read-only lookup. It grants no permission.
+export function isNativeMonadInput(chainId: unknown, token: unknown): boolean {
+  return (
+    chainId === "eip155:143" &&
+    token !== null &&
+    typeof token === "object" &&
+    !Array.isArray(token) &&
+    Object.keys(token).sort().join() === "kind,symbol" &&
+    ownLookup<unknown>(token, "kind") === "native" &&
+    ownLookup<unknown>(token, "symbol") === "MON"
+  );
 }
 
 // A registry row for one ERC-4626 vault, plus every result of the Reader's
@@ -212,7 +233,9 @@ export interface ConsultAction {
   validBefore?: number;
 
   // swap-only fields.
-  tokenIn?: { symbol: string; contractAddress: string };
+  tokenIn?:
+    | { symbol: string; contractAddress: string }
+    | { kind: "native"; symbol: "MON"; contractAddress?: never };
   tokenOut?: { symbol: string; contractAddress: string };
   amountIn?: string;
   quotedOut?: string;
@@ -468,7 +491,13 @@ function readRegistryAssetFact(
   facts: unknown,
   chainId: string,
   symbol: string
-): { address: string; liveRead: RegistryLiveRead } | undefined {
+):
+  | {
+      address: string;
+      liveRead: RegistryLiveRead;
+      issuerSource?: RegistryAssetFact["issuerSource"];
+    }
+  | undefined {
   if (
     !REGISTRY_SYMBOL_SHAPE.test(symbol) ||
     codeTableListsSymbol(chainId, symbol)
@@ -504,18 +533,41 @@ function readRegistryAssetFact(
   }
   const age = (now as number) - (liveReadAt as number);
   const fresh = age >= 0 && age <= MAX_REGISTRY_LIVE_READ_AGE_SECONDS;
+  const source = field("issuerSource");
+  const origin = ownLookup<unknown>(source, "origin");
+  const url = ownLookup<unknown>(source, "url");
+  const retrievedAt = ownLookup<unknown>(source, "retrievedAt");
+  // Facts use Unix seconds; the reader validates the signed row's ISO date.
+  const issuerSource: RegistryAssetFact["issuerSource"] =
+    chainId === "eip155:143" &&
+    symbol === "USDC" &&
+    origin === "circle.com" &&
+    url === MONAD_USDC_ISSUER_URL &&
+    typeof retrievedAt === "number" &&
+    Number.isSafeInteger(retrievedAt) &&
+    retrievedAt > 0 &&
+    retrievedAt <= (liveReadAt as number) &&
+    retrievedAt <= (now as number)
+      ? { origin, url, retrievedAt }
+      : undefined;
   return {
     address: contractAddress as string,
     liveRead:
       liveRead === "confirmed" && !fresh
         ? "unconfirmed"
         : (liveRead as RegistryLiveRead),
+    ...(issuerSource ? { issuerSource } : {}),
   };
 }
 
 export type CanonicalAddress =
   | { source: "code-table"; address: string }
-  | { source: "registry"; address: string; liveRead: RegistryLiveRead };
+  | {
+      source: "registry";
+      address: string;
+      liveRead: RegistryLiveRead;
+      issuerSource?: RegistryAssetFact["issuerSource"];
+    };
 
 // The one lookup behind asset-is-canonical, target-is-canonical,
 // token-in-is-canonical and token-out-is-canonical, through
@@ -2070,6 +2122,37 @@ function makeTokenIsCanonicalChecker(
     const symbol = token?.symbol;
     const contractAddress = token?.contractAddress;
 
+    if (
+      tokenField === "tokenIn" &&
+      ownLookup<unknown>(token, "kind") === "native"
+    ) {
+      return {
+        id,
+        status: "UNVERIFIED",
+        code: codes.registryMissing,
+        evidenceClass: "not-verifiable",
+        evidence: isNativeMonadInput(chainId, token)
+          ? "native MON input is read-only; execution checks are not enabled"
+          : "cannot confirm a malformed or unsupported native input",
+      };
+    }
+    if (
+      tokenField === "tokenOut" &&
+      isNativeMonadInput(chainId, request.action.tokenIn)
+    ) {
+      const entry = canonicalAddressFor(chainId, symbol, context.facts);
+      if (entry?.source !== "registry" || entry.issuerSource === undefined) {
+        return {
+          id,
+          status: "UNVERIFIED",
+          code: codes.registryMissing,
+          evidenceClass: "not-verifiable",
+          evidence:
+            "cannot confirm the USDC issuer source for this native Monad swap",
+        };
+      }
+    }
+
     if (sameEvmAddress(contractAddress, other?.contractAddress) === true) {
       return {
         id,
@@ -2082,7 +2165,7 @@ function makeTokenIsCanonicalChecker(
       };
     }
 
-    return checkCanonicalAddress(
+    const result = checkCanonicalAddress(
       id,
       tokenField,
       chainId,
@@ -2091,6 +2174,20 @@ function makeTokenIsCanonicalChecker(
       context.facts,
       codes
     );
+    if (
+      tokenField === "tokenOut" &&
+      isNativeMonadInput(chainId, request.action.tokenIn) &&
+      (result.status === "PASS" || result.status === "FAIL")
+    ) {
+      return {
+        ...result,
+        evidence:
+          result.status === "PASS"
+            ? "USDC output identity matches; canonical address and issuer source are in canonicalAsset"
+            : "USDC output address differs; canonical address and issuer source are in canonicalAsset",
+      };
+    }
+    return result;
   };
 }
 

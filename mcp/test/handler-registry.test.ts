@@ -153,6 +153,80 @@ describe("handleConsult: the registry Reader wired end to end", function () {
     expect(result.proceed).to.equal(false);
   });
 
+  const nativeSwap = (address = MONAD_USDC) => ({
+    action: {
+      type: "swap",
+      chainId: "eip155:143",
+      recipient: OWNER,
+      target: MONAD_USDC,
+      tokenIn: { kind: "native", symbol: "MON" },
+      tokenOut: { symbol: "USDC", contractAddress: address },
+      amountIn: "10000000000000000000",
+      quotedOut: "1000000",
+      minOut: "995000",
+      slippageBps: 50,
+      deadline: Math.floor(Date.now() / 1000) + 300,
+      approvalAmount: "0",
+    },
+  });
+  const withIssuer = () => {
+    const retrievedAt = iso(Date.now() - 3600 * 1000);
+    world.files[MONAD_PATH] = signed(
+      monadUsdcRow({
+        verifiedAt: retrievedAt,
+        expiresAt: iso(Date.now() + 30 * 86400 * 1000),
+        patch: {
+          evidence: [
+            {
+              origin: "circle.com",
+              url: "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+              retrievedAt,
+            },
+          ],
+        },
+      }),
+      keys
+    );
+  };
+
+  it("native MON to an incorrect USDC output returns a sourced denial through the handler", async () => {
+    withIssuer();
+    const result = await handleConsult(
+      { request: nativeSwap("0x" + "7".repeat(40)) },
+      policyPath
+    );
+    expect(row(result, "token-out-is-canonical"))
+      .to.have.property("canonicalAsset")
+      .that.includes({
+        chainId: "eip155:143",
+        symbol: "USDC",
+        contractAddress: MONAD_USDC,
+      });
+    expect(result.verdict).to.equal("DENY");
+    expect(result.support).to.equal(0);
+    expect(result.proceed).to.equal(false);
+    expect(JSON.stringify(result)).to.not.include(RPC_URL);
+  });
+
+  it("native MON to a matching USDC output proves identity and keeps execution blocked", async () => {
+    withIssuer();
+    const result = await handleConsult({ request: nativeSwap() }, policyPath);
+    expect(row(result, "token-out-is-canonical")?.status).to.equal("PASS");
+    expect(result.proceed).to.equal(false);
+    expect(result.support).to.equal(0);
+  });
+
+  it("native output without issuer evidence remains unverified through the handler", async () => {
+    const result = await handleConsult({ request: nativeSwap() }, policyPath);
+    expect(row(result, "token-out-is-canonical")?.status).to.equal(
+      "UNVERIFIED"
+    );
+    expect(row(result, "token-out-is-canonical")).to.not.have.property(
+      "canonicalAsset"
+    );
+    expect(result.proceed).to.equal(false);
+  });
+
   it("a hanging registry read aborts and answers UNKNOWN at the injected deadline", async () => {
     __setRegistryDeadlineForTests(20);
     let signal: AbortSignal | null | undefined;

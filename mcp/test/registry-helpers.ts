@@ -243,6 +243,7 @@ export const sparkRow = (extra: Partial<VaultRowSpec> = {}) =>
 // --- the fake world ---------------------------------------------------------
 
 export interface ChainState {
+  chainId?: number;
   code: Record<string, string>;
   storage: Record<string, string>;
   // `${to}:${data}` to a result word, or "revert".
@@ -273,6 +274,7 @@ export function emptyChain(): ChainState {
 
 export function monadChain(): ChainState {
   return {
+    chainId: 143,
     code: {
       [MONAD_USDC]: MONAD_USDC_CODE,
       [MONAD_USDC_IMPL]: MONAD_USDC_IMPL_CODE,
@@ -319,6 +321,8 @@ function answer(chain: ChainState, call: Record<string, unknown>): unknown {
     error: { code: 3, message: "execution reverted" },
   });
   switch (call.method) {
+    case "eth_chainId":
+      return result("0x" + (chain.chainId ?? 1).toString(16));
     case "eth_getCode":
       return result(chain.code[String(params[0]).toLowerCase()] ?? "0x");
     case "eth_getStorageAt":

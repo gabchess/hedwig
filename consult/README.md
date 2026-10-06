@@ -45,6 +45,18 @@ Unknown-asset market checks also require the service's threshold parameters. Mis
 
 `consult()` trusts the integration to verify registry signatures. A registry token can pass only at its own address, with an unexpired entry and a confirmed chain read no older than 60 seconds. The public MCP reader currently ships with empty registry keys and accepts no registry entries.
 
+## Read-only Monad output check
+
+The read-only Monad input shape is `tokenIn: {kind: "native", symbol: "MON"}`
+on `eip155:143`, without a contract address. It lets the MCP reader look up the
+USDC output. The reader needs a trusted signed row with Circle's issuer source,
+and confirms the RPC chain ID alongside the existing contract reads. The
+output result's `canonicalAsset` retains the full canonical address and source.
+
+Native swaps remain blocked while native cap, approval and router checks are
+unfinished. A matching output establishes token identity only. Registry keys
+are still empty in the public MCP build; these changes have offline coverage.
+
 ## Local swap example
 
 These fixed values show the request and policy shape. They are not a live quote.
