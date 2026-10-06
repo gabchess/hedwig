@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Docs | Hedwig</title>
-<meta name="description" content="How to connect an agent to Hedwig, install it yourself, write your policy, and read the answer it returns.">
+<meta name="description" content="Connect Hedwig through local MCP, set your policy and inspect a sample payment check. Your application controls signing.">
 <link rel="canonical" href="https://usehedwig.xyz/docs">
 <meta property="og:title" content="Docs | Hedwig">
-<meta property="og:description" content="How to connect an agent to Hedwig, install it yourself, write your policy, and read the answer it returns.">
+<meta property="og:description" content="Connect Hedwig through local MCP, set your policy and inspect a sample payment check. Your application controls signing.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/docs">
 <meta property="og:type" content="website">
@@ -31,11 +31,19 @@
     </nav>
   </div>
   <main class="panel" id="main" tabindex="-1">
-    <h1>Docs</h1>
+    <h1>Connect Hedwig to your agent</h1>
 
       <p>Hedwig v0.4.2 runs locally through MCP. Your application controls signing.</p>
       <p><a href="/agents">Connect your agent</a> or follow the manual setup below.</p>
-      <h2>Install it yourself</h2>
+      <nav class="docs-toc" aria-label="On this page">
+        <ul>
+          <li><a href="#install">Install</a></li>
+          <li><a href="#policy">Set your policy</a></li>
+          <li><a href="#request">Run a check</a></li>
+          <li><a href="#result">Read the result</a></li>
+        </ul>
+      </nav>
+      <h2 id="install">Install it yourself</h2>
       <p>You need git, Node.js 22 or newer, and Yarn.</p>
       <pre><code>mkdir hedwig &amp;&amp; cd ./hedwig &amp;&amp; git init &amp;&amp;
 git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
@@ -52,7 +60,7 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
     }
   }
 }</code></pre>
-      <h2>Your policy</h2>
+      <h2 id="policy">Your policy</h2>
       <p>A JSON file you write and keep outside the repo:</p>
       <pre><code>{
   "permits": true,
@@ -64,7 +72,8 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
 }</code></pre>
       <p>Set your allowed chain, recipients, action caps and requirements for a Solana role or an EIP-3009 authorization window. Swap policies also set slippage and deadline ceilings and your addresses.</p>
       <p>Hedwig pins the file when the server starts. Changed bytes return <code>UNKNOWN</code> with <code>ADAPTER_POLICY_CHANGED</code>. Restore the original bytes after an unintended edit. A restart pins the file's current contents, so review any intended policy change before restarting. Keep the file where your agent cannot write it.</p>
-      <h2>What your agent sends</h2>
+      <h2 id="request">What your agent sends</h2>
+      <p>This sample asks Hedwig to check a proposal. It sends no funds.</p>
       <p>One argument, <code>request</code>, holding the payment it's about to sign:</p>
       <pre><code>{
   "request": {
@@ -82,7 +91,7 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
   }
 }</code></pre>
       <p>The server reads your policy file and the current time itself. The tool takes neither from your agent.</p>
-      <h2>What comes back</h2>
+      <h2 id="result">What comes back</h2>
       <ul>
         <li><code>proceed</code>: <code>true</code> only when every check passed and your policy permits. Your agent acts on this field.</li>
         <li><code>verdict</code>: <code>ALLOW_UNDER_POLICY</code>, <code>DENY</code> or <code>UNKNOWN</code>.</li>
@@ -90,9 +99,9 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
         <li><code>support</code> and <code>band</code>: how much of your checklist was proven and how strong the proof was. They never change the verdict.</li>
       </ul>
       <p>On <code>DENY</code>, your agent stops and reports the failed check. <code>UNKNOWN</code> means a check is incomplete or the policy does not permit the action; your agent stops and asks you.</p>
-      <h2>Put the check in your own code</h2>
+      <h2 id="signing">Put the check in your own code</h2>
       <p><code>runTriggerGuard</code> from <code>@hedwig/consult/guard</code> wraps your signer. It runs the same check and calls your signer only on <code>ALLOW_UNDER_POLICY</code>.</p>
-      <h2>More</h2>
+      <h2 id="more">More</h2>
       <ul>
         <li><a href="https://github.com/gabchess/hedwig/blob/main/docs/agents.md" target="_blank" rel="noopener noreferrer">How to call Hedwig</a></li>
         <li><a href="https://github.com/gabchess/hedwig/blob/main/mcp/README.md" target="_blank" rel="noopener noreferrer">MCP server</a></li>
@@ -115,8 +124,8 @@ yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &
     <nav aria-label="More">
       <ul class="rail-secondary">
         <li><a href="/roadmap">Roadmap</a></li>
-        <li><a href="/team">Team</a></li>
-        <li><a href="/agents">For agents</a></li>
+        <li><a href="/team">Founder</a></li>
+        <li><a href="/agents">Try Hedwig</a></li>
         <li><a href="https://github.com/gabchess/hedwig/blob/main/THREAT-MODEL.md" target="_blank" rel="noopener noreferrer">Threat model &#8599;</a></li>
       </ul>
     </nav>
