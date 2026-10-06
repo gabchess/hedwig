@@ -10,7 +10,9 @@
 
 Hedwig is built to help agents and humans check an onchain payment before they sign.
 
-[Try Hedwig](https://usehedwig.xyz/agents): paste the setup prompt into your coding agent. The [agent guide](docs/agents.md) installs v0.4.2; component guides label later changes on `main`.
+Your payment agent sends a proposal. Hedwig checks it against your rules and available evidence, then returns a result with reasons. The caller controls signing and execution.
+
+[Try Hedwig locally](https://usehedwig.xyz/agents): paste the setup prompt into your coding agent. The [agent guide](docs/agents.md) installs v0.4.2; component guides label later changes on `main`.
 
 ## Local checks
 
@@ -22,7 +24,7 @@ See the [MCP server](mcp/README.md), [Solana SDK](sdk/README.md) and [recorded d
 
 ## Planned
 
-Hosted assessment, human chat and a Monad swap demo are in development. A fast scoring model will assess blockchain evidence and curated knowledge in DeFi, onchain payments, security and opsec. A separate API-backed language model will explain the result without changing it or executing transactions.
+Hosted assessment, human chat and a Monad swap demo are in development. A scoring model will assess blockchain evidence and curated knowledge in DeFi, onchain payments, security and opsec. A separate API-backed language model will explain the result without changing it or executing transactions.
 
 After funding, we plan to train and evaluate an open explanation model on permitted data, with cloud GPUs for training and hosting, and add private assessment histories.
 
