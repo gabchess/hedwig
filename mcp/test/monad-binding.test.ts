@@ -200,6 +200,20 @@ describe("native Monad handler binding (offline)", () => {
   const row = (result: Awaited<ReturnType<typeof handleConsult>>, id: string) =>
     result.results.find((item) => item.id === id);
 
+  it("an unexpected preflight failure returns UNKNOWN without leaking or reading", async () => {
+    Date.now = () => {
+      throw new Error("private preflight context");
+    };
+    const result = await handleConsult({ request: request() }, policyPath);
+    expect(result.verdict).to.equal("UNKNOWN");
+    expect(result.proceed).to.equal(false);
+    expect(result.support).to.equal(0);
+    expect(row(result, "adapter")?.code).to.equal("ADAPTER_FAILED");
+    expect(JSON.stringify(result)).to.not.include("private preflight context");
+    expect(readerCalls).to.deep.equal([]);
+    expect(fetchCalls).to.deep.equal([]);
+  });
+
   for (const [name, tokenIn] of [
     ["extra native field", { kind: "native", symbol: "MON", extra: true }],
     ["unsupported native symbol", { kind: "native", symbol: "ETH" }],

@@ -173,9 +173,17 @@ export async function handleConsult(
   const action = (request as Partial<ConsultRequest> | null | undefined)
     ?.action;
   if (action?.type === "swap" && action.chainId === "eip155:143") {
-    const preflight = consult(request as never, policyResult.policy as never, {
-      now: Math.floor(Date.now() / 1000),
-    });
+    let preflight: ConsultResponse;
+    try {
+      preflight = consult(request as never, policyResult.policy as never, {
+        now: Math.floor(Date.now() / 1000),
+      });
+    } catch {
+      return unknownAdapterResponse(
+        "ADAPTER_FAILED",
+        "consult raised an unexpected error"
+      );
+    }
     if (
       preflight.floorIds.length === 0 ||
       preflight.results.some(
