@@ -1,5 +1,5 @@
 import { consult } from "@hedwig/consult";
-import type { ConsultResponse } from "@hedwig/consult";
+import type { ConsultRequest, ConsultResponse } from "@hedwig/consult";
 
 import { readPolicyFile } from "./policy";
 import type { PolicyPin } from "./policy";
@@ -167,6 +167,28 @@ export async function handleConsult(
       ? (capturedArgs as Record<string, unknown>).request
       : undefined;
 
+  // consult owns native-call selection, decoding and intent binding. Keep
+  // its full result when that check refuses, before dispatching any reader.
+  // A matching call still needs the normal evaluation with fresh evidence.
+  const action = (request as Partial<ConsultRequest> | null | undefined)
+    ?.action;
+  if (action?.type === "swap" && action.chainId === "eip155:143") {
+    const preflight = consult(request as never, policyResult.policy as never, {
+      now: Math.floor(Date.now() / 1000),
+    });
+    if (
+      preflight.floorIds.length === 0 ||
+      preflight.results.some(
+        (row) =>
+          row.id === "target-is-canonical" &&
+          (row.code === "MONAD_CALL_UNSUPPORTED" ||
+            row.code === "MONAD_CALL_INTENT_MISMATCH")
+      )
+    ) {
+      return preflight;
+    }
+  }
+
   // The Solana role Reader reads only the owner's policy file (read above)
   // and its own env-configured cluster settings: the request is never
   // consulted here, so nothing a caller sends can steer which cluster is
@@ -214,7 +236,7 @@ export async function handleConsult(
       rpcUrlFor: getEvmRpcUrl,
     }),
   ]);
-  // consult()'s own clock: read only after the Reader has returned, so the
+  // The final evaluation's clock is read after the Reader returns, so the
   // gap between it and the fact's observedAt reflects how long the actual
   // round trip took, and a stale fact can be detected at all.
   const now = Math.floor(Date.now() / 1000);

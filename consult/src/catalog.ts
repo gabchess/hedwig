@@ -2054,6 +2054,7 @@ function checkMonadCallBinding(
   const action = request.action;
   const decoded = decodeMonadNativeSwap(tx?.data);
   if (
+    !isNativeMonadInput(action.chainId, action.tokenIn) ||
     !decoded ||
     tx === undefined ||
     tx === null ||
@@ -2123,7 +2124,11 @@ function checkSwapTargetIsCanonical(
   const id = "target-is-canonical";
   const { chainId, target } = request.action;
 
-  if (isNativeMonadInput(chainId, request.action.tokenIn)) {
+  // A native declaration selects binding even when its shape is invalid.
+  if (
+    chainId === "eip155:143" &&
+    ownLookup<unknown>(request.action.tokenIn, "kind") === "native"
+  ) {
     const binding = checkMonadCallBinding(request);
     if (binding) return binding;
   }

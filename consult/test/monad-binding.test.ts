@@ -36,6 +36,27 @@ const request = () => ({
 });
 
 describe("native Monad call binding (synthetic, no live facts)", () => {
+  for (const [name, tokenIn] of [
+    ["extra native field", { kind: "native", symbol: "MON", extra: true }],
+    ["unsupported native symbol", { kind: "native", symbol: "ETH" }],
+  ] as const) {
+    it(`${name} is unsupported even when the call bytes match`, () => {
+      const input = request();
+      const result = consult(
+        { ...input, action: { ...input.action, tokenIn } } as never,
+        policy
+      );
+      expect(
+        result.results.find((row) => row.id === "target-is-canonical")
+      ).to.include({
+        code: "MONAD_CALL_UNSUPPORTED",
+        status: "UNVERIFIED",
+        evidenceClass: "not-verifiable",
+      });
+      expect(result.proceed).to.equal(false);
+    });
+  }
+
   it("matching bytes alone cannot prove router or native-input safety", () => {
     const input = request();
     input.transaction.to = router.toUpperCase().replace("0X", "0x");
