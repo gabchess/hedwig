@@ -10,6 +10,7 @@ const {
 const [, , serverPath, policyPath, rpcUrl, feePayer] = process.argv;
 
 const request = {
+  transaction: require("./fixtures/request.json").transaction,
   action: {
     type: "pay",
     chainId: "eip155:1",

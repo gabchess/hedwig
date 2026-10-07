@@ -35,8 +35,13 @@ and `ownerAddresses`.
 missing, ask for it. The policy is their file. You write down what they
 told you, they save it, and you never write or edit the file yourself.
 
-This step is done when your owner has said yes to the install and given
-you every field.
+Ask the owner to open the
+[v0.4.2 release on GitHub](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
+directly and confirm the full commit in Step 2. A hash from this page alone
+does not authenticate the release. Stop if the repository or revision differs.
+
+This step is done when your owner has approved that repository and revision,
+said yes to running its code and given you every policy field.
 
 ## Step 2: Install
 
@@ -46,7 +51,8 @@ Run these commands, in this order:
 mkdir hedwig && cd ./hedwig && git init &&
 git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 git checkout FETCH_HEAD &&
-yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
+test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
 This fetches the exact commit published as v0.4.2, by its full hash, and
@@ -54,6 +60,11 @@ stops if any step fails. If any step fails, stop, show your owner the
 error, and install nothing else. If an earlier attempt left a `hedwig`
 folder, ask your owner, and delete it only after they say yes. Delete only
 the `hedwig` folder in the directory where you ran these commands.
+
+Dependency lifecycle scripts are disabled. The explicit build commands and
+server still execute code from the approved checkout and its dependencies.
+This procedure does not claim a signed release or protect a compromised
+GitHub account.
 
 Run `pwd` in the `hedwig` directory and keep the absolute path it prints.
 

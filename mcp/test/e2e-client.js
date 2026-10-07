@@ -16,6 +16,7 @@ const CANARY_EVIDENCE_MARKER = "CANARY-REQUEST-MEMO";
 const CANARY_POLICY_MARKER = "CANARY-POLICY-RECIPIENT";
 
 const validRequest = {
+  transaction: require("./fixtures/request.json").transaction,
   action: {
     type: "pay",
     chainId: "eip155:1",

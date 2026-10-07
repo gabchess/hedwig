@@ -64,8 +64,10 @@ This layout allows one `Org` per authority and one `Role` per name within an org
 policy file, and the facts the caller supplies as data. It makes no network
 call, reads no clock, holds no key, and signs nothing.
 
-The caller controls the request and the facts. A caller that misreports
-either gets an answer about what it reported.
+The caller controls the proposed call and the facts. Supported EVM calls must
+match their declared intent byte for byte under the supported decoder.
+Independent evidence is still needed for the facts. Hedwig cannot verify what
+a separate signer eventually submits.
 
 The owner controls the policy file: the approved recipients, the caps, the
 named chain, the role choice and the authorization window. The MCP server
@@ -102,10 +104,16 @@ approved.
 Hedwig returns `proceed`, a verdict, and one row per Condition. Acting on
 that answer is the caller's own step.
 
-The current catalog supports `pay` and `swap`, with built-in token and router
-addresses for Ethereum and Base. Slippage checks compare the supplied quote
-and minimum output with policy. The `support` number is calculated after the
-verdict and cannot authorize a payment.
+The current catalog accepts `pay` and `swap` requests. Its supported EVM
+call formats are direct ERC-20 `transfer(address,uint256)` and the narrow
+native Monad Router02 profile. Missing bytes, undecoded routes and
+EIP-3009 authorization requirements on a direct transfer cannot earn
+`proceed: true`. Matching native Monad bytes still require the existing
+live-evidence checks and do not enable execution.
+
+Slippage checks compare the supplied quote and minimum output with policy.
+The `support` number is calculated after the verdict and cannot authorize a
+payment. See [call binding and migration](docs/evm-call-binding.md).
 
 The registry reader in `main` verifies signed rows and chain observations,
 but its pinned public keys are currently empty. It therefore accepts no rows.
@@ -132,8 +140,31 @@ The guard maps the request once. Right after the mapping returns, and before
 reads the caller's object again.
 
 The verdict comes from `consult()`; the guard's input has no field for one.
-The guard calls the signer at most once, and only when the verdict is
-`ALLOW_UNDER_POLICY`, passing it the `action` from the frozen data.
+The guard calls the signer at most once. It requires
+`ALLOW_UNDER_POLICY`, `proceed: true` and a matching recomputed call digest.
+It passes a frozen object containing `action`, `chainId`, `transaction`
+and `callDigest`. The signer must check its active chain and account, then use
+the supplied call fields. A signer that ignores that object remains outside
+the guard's enforcement.
+
+The digest binds chain, sender, target, native value and calldata. It is an
+unkeyed content hash. It does not authenticate a remote response, bind nonce
+or gas fees, prevent replay, enforce cumulative spending, or prove that funds
+will be safe. Remote integrations must authenticate Hedwig independently.
+
+## Agent installation boundary
+
+The owner confirms the repository and release directly through GitHub before
+approving local execution. The install recipe checks the fetched revision and
+disables dependency lifecycle scripts with `--ignore-scripts`. Explicit build
+commands and the server still execute approved code and dependencies.
+
+A website and a checksum served by that same website share a compromise
+boundary. The independent GitHub check reduces that dependency; it does not
+prove a signed release or protect a compromised GitHub account. Release
+signing, maintainer account security and hosting controls need separate
+verification. Existing release pins are retained until a new release passes
+the consumer migration checks.
 
 ## Caller authentication is an integration requirement
 

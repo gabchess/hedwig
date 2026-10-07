@@ -22,7 +22,12 @@ const validAction = {
   amount: "1000000",
   target: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 };
-const SANITY_CALL = { request: { action: validAction } };
+const SANITY_CALL = {
+  request: {
+    action: validAction,
+    transaction: require("./fixtures/request.json").transaction,
+  },
+};
 
 // Every row is a value for the tool call's `arguments`. `MISSING` is a
 // sentinel meaning "omit the key entirely", since JSON.stringify would

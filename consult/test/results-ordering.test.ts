@@ -44,6 +44,7 @@ describe("results ordering", () => {
       "asset-liquidity-sufficient",
       "asset-holders-sufficient",
       "asset-activity-sufficient",
+      "transaction-matches-intent",
     ]);
   });
 

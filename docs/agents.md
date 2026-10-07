@@ -21,16 +21,27 @@ yourself, and the agent never writes or edits it.
 
 You need git, Node.js 22 or newer, and Yarn.
 
+Before running these commands, open the repository's
+[v0.4.2 release](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
+directly on GitHub and confirm the full commit below. Get the owner's approval
+for that repository and revision. Stop if they differ. A hash copied from
+this website alone does not authenticate a release.
+
 ```sh
 mkdir hedwig && cd ./hedwig && git init &&
 git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 git checkout FETCH_HEAD &&
-yarn install --frozen-lockfile && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
+test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
 This fetches the exact commit published as v0.4.2, by its full hash, and
 stops if any step fails. A wrong hash fails at the fetch, before the
-install runs. If a step fails, stop and fix the error before you run
+install runs. The checked-out revision must also match. Dependency lifecycle
+scripts are disabled. The explicit build commands and server still execute
+code from the approved checkout and its dependencies. This procedure does not
+claim a signed release or protect a compromised GitHub account.
+If a step fails, stop and fix the error before you run
 anything else. If an earlier attempt left a `hedwig` folder, ask your
 owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
@@ -38,6 +49,11 @@ folder in the directory where you ran these commands.
 Current `main` contains later work, including asset-specific caps and registry
 reader code. The commands above continue to install v0.4.2. The hosted expert
 service and human chat are in development.
+
+The transaction-binding change also requires unsigned call bytes on current
+source and changes the guard's signer argument. Read the
+[migration guide](evm-call-binding.md) before using that source. The pinned
+v0.4.2 release and intent-only example below predate this contract.
 
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it

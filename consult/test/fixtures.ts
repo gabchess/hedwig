@@ -47,7 +47,7 @@ export function makePolicy(overrides: Partial<Policy> = {}): Policy {
 export function makeRequest(
   overrides: Partial<ConsultRequest> = {}
 ): ConsultRequest {
-  return {
+  const request: ConsultRequest = {
     action: {
       type: "pay",
       chainId: CHAIN_ID,
@@ -57,6 +57,38 @@ export function makeRequest(
       target: ASSET_ADDRESS,
     },
     ...overrides,
+  };
+  return Object.hasOwn(overrides, "transaction")
+    ? request
+    : withPayTransaction(request);
+}
+
+// Policy-check fixtures keep the call consistent with the action under test.
+// Binding regressions supply or mutate transaction explicitly instead.
+export function withPayTransaction<T extends ConsultRequest>(request: T): T {
+  const { action } = request;
+  const recipient =
+    typeof action.recipient === "string" &&
+    /^0x[0-9a-fA-F]{40}$/.test(action.recipient)
+      ? action.recipient
+      : APPROVED_RECIPIENT;
+  const amount =
+    typeof action.amount === "string" &&
+    /^(0|[1-9]\d{0,77})$/.test(action.amount) &&
+    BigInt(action.amount) < 1n << 256n
+      ? BigInt(action.amount)
+      : 1_000_000n;
+  return {
+    ...request,
+    transaction: {
+      from: APPROVED_RECIPIENT,
+      to: action.target ?? ASSET_ADDRESS,
+      value: "0",
+      data:
+        "0xa9059cbb" +
+        recipient.slice(2).padStart(64, "0") +
+        amount.toString(16).padStart(64, "0"),
+    },
   };
 }
 

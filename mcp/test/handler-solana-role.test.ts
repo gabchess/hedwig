@@ -7,6 +7,7 @@ import { expect } from "chai";
 import { consult } from "@hedwig/consult";
 import { handleConsult } from "../src/handler";
 import { __resetSolanaClusterConfigForTests } from "../src/readers/config";
+import payFixture from "./fixtures/request.json";
 
 // End-to-end through handleConsult's real wiring: real env-driven config,
 // a monkey-patched global fetch standing in for the RPC, and the real
@@ -42,6 +43,7 @@ const PAY_POLICY = {
 };
 
 const PAY_REQUEST = {
+  transaction: payFixture.transaction,
   action: {
     type: "pay",
     chainId: "eip155:1",
@@ -182,7 +184,7 @@ describe("handleConsult: the Solana role Reader wired end to end", function () {
     __resetSolanaClusterConfigForTests();
   });
 
-  it("pay reaches ALLOW_UNDER_POLICY, support 0.92, with a held role", async () => {
+  it("bound pay reaches ALLOW_UNDER_POLICY, support 0.90, with a held role", async () => {
     globalThis.fetch = (async () =>
       fakeResponse(200, OK_BODY)) as unknown as typeof fetch;
 
@@ -190,25 +192,32 @@ describe("handleConsult: the Solana role Reader wired end to end", function () {
 
     expect(result.verdict).to.equal("ALLOW_UNDER_POLICY");
     expect(result.proceed).to.equal(true);
-    expect(result.support).to.equal(0.92);
+    expect(result.support).to.equal(0.9);
     const row = result.results.find((r) => r.id === "role-requirement-met");
     expect(row?.code).to.equal("ROLE_HELD");
   });
 
-  it("swap reaches ALLOW_UNDER_POLICY, support 0.90, with a held role", async () => {
-    globalThis.fetch = (async () =>
-      fakeResponse(200, OK_BODY)) as unknown as typeof fetch;
+  it("an unsupported swap refuses before reading a required role", async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls++;
+      return fakeResponse(200, OK_BODY);
+    }) as unknown as typeof fetch;
 
     const result = await handleConsult(
       { request: SWAP_REQUEST },
       swapPolicyPath
     );
 
-    expect(result.verdict).to.equal("ALLOW_UNDER_POLICY");
-    expect(result.proceed).to.equal(true);
-    expect(result.support).to.equal(0.9);
+    expect(result.verdict).to.equal("UNKNOWN");
+    expect(result.proceed).to.equal(false);
+    expect(result.support).to.be.lessThan(0.8);
+    expect(calls).to.equal(0);
+    expect(
+      result.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("SWAP_CALL_UNSUPPORTED");
     const row = result.results.find((r) => r.id === "role-requirement-met");
-    expect(row?.code).to.equal("SWAP_ROLE_HELD");
+    expect(row?.code).to.equal("SWAP_ROLE_FACT_MISSING");
   });
 
   it("DENY with ROLE_MEMBER_MISSING when the fact says the member is missing", async () => {

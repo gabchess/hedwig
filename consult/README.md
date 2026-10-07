@@ -19,7 +19,7 @@ Act on `proceed`. A failed check returns `DENY`; an incomplete check returns `UN
 
 ## Policy and coverage
 
-The current catalog supports `pay` and `swap`. Its built-in token and router addresses cover Ethereum and Base. Slippage checks use the supplied quote and minimum output; they do not read market prices or simulate a sandwich attack.
+The current catalog checks `pay` and `swap`. Its built-in token and router addresses cover Ethereum and Base. Every request needs supported unsigned call bytes that match its action. Direct ERC-20 transfers are supported; the fixed native Monad swap profile can be decoded but remains blocked by other checks. Other swap routes fail closed. See [call binding](references/transaction-binding.md) for the exact shapes. Slippage checks use the supplied quote and minimum output; they do not read market prices or simulate a sandwich attack.
 
 Each cap in `perActionCaps` must name its asset contract in `perActionCapAssets`. Amounts use that asset's base units. A missing or different cap asset returns UNVERIFIED for that check.
 
@@ -59,7 +59,7 @@ are still empty in the public MCP build; these changes have offline coverage.
 
 ## Local swap example
 
-These fixed values show the request and policy shape. They are not a live quote.
+These fixed values show the action and policy shape. This action-only example returns `UNKNOWN` because it has no supported call proposal. Universal Router remains unsupported. The values are not a live quote.
 
 ```ts
 import { consult, type Policy } from "@hedwig/consult";
@@ -112,17 +112,20 @@ import { runTriggerGuard } from "@hedwig/consult/guard";
 
 const result = await runTriggerGuard({
   payment,
-  toRequest: (payment) => ({ action: payment.action }),
+  toRequest: (payment) => ({
+    action: payment.action,
+    transaction: payment.transaction,
+  }),
   policy,
   gather: async (request) => ({ now: Math.floor(Date.now() / 1000) }),
-  signer: (action) => mySigner(action),
+  signer: (checked) => mySigner(checked),
 });
 // result.consult: the consult() response
 // result.signerOutcome: "not-attempted" | "settled" | "unknown"
 // result.signerResult: the signer's return value, when "settled"
 ```
 
-`toRequest` maps your payment into a request. The guard turns that request into its own JSON snapshot once, then passes the same data to `gather`, `consult()` and your signer. Your signer receives its `action` field. The payment amount in that `action` is the same decimal string `consult()` checked. The frozen records have null prototypes: reading a field directly (`action.amount`) works, but use `Object.hasOwn(action, "amount")` instead of `action.hasOwnProperty("amount")`, which a null-prototype object does not have.
+`toRequest` maps your payment into a request containing the action and unsigned transaction. The guard captures a frozen JSON snapshot before `gather` and `consult()`. Your signer receives `{ action, chainId, transaction, callDigest }` after the guard checks `proceed === true` and the digest. `mySigner` must verify its active chain and account against `chainId` and `transaction.from`, then use the captured call bytes. The digest covers chain, sender, destination, native value and calldata only. Nonce, fees, replay protection and execution remain outside this receipt. Captured records have null prototypes: use `Object.hasOwn(action, "amount")` instead of `action.hasOwnProperty("amount")`.
 
 `gather` is optional and has `gatherDeadlineMs` to finish, 800 by default. A mapping error, a `gather` error or a missed `gather` deadline returns an `UNKNOWN` response with a `trigger-guard` row, and your signer is never called. Your signer has `signerDeadlineMs`, 5000 by default. Each deadline must be a whole number of milliseconds from 1 to 2147483647. An invalid `signerDeadlineMs` fails closed with no signer call. `gatherDeadlineMs` is only checked when `gather` is passed; an invalid value there fails closed with no gather call. If the signer throws, rejects or misses its deadline, `signerOutcome` is `"unknown"` and the guard does not call it again, but a missed deadline does not stop the signer itself: it may still be running. An unknown `signerOutcome` means the signer may have acted or may still be acting; wait for the payment to reach a final state before signing again.
 

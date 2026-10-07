@@ -14,6 +14,7 @@ import type {
 } from "./guard-internal";
 
 export type { SignerOutcome, TriggerGuardInput, TriggerGuardResult };
+export type { CheckedEvmCall } from "./evm-call";
 
 export function runTriggerGuard<TPayment, TSignerResult>(
   input: TriggerGuardInput<TPayment, TSignerResult>

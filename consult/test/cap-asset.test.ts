@@ -210,7 +210,10 @@ describe("amount-within-cap: the cap names its asset (swap amountIn)", () => {
   it("passes a same-asset amountIn at the cap", () => {
     const response = swap("1000000", "1000000", ASSET_ADDRESS);
 
-    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(
+      response.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("SWAP_CALL_UNSUPPORTED");
     expect(amountCheck(response)).to.include({
       status: "PASS",
       code: "SWAP_AMOUNT_WITHIN_CAP",

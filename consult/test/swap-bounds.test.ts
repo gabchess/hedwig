@@ -37,7 +37,10 @@ describe("swap slippage at its edges", () => {
       { maxSlippageBps: 100 }
     );
     expect(slippageRow(response)?.code).to.equal("SLIPPAGE_WITHIN_CEILING");
-    expect(response.proceed).to.equal(true);
+    expect(response.proceed).to.equal(false);
+    expect(
+      response.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("SWAP_CALL_UNSUPPORTED");
   });
 
   it("fails a fraction of a basis point over the ceiling", () => {
@@ -60,12 +63,15 @@ describe("swap slippage at its edges", () => {
         { maxSlippageBps: 0 }
       ).proceed
     ).to.equal(false);
+    const exact = swapWith(
+      { quotedOut, minOut: quotedOut, slippageBps: 0 },
+      { maxSlippageBps: 0 }
+    );
+    expect(slippageRow(exact)?.status).to.equal("PASS");
+    expect(exact.proceed).to.equal(false);
     expect(
-      swapWith(
-        { quotedOut, minOut: quotedOut, slippageBps: 0 },
-        { maxSlippageBps: 0 }
-      ).proceed
-    ).to.equal(true);
+      exact.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("SWAP_CALL_UNSUPPORTED");
   });
 
   it("fails a minOut of zero even under a ceiling of 10000", () => {
@@ -101,9 +107,11 @@ describe("swap slippage at its edges", () => {
   it("reports the quote as the caller's own statement, the weakest proof in a clean swap", () => {
     const response = swapWith({});
     expect(slippageRow(response)?.evidenceClass).to.equal("caller-stated");
-    expect(response.proceed).to.equal(true);
-    expect(response.support).to.equal(0.9);
-    expect(response.band).to.equal("green");
+    expect(response.proceed).to.equal(false);
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(
+      response.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("SWAP_CALL_UNSUPPORTED");
   });
 });
 
@@ -181,7 +189,13 @@ describe("facts that cannot be used are treated as no facts", () => {
 
     expect(reads).to.equal(1);
     expect(seenFrozen).to.equal(true);
-    expect(response.proceed).to.equal(true);
+    expect(response.proceed).to.equal(false);
+    expect(
+      response.results.find((r) => r.id === "sees-facts")?.status
+    ).to.equal("PASS");
+    expect(
+      response.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("SWAP_CALL_UNSUPPORTED");
   });
 });
 

@@ -10,7 +10,7 @@ import {
 import { UNKNOWN_TOKEN_PARAMS_ID } from "./params";
 import type { ParamReader } from "./params";
 import type { CheckerOutcome, EvidenceClass } from "./fold";
-import { decodeMonadNativeSwap } from "./monad-calldata";
+import { bindEvmCall } from "./evm-call";
 
 export type SolanaCluster = "devnet" | "testnet" | "mainnet-beta";
 
@@ -1773,6 +1773,51 @@ function marketCondition(
   };
 }
 
+function callBindingCondition(prefix: "PAY" | "SWAP"): ConditionDefinition {
+  const pass = `${prefix}_CALL_MATCHES_INTENT`;
+  const fail = `${prefix}_CALL_INTENT_MISMATCH`;
+  const unsupported = `${prefix}_CALL_UNSUPPORTED`;
+  return {
+    id: "transaction-matches-intent",
+    isFloor: true,
+    question: "Do supported call bytes match the declared action?",
+    reference: "consult/references/transaction-binding.md",
+    codes: { pass, fail: [fail], unverified: [unsupported] },
+    codeEvidenceClass: {
+      [pass]: "caller-stated",
+      [fail]: "caller-stated",
+      [unsupported]: "not-verifiable",
+    },
+    policyFields: prefix === "PAY" ? ["authorizationWindow.mode"] : [],
+    check: (request, context) => {
+      const binding = bindEvmCall(request, context.policy);
+      return {
+        id: "transaction-matches-intent",
+        status:
+          binding.status === "bound"
+            ? "PASS"
+            : binding.status === "mismatch"
+            ? "FAIL"
+            : "UNVERIFIED",
+        code:
+          binding.status === "bound"
+            ? pass
+            : binding.status === "mismatch"
+            ? fail
+            : unsupported,
+        evidenceClass:
+          binding.status === "unsupported" ? "not-verifiable" : "caller-stated",
+        evidence:
+          binding.status === "bound"
+            ? "supported call bytes match the declared action; signing remains with the caller"
+            : binding.status === "mismatch"
+            ? "call bytes disagree with the declared action"
+            : "cannot confirm a supported unsigned call for this action and policy",
+      };
+    },
+  };
+}
+
 const PAY_FLOOR: ConditionDefinition[] = [
   {
     id: "recipient-matches-policy",
@@ -2034,6 +2079,7 @@ const PAY_FLOOR: ConditionDefinition[] = [
     "Is the pay asset known, or does an unknown asset show recent transfer activity?",
     ACTIVITY
   ),
+  callBindingCondition("PAY"),
 ];
 
 // Frozen at module load: a caller can never splice, push, or reassign its
@@ -2050,37 +2096,8 @@ function checkMonadCallBinding(
   request: ConsultRequest
 ): CheckerOutcome | undefined {
   const id = "target-is-canonical";
-  const tx = request.transaction;
-  const action = request.action;
-  const decoded = decodeMonadNativeSwap(tx?.data);
-  if (
-    !isNativeMonadInput(action.chainId, action.tokenIn) ||
-    !decoded ||
-    tx === undefined ||
-    tx === null ||
-    typeof tx !== "object" ||
-    Array.isArray(tx) ||
-    Object.keys(tx).sort().join() !== "data,from,to,value" ||
-    !Object.values(tx).every((value) => typeof value === "string") ||
-    ![
-      tx.from,
-      tx.to,
-      action.target,
-      action.recipient,
-      action.tokenOut?.contractAddress,
-    ].every(
-      (value) =>
-        typeof value === "string" &&
-        EVM_ADDRESS_SHAPE.test(value) &&
-        BigInt(value) > 0n
-    ) ||
-    ![tx.value, action.amountIn, action.minOut, action.approvalAmount].every(
-      (value) => typeof value === "string" && AMOUNT_SHAPE.test(value)
-    ) ||
-    typeof action.deadline !== "number" ||
-    !Number.isSafeInteger(action.deadline) ||
-    action.deadline <= 0
-  ) {
+  const binding = bindEvmCall(request);
+  if (binding.status === "unsupported") {
     return {
       id,
       status: "UNVERIFIED",
@@ -2089,20 +2106,7 @@ function checkMonadCallBinding(
       evidence: "cannot confirm the supported unsigned native Monad call",
     };
   }
-  if (
-    tx.value !== decoded.amountIn ||
-    action.amountIn !== decoded.amountIn ||
-    sameEvmAddress(tx.to, "0xfe31f71c1b106eac32f1a19239c9a9a72ddfb900") !==
-      true ||
-    sameEvmAddress(tx.to, action.target) !== true ||
-    sameEvmAddress(tx.from, decoded.recipient) !== true ||
-    sameEvmAddress(action.recipient, decoded.recipient) !== true ||
-    sameEvmAddress(action.tokenOut?.contractAddress, decoded.tokenOut) !==
-      true ||
-    action.minOut !== decoded.amountOutMinimum ||
-    String(action.deadline) !== decoded.deadline ||
-    action.approvalAmount !== "0"
-  ) {
+  if (binding.status === "mismatch") {
     return {
       id,
       status: "FAIL",
@@ -3048,6 +3052,7 @@ const SWAP_FLOOR: ConditionDefinition[] = [
       stale: "SWAP_ROLE_FACT_STALE",
     }),
   },
+  callBindingCondition("SWAP"),
 ];
 
 // The catalog consult() actually binds to: every action type this repo

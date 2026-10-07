@@ -66,7 +66,10 @@ describe("authorization-window-within-ceiling", () => {
     expect(row(response)?.status).to.equal("PASS");
     expect(row(response)?.code).to.equal("AUTHORIZATION_WITHIN_CEILING");
     expect(row(response)?.evidenceClass).to.equal("owner-policy");
-    expect(response.proceed).to.equal(true);
+    expect(response.proceed).to.equal(false);
+    expect(
+      response.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("PAY_CALL_UNSUPPORTED");
   });
 
   // -- authorizationWindow shape (mirrors role's mode switch) --------------

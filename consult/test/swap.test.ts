@@ -24,6 +24,7 @@ const SWAP_FLOOR_IDS = [
   "amount-within-cap",
   "chain-matches-intent",
   "role-requirement-met",
+  "transaction-matches-intent",
 ];
 
 // `arguments.length`, not a JS default parameter, decides whether `facts`
@@ -47,18 +48,20 @@ function swap(
 }
 
 describe("consult: swap", () => {
-  it("returns ALLOW_UNDER_POLICY when every Floor Condition passes and the policy permits", () => {
+  it("preserves intent checks while refusing an undecoded swap", () => {
     const response = swap();
 
-    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
-    expect(response.proceed).to.equal(true);
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(response.proceed).to.equal(false);
     expect(response.question).to.equal(
       "Should this agent proceed with this swap under the owner's policy?"
     );
     expect(response.floorIds).to.have.members(SWAP_FLOOR_IDS);
     expect(response.results).to.have.length(SWAP_FLOOR_IDS.length);
     response.results.forEach((result) => {
-      expect(result.status, result.id).to.equal("PASS");
+      expect(result.status, result.id).to.equal(
+        result.id === "transaction-matches-intent" ? "UNVERIFIED" : "PASS"
+      );
     });
   });
 
@@ -544,7 +547,21 @@ describe("consult: swap", () => {
           baseFacts as never
         );
         checked += 1;
-        expect(response.proceed, label).to.equal(allowIsEarned ?? false);
+        expect(response.proceed, label).to.equal(false);
+        // Binding must not mask a regression in the existing policy checks.
+        expect(
+          response.results
+            .filter((r) => r.id !== "transaction-matches-intent")
+            .every((r) => r.status === "PASS"),
+          label
+        ).to.equal(allowIsEarned ?? false);
+        if (allowIsEarned) {
+          expect(
+            response.results.find((r) => r.id === "transaction-matches-intent")
+              ?.code,
+            label
+          ).to.equal("SWAP_CALL_UNSUPPORTED");
+        }
         expect(response.proceed, label).to.equal(
           response.verdict === "ALLOW_UNDER_POLICY"
         );

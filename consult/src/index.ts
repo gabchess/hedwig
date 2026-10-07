@@ -6,6 +6,7 @@ import type { ConsultResponse } from "./core";
 export type { ConditionStatus, Verdict } from "./fold";
 export type { ConsultResponse } from "./core";
 export type { Band, ConditionResult, EvidenceClass } from "./types";
+export type { CheckedEvmCall } from "./evm-call";
 export type {
   ConsultAction,
   ConsultRequest,
