@@ -9,6 +9,7 @@ export type { Band, ConditionResult, EvidenceClass } from "./types";
 export type {
   ConsultAction,
   ConsultRequest,
+  EvmCallProposal,
   Facts,
   MarketSignalsFact,
   Policy,
