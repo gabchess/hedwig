@@ -1,14 +1,14 @@
 # Hedwig
 
-> Hedwig checks proposed payments and swaps against your rules and available evidence. Your wallet or app controls signing.
+> Hedwig is an AI security expert for agentic finance. It helps payment agents catch transaction mistakes before signing and gives owners findings they can understand.
 
 ## Pages
 
-- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Hedwig checks proposed payments and swaps against your rules and available evidence. Your wallet or app controls signing.
-- [About | Hedwig](https://usehedwig.xyz/about): Hedwig helps agents and humans check an onchain payment before signing, with reasons they can inspect.
-- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Your agent sends a proposed payment or swap. Hedwig checks it against your policy and returns a decision with reasons.
+- [Hedwig | AI security expert for agentic finance](https://usehedwig.xyz/): Hedwig is an AI security expert for agentic finance. It helps payment agents catch transaction mistakes before signing and gives owners findings they can understand.
+- [About | Hedwig](https://usehedwig.xyz/about): Our vision is a payment-security model trained on curated DeFi and security data, with RAG bringing relevant protocol knowledge into each assessment.
+- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): The workflow we are building combines current chain facts with relevant DeFi and security knowledge. Agents get a score; owners can ask for the reasons.
 - [Proof | Hedwig](https://usehedwig.xyz/proof): Inspect a recorded Solana devnet run covering an allowed request, an amount over the limit, missing evidence and a revoked role.
-- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Local MCP checks are available. Expert assessments for Monad and Tempo, followed by explanations and human chat, are in development.
+- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Our roadmap combines a specialist payment-security model with RAG-backed protocol knowledge, starting with Monad and Tempo assessments.
 - [Team | Hedwig](https://usehedwig.xyz/team): Hi, I'm Gabe. I'm focused full time on Hedwig.
 - [Docs | Hedwig](https://usehedwig.xyz/docs): Connect Hedwig through local MCP, set your policy and inspect a sample payment check. Your application controls signing.
 - [Try Hedwig](https://usehedwig.xyz/agents): Connect Hedwig to a coding agent that supports local MCP tools. Copy the setup prompt, approve the install and run a sample check.
