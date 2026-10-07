@@ -32,6 +32,31 @@ const binding = (result: ReturnType<typeof consult>) =>
 const digest = (result: ReturnType<typeof consult>): unknown =>
   (result as unknown as { callDigest?: string }).callDigest;
 
+// Literal receipt for the ABI fixture above. No expectation uses the binder
+// under test. The sink below records a handoff only; it cannot sign or broadcast.
+const checkedTransfer = {
+  action: {
+    type: "pay",
+    chainId: "eip155:1",
+    recipient: "0x00000000000000000000000000000000a11ce001",
+    asset: {
+      symbol: "USDC",
+      contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    },
+    amount: "1000000",
+    target: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  },
+  chainId: "eip155:1",
+  transaction: {
+    from: "0x00000000000000000000000000000000a11ce001",
+    to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    value: "0",
+    data: "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240",
+  },
+  callDigest:
+    "sha256:92af1cdcfedf1f7f0d61c703a9a9ea9df47135326534519a396efbd3be44b00b",
+};
+
 describe("EVM call binding", () => {
   it("denies a transfer whose bytes send to an unapproved recipient", () => {
     const input = request();
@@ -293,29 +318,226 @@ describe("EVM call binding", () => {
 
   it("hands the guard signer the captured account, chain, bytes and digest", async () => {
     const input = request();
-    let received: unknown;
+    const handoffs: unknown[] = [];
     const result = await runTriggerGuard({
       payment: input,
       toRequest: (value) => value,
       policy: makePolicy(),
-      gather: () => {
-        input.transaction!.data = transfer(UNAPPROVED_RECIPIENT);
+      gather: async () => {
+        await Promise.resolve();
+        input.action.chainId = "eip155:8453";
+        input.action.recipient = UNAPPROVED_RECIPIENT;
+        input.action.asset!.contractAddress = UNAPPROVED_RECIPIENT;
+        input.action.amount = "1";
+        input.action.target = UNAPPROVED_RECIPIENT;
+        input.transaction!.from = UNAPPROVED_RECIPIENT;
+        input.transaction!.to = UNAPPROVED_RECIPIENT;
+        input.transaction!.value = "1";
+        input.transaction!.data = transfer(UNAPPROVED_RECIPIENT, 1n);
       },
       signer: (checked) => {
-        received = checked;
+        handoffs.push(checked);
+        return "fixture-only";
+      },
+    });
+    expect(result.consult.proceed).to.equal(true);
+    expect(result.signerOutcome).to.equal("settled");
+    expect(handoffs).to.deep.equal([checkedTransfer]);
+  });
+
+  it("prevents callback writes to the checked fields before a local handoff", async () => {
+    const handoffs: unknown[] = [];
+    const writes: boolean[] = [];
+    const result = await runTriggerGuard({
+      payment: request(),
+      toRequest: (value) => value,
+      policy: makePolicy(),
+      signer: (checked) => {
+        for (const [field, value] of Object.entries({
+          from: UNAPPROVED_RECIPIENT,
+          to: UNAPPROVED_RECIPIENT,
+          value: "1",
+          data: transfer(UNAPPROVED_RECIPIENT),
+        })) {
+          writes.push(Reflect.set(checked.transaction, field, value));
+        }
+        writes.push(Reflect.set(checked, "chainId", "eip155:8453"));
+        writes.push(
+          Reflect.set(checked, "callDigest", "sha256:" + "0".repeat(64))
+        );
+        writes.push(
+          Reflect.set(checked.action, "recipient", UNAPPROVED_RECIPIENT)
+        );
+        writes.push(
+          Reflect.set(
+            checked.action.asset!,
+            "contractAddress",
+            UNAPPROVED_RECIPIENT
+          )
+        );
+        handoffs.push(checked);
         return "fixture-only";
       },
     });
     expect(result.signerOutcome).to.equal("settled");
-    expect(received).to.have.property("chainId", "eip155:1");
-    expect(received)
-      .to.have.property("transaction")
-      .that.deep.equals(proposal());
-    expect(received).to.have.property("callDigest", digest(result.consult));
-    expect(
-      Object.isFrozen((received as { transaction: unknown }).transaction)
-    ).to.equal(true);
+    expect(writes).to.deep.equal([
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(handoffs).to.deep.equal([checkedTransfer]);
   });
+
+  // Removing the public guard's refusal branch would put a call in the sink.
+  for (const [name, mutate, verdict] of [
+    [
+      "chain outside policy",
+      (input: ConsultRequest) => {
+        input.action.chainId = "eip155:8453";
+      },
+      "DENY",
+    ],
+    [
+      "recipient bytes",
+      (input: ConsultRequest) => {
+        input.transaction!.data = transfer(UNAPPROVED_RECIPIENT);
+      },
+      "DENY",
+    ],
+    [
+      "amount bytes",
+      (input: ConsultRequest) => {
+        input.transaction!.data = transfer(APPROVED_RECIPIENT, 1n);
+      },
+      "DENY",
+    ],
+    [
+      "target",
+      (input: ConsultRequest) => {
+        input.transaction!.to = UNAPPROVED_RECIPIENT;
+      },
+      "DENY",
+    ],
+    [
+      "native value",
+      (input: ConsultRequest) => {
+        input.transaction!.value = "1";
+      },
+      "DENY",
+    ],
+    [
+      "approval call",
+      (input: ConsultRequest) => {
+        input.transaction!.data = "0x095ea7b3" + transfer().slice(10);
+      },
+      "UNKNOWN",
+    ],
+    [
+      "missing transaction",
+      (input: ConsultRequest) => {
+        delete input.transaction;
+      },
+      "UNKNOWN",
+    ],
+  ] as const) {
+    it(`hands off nothing for ${name}`, async () => {
+      const input = request();
+      mutate(input);
+      const handoffs: unknown[] = [];
+      const result = await runTriggerGuard({
+        payment: input,
+        toRequest: (value) => value,
+        policy: makePolicy(),
+        signer: (checked) => {
+          handoffs.push(checked);
+        },
+      });
+      expect(result.consult.verdict).to.equal(verdict);
+      expect(result.consult.proceed).to.equal(false);
+      expect(result.signerOutcome).to.equal("not-attempted");
+      expect(handoffs).to.deep.equal([]);
+    });
+  }
+
+  it("keeps intent-only calls stopped after the policy is disabled and restored", async () => {
+    const handoffs: unknown[] = [];
+    const policy = makePolicy();
+    const attempt = (input: ConsultRequest) =>
+      runTriggerGuard({
+        payment: input,
+        toRequest: (value) => value,
+        policy,
+        signer: (checked) => {
+          handoffs.push(checked);
+        },
+      });
+    expect((await attempt(request())).signerOutcome).to.equal("settled");
+
+    // This is the existing library policy gate, not an integration kill switch.
+    policy.permits = false;
+    for (const input of [request(), makeRequest({ transaction: undefined })]) {
+      const stopped = await attempt(input);
+      expect(stopped.consult.proceed).to.equal(false);
+      expect(stopped.signerOutcome).to.equal("not-attempted");
+      expect(handoffs).to.deep.equal([checkedTransfer]);
+    }
+
+    policy.permits = true;
+    const legacy = await attempt(makeRequest({ transaction: undefined }));
+    expect(legacy.consult.proceed).to.equal(false);
+    expect(legacy.signerOutcome).to.equal("not-attempted");
+    expect(handoffs).to.deep.equal([checkedTransfer]);
+    expect((await attempt(request())).signerOutcome).to.equal("settled");
+    expect(handoffs).to.deep.equal([checkedTransfer, checkedTransfer]);
+  });
+
+  // The internal seam supplies a stale allow receipt so the guard's independent
+  // digest recheck is exercised. This does not model a wallet's active account.
+  for (const changed of ["sender", "chain", "calldata"] as const) {
+    it(`rejects a stale receipt after a bound ${changed} change (test-only seam)`, async () => {
+      const input = request();
+      const policy = makePolicy();
+      if (changed === "sender") input.transaction!.from = UNAPPROVED_RECIPIENT;
+      if (changed === "chain") {
+        input.action.chainId = policy.chainId = "eip155:8453";
+        const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+        input.action.asset!.contractAddress = baseUsdc;
+        input.action.target = input.transaction!.to = baseUsdc;
+        policy.perActionCapAssets = { pay: baseUsdc };
+      }
+      if (changed === "calldata") {
+        input.action.amount = "999999";
+        input.transaction!.data = transfer(APPROVED_RECIPIENT, 999999n);
+      }
+      expect(consult(input, policy).proceed).to.equal(true);
+      const handoffs: unknown[] = [];
+      const result = await runTriggerGuardWith(
+        (captured, ownerPolicy) => ({
+          ...consult(captured, ownerPolicy),
+          callDigest: checkedTransfer.callDigest,
+        }),
+        {
+          payment: input,
+          toRequest: (value) => value,
+          policy,
+          signer: (checked) => {
+            handoffs.push(checked);
+          },
+        }
+      );
+      expect(result.consult.results[0].code).to.equal(
+        "GUARD_CALL_BINDING_INVALID"
+      );
+      expect(result.consult.proceed).to.equal(false);
+      expect(result.signerOutcome).to.equal("not-attempted");
+      expect(handoffs).to.deep.equal([]);
+    });
+  }
 
   for (const callDigest of [undefined, "sha256:" + "0".repeat(64)]) {
     it(`never invokes the signer with a ${
