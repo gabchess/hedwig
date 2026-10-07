@@ -57,12 +57,14 @@ describe("swap slippage at its edges", () => {
   it("a ceiling of zero accepts only minOut equal to quotedOut", () => {
     const quotedOut = "1000000000000000000000000000000";
     const justUnder = (BigInt(quotedOut) - 1n).toString();
-    expect(
-      swapWith(
-        { quotedOut, minOut: justUnder, slippageBps: 0 },
-        { maxSlippageBps: 0 }
-      ).proceed
-    ).to.equal(false);
+    const below = swapWith(
+      { quotedOut, minOut: justUnder, slippageBps: 0 },
+      { maxSlippageBps: 0 }
+    );
+    expect(slippageRow(below)?.code).to.equal("SLIPPAGE_EXCEEDS_CEILING");
+    expect(slippageRow(below)?.status).to.equal("FAIL");
+    expect(below.verdict).to.equal("DENY");
+    expect(below.proceed).to.equal(false);
     const exact = swapWith(
       { quotedOut, minOut: quotedOut, slippageBps: 0 },
       { maxSlippageBps: 0 }
