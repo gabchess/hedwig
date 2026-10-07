@@ -167,12 +167,12 @@ export async function handleConsult(
       ? (capturedArgs as Record<string, unknown>).request
       : undefined;
 
-  // consult owns native-call selection, decoding and intent binding. Keep
+  // consult owns call selection, decoding and intent binding. Keep
   // its full result when that check refuses, before dispatching any reader.
   // A matching call still needs the normal evaluation with fresh evidence.
   const action = (request as Partial<ConsultRequest> | null | undefined)
     ?.action;
-  if (action?.type === "swap" && action.chainId === "eip155:143") {
+  if (action?.type === "pay" || action?.type === "swap") {
     let preflight: ConsultResponse;
     try {
       preflight = consult(request as never, policyResult.policy as never, {
@@ -188,9 +188,10 @@ export async function handleConsult(
       preflight.floorIds.length === 0 ||
       preflight.results.some(
         (row) =>
-          row.id === "target-is-canonical" &&
-          (row.code === "MONAD_CALL_UNSUPPORTED" ||
-            row.code === "MONAD_CALL_INTENT_MISMATCH")
+          (row.id === "transaction-matches-intent" && row.status !== "PASS") ||
+          (row.id === "target-is-canonical" &&
+            (row.code === "MONAD_CALL_UNSUPPORTED" ||
+              row.code === "MONAD_CALL_INTENT_MISMATCH"))
       )
     ) {
       return preflight;

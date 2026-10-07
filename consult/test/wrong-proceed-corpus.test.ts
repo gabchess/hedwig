@@ -38,12 +38,9 @@ const CORPUS: CorpusEntry[] = JSON.parse(
 describe("wrong-proceed corpus", () => {
   it("plain-JSON adversarial requests never earn an unauthorised allow", () => {
     expect(CORPUS.length).to.be.greaterThan(5);
-    // Two authorised allows per action type this corpus covers (pay, swap):
-    // a clean request under a role-`not-required` policy, and a clean
-    // request under a role-`required` policy with a good fact. A corpus
-    // entry earning proceed:true without being marked here is exactly the
-    // regression this file exists to catch.
-    expect(CORPUS.filter((entry) => entry.authorizedAllow).length).to.equal(4);
+    // Bound direct transfers retain two authorised allows: optional role,
+    // and required role with a good fact. Unbound swaps must refuse.
+    expect(CORPUS.filter((entry) => entry.authorizedAllow).length).to.equal(2);
     CORPUS.forEach((entry) => {
       const response = consult(
         entry.request as never,
@@ -60,9 +57,8 @@ describe("wrong-proceed corpus", () => {
     });
   });
 
-  // Each entry below is otherwise a clean pay request: every other Floor
-  // row PASSes, so the printed non-PASS rows prove exactly one Condition,
-  // authorization-window-within-ceiling, is what earns the non-allow.
+  // Preserve each authorization refusal. Required EIP-3009 also fails
+  // call binding because a direct ERC-20 transfer cannot satisfy it.
   const AUTHORIZATION_WINDOW_SINGLE_CAUSE: Record<string, string> = {
     "pay-authorization-window-policy-missing": "AUTHORIZATION_POLICY_MISSING",
     "pay-authorization-window-policy-malformed":
@@ -77,7 +73,7 @@ describe("wrong-proceed corpus", () => {
       "AUTHORIZATION_WINDOW_EXCEEDS_CEILING",
   };
 
-  it("each authorization-window corpus entry is a single-cause non-allow", () => {
+  it("each authorization-window corpus entry retains its refusal alongside call binding", () => {
     const ids = Object.keys(AUTHORIZATION_WINDOW_SINGLE_CAUSE);
     expect(ids.length).to.equal(8);
     ids.forEach((id) => {
@@ -88,9 +84,15 @@ describe("wrong-proceed corpus", () => {
         entry!.policy as never,
         entry!.facts as never
       );
-      const nonPass = response.results.filter((r) => r.status !== "PASS");
-      // eslint-disable-next-line no-console
-      console.log(`${id}: non-PASS rows`, nonPass);
+      const nonPass = response.results.filter(
+        (r) => r.status !== "PASS" && r.id !== "transaction-matches-intent"
+      );
+      const bind = response.results.find(
+        (r) => r.id === "transaction-matches-intent"
+      )!;
+      const required =
+        (entry!.policy as Policy).authorizationWindow?.mode === "required";
+      expect(bind.status, id).to.equal(required ? "UNVERIFIED" : "PASS");
       expect(nonPass, id).to.have.length(1);
       expect(nonPass[0].id, id).to.equal("authorization-window-within-ceiling");
       expect(nonPass[0].code, id).to.equal(

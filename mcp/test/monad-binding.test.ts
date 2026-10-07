@@ -62,6 +62,7 @@ const floorIds = [
   "amount-within-cap",
   "chain-matches-intent",
   "role-requirement-met",
+  "transaction-matches-intent",
 ];
 const envNames = [
   "HEDWIG_REGISTRY_URL",
@@ -433,7 +434,7 @@ describe("native Monad handler binding (offline)", () => {
         action: { ...request().action, chainId: "eip155:1" },
         transaction: { ...request().transaction, data: "0xdeadbeef" },
       },
-      "SWAP_ROLE_HELD",
+      "SWAP_ROLE_FACT_MISSING",
     ],
     [
       "Monad ERC-20 swap",
@@ -448,7 +449,7 @@ describe("native Monad handler binding (offline)", () => {
         },
         transaction: { ...request().transaction, data: "0xdeadbeef" },
       },
-      "SWAP_ROLE_HELD",
+      "SWAP_ROLE_FACT_MISSING",
     ],
     [
       "Solana payment",
@@ -460,13 +461,17 @@ describe("native Monad handler binding (offline)", () => {
           amount: "1",
         },
       },
-      "ROLE_HELD",
+      "ROLE_FACT_MISSING",
     ],
   ] as const) {
-    it(`${name} retains evidence reader dispatch`, async () => {
+    it(`${name} refuses unsupported calls before evidence reader dispatch`, async () => {
       const result = await handleConsult({ request: input }, policyPath);
-      expect(readerCalls).to.deep.equal(["solana", "registry"]);
-      expect(fetchCalls).to.include(solanaUrl);
+      expect(readerCalls).to.deep.equal([]);
+      expect(fetchCalls).to.deep.equal([]);
+      expect(result.proceed).to.equal(false);
+      expect(row(result, "transaction-matches-intent")?.status).to.equal(
+        "UNVERIFIED"
+      );
       expect(row(result, "role-requirement-met")?.code).to.equal(roleCode);
       expect(
         result.results.some((item) => item.code.startsWith("MONAD_CALL_"))

@@ -26,7 +26,10 @@ jobs:
           node scripts/site-copy.test.js
 
       - name: Install workspace dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Check install guide execution boundaries
+        run: node --test scripts/install-guide.test.js
 
       - name: Check TypeScript formatting
         run: yarn lint

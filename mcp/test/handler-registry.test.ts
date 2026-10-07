@@ -24,6 +24,7 @@ import {
 } from "./registry-helpers";
 import type { World } from "./registry-helpers";
 import swapFixture from "../../consult/test/fixtures/monad-router02.json";
+import payFixture from "./fixtures/request.json";
 
 // Through handleConsult's real wiring: real env-driven config, a patched
 // global fetch standing in for the registry host, the RPC and (in one test)
@@ -43,6 +44,7 @@ const MONAD_PATH = "v1/eip155-143/USDC.json";
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 19) + "Z";
 
 const PAY_MONAD = {
+  transaction: { ...payFixture.transaction, to: MONAD_USDC },
   action: {
     type: "pay",
     chainId: "eip155:143",

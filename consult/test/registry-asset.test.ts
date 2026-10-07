@@ -531,7 +531,7 @@ describe("registry Fact: swap token-in and token-out resolve USDT through the he
       side === "tokenIn" ? "token-in-is-canonical" : "token-out-is-canonical";
     const prefix = side === "tokenIn" ? "SWAP_TOKEN_IN" : "SWAP_TOKEN_OUT";
 
-    it(`${side}: real USDT with a valid Fact passes and the swap is ALLOW_UNDER_POLICY`, () => {
+    it(`${side}: real USDT with a valid Fact passes while undecoded swap bytes remain UNKNOWN`, () => {
       const response = consult(
         usdtSwapRequest(side, ETHEREUM_USDT),
         makeSwapPolicy({
@@ -545,7 +545,10 @@ describe("registry Fact: swap token-in and token-out resolve USDT through the he
         status: "PASS",
         code: `${prefix}_IS_CANONICAL`,
       });
-      expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+      expect(response.verdict).to.equal("UNKNOWN");
+      expect(row(response, "transaction-matches-intent")?.code).to.equal(
+        "SWAP_CALL_UNSUPPORTED"
+      );
     });
 
     it(`${side}: a lookalike USDT with a valid Fact is DENY`, () => {

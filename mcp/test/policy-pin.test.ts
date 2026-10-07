@@ -33,6 +33,13 @@ const VALID_POLICY = JSON.parse(
 const ATTACKER = "0x00000000000000000000000000000000badbad01";
 const ATTACKER_REQUEST = {
   action: { ...VALID_REQUEST.action, recipient: ATTACKER },
+  transaction: {
+    ...VALID_REQUEST.transaction,
+    data:
+      "0xa9059cbb" +
+      ATTACKER.slice(2).padStart(64, "0") +
+      1_000_000n.toString(16).padStart(64, "0"),
+  },
 };
 const ATTACKER_ALLOWED_POLICY = {
   ...VALID_POLICY,

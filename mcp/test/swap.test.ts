@@ -57,13 +57,20 @@ describe("handleConsult: swap", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("supplies the time itself, in seconds: a clean swap proceeds", async () => {
+  it("supplies the time itself while refusing an unbound swap", async () => {
     const response = await handleConsult(
       { request: swapRequest(nowSeconds() + 300) },
       policyPath
     );
-    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
-    expect(response.proceed).to.equal(true);
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(response.proceed).to.equal(false);
+    expect(
+      response.results.find((r) => r.id === "deadline-set-and-fresh")?.status
+    ).to.equal("PASS");
+    expect(
+      response.results.find((r) => r.id === "transaction-matches-intent")
+        ?.status
+    ).to.equal("UNVERIFIED");
   });
 
   it("ignores a time the caller supplies, wherever the caller puts it", async () => {

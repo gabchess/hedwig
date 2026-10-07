@@ -121,7 +121,12 @@ describe("role-requirement-met", () => {
         expect(row?.status).to.equal("PASS");
         expect(row?.code).to.equal(code("ROLE_HELD"));
         expect(row?.evidenceClass).to.equal("onchain-read");
-        expect(response.proceed).to.equal(true);
+        expect(response.proceed).to.equal(name === "pay");
+        if (name === "swap")
+          expect(
+            response.results.find((r) => r.id === "transaction-matches-intent")
+              ?.code
+          ).to.equal("SWAP_CALL_UNSUPPORTED");
       });
 
       (

@@ -7,9 +7,11 @@
 // Never exported through package.json.
 import { deepFreeze, truncate } from "./catalog";
 import { MAX_INPUT_JSON_LENGTH } from "./constants";
-import type { ConsultAction, ConsultRequest, Policy } from "./catalog";
+import type { ConsultRequest, Policy } from "./catalog";
 import type { ConsultResponse } from "./core";
 import type { Verdict } from "./fold";
+import { bindEvmCall } from "./evm-call";
+import type { CheckedEvmCall } from "./evm-call";
 
 export type ConsultFn = (
   request: ConsultRequest,
@@ -70,13 +72,12 @@ export interface TriggerGuardInput<TPayment, TSignerResult> {
   // negative, or over that ceiling) is a guard-level input error:
   // GUARD_GATHER_DEADLINE_INVALID, no gather call.
   readonly gatherDeadlineMs?: number;
-  // Called at most once, only on ALLOW_UNDER_POLICY, with the action field
-  // of the same frozen JSON snapshot the guard passed to gather and consult(),
-  // never the caller's own live object. Its records have null prototypes:
-  // read fields with Object.hasOwn or a spread, never
-  // action.hasOwnProperty, which a null-prototype object does not have.
+  // Called at most once after allow/proceed and digest checks. Receives the
+  // captured action and transaction, explicit chain, and call-only digest.
+  // The consumer must verify its signer account/chain and use these bytes.
+  // Captured records have null prototypes; use Object.hasOwn to read ownership.
   readonly signer: (
-    action: ConsultAction
+    checked: CheckedEvmCall
   ) => TSignerResult | Promise<TSignerResult>;
   // A whole number of milliseconds from 1 to 2147483647. Any other value
   // (0, a fraction, NaN, Infinity, negative, or over that ceiling) is a
@@ -270,8 +271,8 @@ function raceWithDeadline<T>(
 // The Trigger guard: maps a payment into a request, turns it into frozen
 // JSON data once, gathers facts from that data within a deadline, passes
 // the same data to consultFn, and calls the signer only when consultFn
-// returns ALLOW_UNDER_POLICY, with checked.action: the action field of
-// that same data. Nothing after that step re-derives it.
+// returns ALLOW_UNDER_POLICY and proceed=true with the captured call's digest.
+// The signer receives the checked proposal and explicit chain/account context.
 export async function runTriggerGuardWith<TPayment, TSignerResult>(
   consultFn: ConsultFn,
   input: TriggerGuardInput<TPayment, TSignerResult>
@@ -285,10 +286,10 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
 
   // The guard turns the mapped request into its own JSON snapshot once,
   // synchronously, right after toRequest returns and before gather runs.
-  // gather and consultFn receive that same data; the signer receives only
-  // its action field. The guard never reads `request` again. A request
-  // with no JSON form is a guard-level mapping failure: no gather,
-  // consultFn or signer call.
+  // gather and consultFn receive that same data; the signer receives its
+  // action and transaction with the checked digest. The guard never reads
+  // `request` again. A request with no JSON form is a guard-level mapping
+  // failure: no gather, consultFn or signer call.
   let checked: ConsultRequest;
   try {
     checked = toSnapshotData(request);
@@ -362,9 +363,33 @@ export async function runTriggerGuardWith<TPayment, TSignerResult>(
     return { consult: response, signerOutcome: "not-attempted" };
   }
 
-  const action = checked.action;
+  let binding: ReturnType<typeof bindEvmCall>;
+  try {
+    binding = bindEvmCall(checked, input.policy);
+  } catch (error) {
+    return unknownGuardResult(
+      "GUARD_CALL_BINDING_INVALID",
+      errorMessage(error)
+    );
+  }
+  if (
+    response.proceed !== true ||
+    binding.status !== "bound" ||
+    response.callDigest !== binding.callDigest
+  ) {
+    return unknownGuardResult(
+      "GUARD_CALL_BINDING_INVALID",
+      "call digest is missing or disagrees with the captured proposal"
+    );
+  }
+  const call: CheckedEvmCall = Object.freeze({
+    action: checked.action,
+    chainId: checked.action.chainId,
+    transaction: checked.transaction!,
+    callDigest: binding.callDigest,
+  });
   const signed = await raceWithDeadline(
-    () => input.signer(action),
+    () => input.signer(call),
     signerDeadlineMs
   );
 

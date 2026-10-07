@@ -68,6 +68,7 @@ const CONSTANT_NAMES = new Set([
 const SOURCE_NAMES: Readonly<Record<string, readonly string[]>> = {
   // Public Router02 ABI layout and uint widths. No policy values live here.
   "consult/src/monad-calldata.ts": ["ROUTER02_LAYOUT"],
+  "consult/src/evm-call.ts": ["TRANSFER_LAYOUT"],
   "consult/src/core.ts": ["STATUS_RANK"],
   "consult/src/support.ts": ["round2"],
   "consult/src/guard-internal.ts": [

@@ -9,7 +9,7 @@ guide](../docs/agents.md) pins the earlier v0.4.2 release.
 Use Node.js 22+ and Yarn. From the repository root:
 
 ```sh
-yarn install --frozen-lockfile
+yarn install --frozen-lockfile --ignore-scripts
 npm ci --ignore-scripts --prefix mcp
 yarn consult:build && yarn mcp:build
 HEDWIG_POLICY_FILE=/path/to/policy.json node mcp/dist/server.js

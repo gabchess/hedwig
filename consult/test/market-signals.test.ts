@@ -123,11 +123,11 @@ function activityOf(transfers: unknown, overrides = {}) {
 }
 
 describe("market signals: three Floor Conditions for an unknown pay asset", () => {
-  it("adds the three Conditions to the end of the pay Floor", () => {
+  it("keeps the three Conditions immediately before call binding", () => {
     const response = consult(makeRequest(), makePolicy());
-    expect(response.results.slice(-3).map((result) => result.id)).to.deep.equal(
-      MARKET_IDS
-    );
+    expect(
+      response.results.slice(-4, -1).map((result) => result.id)
+    ).to.deep.equal(MARKET_IDS);
   });
 
   it("the max reading age is 60 seconds", () => {
@@ -160,7 +160,7 @@ describe("market signals: three Floor Conditions for an unknown pay asset", () =
       }
       expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
       expect(response.proceed).to.equal(true);
-      expect(response.support).to.equal(0.92);
+      expect(response.support).to.equal(0.9);
     });
 
     it("assetKnownTo is true for a code-table asset at its own address and false elsewhere", () => {

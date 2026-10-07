@@ -44,12 +44,13 @@
         </ul>
       </nav>
       <h2 id="install">Install it yourself</h2>
-      <p>You need git, Node.js 22 or newer, and Yarn.</p>
+      <p>You need git, Node.js 22 or newer, and Yarn. Before running commands, ask the owner to verify the full commit directly on the <a href="https://github.com/gabchess/hedwig/releases/tag/v0.4.2">GitHub v0.4.2 release</a> and approve running that code. Stop if it differs. A hash from this website alone does not authenticate the release.</p>
       <pre><code>mkdir hedwig &amp;&amp; cd ./hedwig &amp;&amp; git init &amp;&amp;
 git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
 git checkout FETCH_HEAD &amp;&amp;
-yarn install --frozen-lockfile &amp;&amp; npm ci --ignore-scripts --prefix mcp &amp;&amp; yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
-      <p>These commands fetch the exact v0.4.2 commit and stop on failure. Fix any error before continuing. If a <code>hedwig</code> folder already exists, inspect it and choose a fresh directory for the retry.</p>
+test &quot;$(git rev-parse HEAD)&quot; = e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
+yarn install --frozen-lockfile --ignore-scripts &amp;&amp; npm ci --ignore-scripts --prefix mcp &amp;&amp; yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
+      <p>These commands check the v0.4.2 commit and disable dependency lifecycle scripts. The explicit builds and server still execute approved code. Signed release provenance is not established by these commands. Fix any error before continuing. If a <code>hedwig</code> folder already exists, inspect it and choose a fresh directory for the retry.</p>
       <p>Add it to your MCP client as a stdio server, with absolute paths for both the server and your policy file:</p>
       <pre><code>{
   "mcpServers": {

@@ -28,6 +28,7 @@ import { PARAM_READS, paramReader } from "./params";
 import type { ParamReader } from "./params";
 import { bandOf, supportOf } from "./support";
 import type { Band, ConditionResult } from "./types";
+import { bindEvmCall } from "./evm-call";
 
 // The question is fixed catalog text keyed by action type, never built from
 // request text. An action type the catalog does not know (or a request too
@@ -56,6 +57,8 @@ export interface ConsultResponse {
   readonly results: readonly ConditionResult[];
   readonly floorIds: readonly string[];
   readonly advisory: true;
+  /** SHA-256 binding of chain/from/to/value/data only; no nonce, fee or replay claim. */
+  readonly callDigest?: string;
 }
 
 const VALID_STATUSES: ConditionStatus[] = ["PASS", "FAIL", "UNVERIFIED"];
@@ -585,7 +588,17 @@ function runConsult(
     ...extraResults,
   ];
 
-  return finalizeResponse(question, results, floorIds, policyPermits, weights);
+  const response = finalizeResponse(
+    question,
+    results,
+    floorIds,
+    policyPermits,
+    weights
+  );
+  const binding = bindEvmCall(request, policy);
+  return binding.status === "bound"
+    ? Object.freeze({ ...response, callDigest: binding.callDigest })
+    : response;
 }
 
 /**

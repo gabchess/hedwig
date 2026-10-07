@@ -73,7 +73,7 @@ describe("runTriggerGuard", () => {
       baseInput({
         payment: request,
         toRequest: (payment) => payment,
-        signer: (action) => {
+        signer: ({ action }) => {
           calls.push(action);
           return "SIGNED";
         },
@@ -281,6 +281,7 @@ describe("runTriggerGuard", () => {
     };
     let reads = 0;
     const req = {
+      transaction: makeRequest().transaction,
       get action() {
         reads += 1;
         return reads === 1 ? good : evil;
@@ -291,7 +292,7 @@ describe("runTriggerGuard", () => {
       baseInput({
         payment: req,
         toRequest: (p) => p,
-        signer: (action) => {
+        signer: ({ action }) => {
           signed.push(action);
           return "SIGNED";
         },
@@ -315,13 +316,16 @@ describe("runTriggerGuard", () => {
         return reads === 1 ? base.action.recipient : UNAPPROVED_RECIPIENT;
       },
     });
-    const req = { action } as unknown as ConsultRequest;
+    const req = {
+      action,
+      transaction: base.transaction,
+    } as unknown as ConsultRequest;
     const signed: ConsultAction[] = [];
     const result = await runTriggerGuard(
       baseInput({
         payment: req,
         toRequest: (p) => p,
-        signer: (a) => {
+        signer: ({ action: a }) => {
           signed.push(a);
           return "SIGNED";
         },
@@ -348,7 +352,7 @@ describe("runTriggerGuard", () => {
           });
           return p;
         },
-        signer: (a) => {
+        signer: ({ action: a }) => {
           signed.push({ ...a });
           return "SIGNED";
         },
@@ -454,7 +458,7 @@ describe("runTriggerGuard", () => {
       baseInput({
         payment: req,
         toRequest: (p) => p,
-        signer: async (a) => {
+        signer: async ({ action: a }) => {
           await sleep(20);
           signed.push({ ...a });
           return "SIGNED";
@@ -711,7 +715,7 @@ describe("runTriggerGuard", () => {
     expect(signerCalls).to.equal(0);
   });
 
-  it("an action with no own recipient, while Object.prototype.recipient is set: the signer reads recipient as undefined", async () => {
+  it("an action with no own recipient cannot reach the signer through prototype pollution", async () => {
     const base = makeRequest();
     const approved = base.action.recipient as string;
     const action = { ...base.action } as Record<string, unknown>;
@@ -719,24 +723,29 @@ describe("runTriggerGuard", () => {
     const proto = Object.prototype as unknown as Record<string, unknown>;
     proto.recipient = approved;
     let seenBySigner: unknown;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         proto.recipient = UNAPPROVED_RECIPIENT;
       }, 5);
       const result = await runTriggerGuard(
         baseInput({
-          payment: { action } as unknown as ConsultRequest,
+          payment: {
+            action,
+            transaction: base.transaction,
+          } as unknown as ConsultRequest,
           toRequest: (p) => p,
-          signer: async (a) => {
+          signer: async ({ action: a }) => {
             await sleep(20);
             seenBySigner = (a as unknown as Record<string, unknown>).recipient;
             return "SIGNED";
           },
         })
       );
-      expect(result.signerOutcome).to.equal("settled");
+      expect(result.signerOutcome).to.equal("not-attempted");
       expect(seenBySigner).to.equal(undefined);
     } finally {
+      clearTimeout(timer);
       delete proto.recipient;
     }
   });
@@ -933,7 +942,7 @@ describe("runTriggerGuard", () => {
           setTimeout(() => meta.set("to", UNAPPROVED_RECIPIENT), 5);
           return undefined;
         },
-        signer: async (a) => {
+        signer: async ({ action: a }) => {
           await sleep(20);
           signed.push(a);
           return "SIGNED";
@@ -965,7 +974,7 @@ describe("runTriggerGuard", () => {
               extra: Object.assign([], { buf: shared }),
             },
           } as unknown as ConsultRequest),
-        signer: (a) => {
+        signer: ({ action: a }) => {
           signed.push(a);
           return "SIGNED";
         },
@@ -1014,7 +1023,7 @@ describe("runTriggerGuard", () => {
           }, 5);
           return undefined;
         },
-        signer: async (a) => {
+        signer: async ({ action: a }) => {
           await sleep(20);
           signed.push(a);
           return "SIGNED";

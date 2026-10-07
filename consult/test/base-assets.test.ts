@@ -58,7 +58,7 @@ describe("Base assets", () => {
     );
   });
 
-  it("a clean USDC pay on Base earns ALLOW at 0.92", () => {
+  it("a bound USDC pay on Base earns ALLOW at 0.90", () => {
     const response = consult(
       basePay(),
       makePolicy({
@@ -68,10 +68,10 @@ describe("Base assets", () => {
     );
     expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
     expect(response.proceed).to.equal(true);
-    expect(response.support).to.equal(0.92);
+    expect(response.support).to.equal(0.9);
   });
 
-  it("a clean USDC to WETH swap on Base earns ALLOW at 0.90", () => {
+  it("a declared USDC to WETH swap on Base needs supported call bytes", () => {
     const response = consult(
       baseSwap(),
       makeSwapPolicy({
@@ -80,8 +80,15 @@ describe("Base assets", () => {
       }),
       makeSwapFacts()
     );
-    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
-    expect(response.support).to.equal(0.9);
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(
+      response.results
+        .filter((r) => r.id !== "transaction-matches-intent")
+        .every((r) => r.status === "PASS")
+    ).to.equal(true);
+    expect(
+      response.results.find((r) => r.id === "transaction-matches-intent")?.code
+    ).to.equal("SWAP_CALL_UNSUPPORTED");
   });
 
   it("the mainnet USDC address is not canonical on Base", () => {
