@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How it works | Hedwig</title>
-<meta name="description" content="The workflow we are building combines current chain facts with relevant DeFi and security knowledge. Agents get a score; owners can ask for the reasons.">
+<meta name="description" content="The local v0.4.2 checker evaluates payment and swap proposals against policy and returns a decision with reasons. The payment agent controls signing.">
 <link rel="canonical" href="https://usehedwig.xyz/how-it-works">
 <meta property="og:title" content="How it works | Hedwig">
-<meta property="og:description" content="The workflow we are building combines current chain facts with relevant DeFi and security knowledge. Agents get a score; owners can ask for the reasons.">
+<meta property="og:description" content="The local v0.4.2 checker evaluates payment and swap proposals against policy and returns a decision with reasons. The payment agent controls signing.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/how-it-works">
 <meta property="og:type" content="website">
@@ -20,7 +20,7 @@
 <div class="frame has-panel">
   <div class="rail-top">
     <a href="/" class="rail-name" aria-label="Hedwig home">Hedwig</a>
-    <p class="rail-intro">AI security expert for agentic finance.</p>
+    <p class="rail-intro">Eval gate for payment agents.</p>
     <nav aria-label="Main">
       <ul class="rail-nav">
         <li><a href="/about">About</a></li>
@@ -32,14 +32,17 @@
   </div>
   <main class="panel" id="main" tabindex="-1">
     <h1>How it works</h1>
-    <p>We're building an expert check between a payment proposal and signing. The first workflow starts with a proposed 10 MON to USDC swap on Monad.</p>
+    <p>Hedwig is the eval gate your payment agent checks before it transacts.</p>
+    <p>The available v0.4.2 checker runs locally through MCP. It checks a proposed payment or swap against the owner's policy and available evidence.</p>
     <h2>Your agent sends the proposal</h2>
-    <p>While preparing the trade, your payment agent sends the exact unsigned transaction to Hedwig through MCP.</p>
-    <h2>Hedwig assesses it</h2>
-    <p>RAG retrieves relevant DeFi and security knowledge. Hedwig combines it with current chain facts and your payment rules to assess the proposal and return a 0&ndash;1 score.</p>
-    <p>If the output token differs from the verified USDC address, the planned assessment flags the mismatch and shows the correct address with its source.</p>
-    <h2>You can ask why</h2>
-    <p>Hedwig explains the original assessment in plain language, with the evidence behind it. Your payment agent keeps control of signing and execution.</p>
+    <p>While preparing a payment or swap, your payment agent sends Hedwig the proposal it is considering.</p>
+    <h2>Hedwig returns a check</h2>
+    <p>The checker returns <code>ALLOW_UNDER_POLICY</code>, <code>DENY</code> or <code>UNKNOWN</code>, with a result and reason for each check.</p>
+    <p>The support value measures evidence coverage, not safety probability. Hedwig does not sign or submit the transaction.</p>
+    <h2>Your agent controls execution</h2>
+    <p>Your payment agent applies its own controls and decides whether to proceed to its signer. The signer and execution remain under the caller's control.</p>
+    <h2>In development</h2>
+    <p>The hosted RAG-backed score and original-report workflow is being built on Jev by TypeSafe. Model training has not run, and a live hosted Monad assessment is not available.</p>
     <p><a href="/agents">Try the local checker</a> &middot; <a href="/docs">Read the integration guide</a></p>
   </main>
   <div class="art">

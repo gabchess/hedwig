@@ -1,8 +1,10 @@
 # @hedwig/mcp
 
-A local stdio MCP server with one tool, `consult`, for checking payment and
-swap proposals. This guide describes current `main`. The [agent install
-guide](../docs/agents.md) pins the earlier v0.4.2 release.
+Hedwig is the eval gate your payment agent checks before it transacts. This
+local stdio MCP server exposes one tool, `consult`, for checking payment and
+swap proposals against the owner’s policy. It returns a decision with reasons;
+the caller controls signing and execution. This guide describes current `main`.
+The [agent install guide](../docs/agents.md) pins the earlier v0.4.2 release.
 
 ## Run
 

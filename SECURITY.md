@@ -28,8 +28,8 @@ the fixed core and reference-consumer program IDs listed in [`THREAT-MODEL.md`](
 reference consumer is deployed on devnet. The repository-local SDK alpha remains a
 repository test surface and is not published. `@hedwig/consult` and `@hedwig/mcp` are in scope at the reviewed commit. Both are `private` and neither is published.
 
-The hosted expert service is in development. Current deployment evidence
-covers Solana devnet. The website is public; a website deployment does not
+The hosted RAG-backed score and original-report workflow is in development.
+Model training has not run. Current deployment evidence covers Solana devnet. The website is public; a website deployment does not
 establish a hosted payment-check service or a mainnet program deployment.
 
 ## Response

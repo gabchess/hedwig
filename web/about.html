@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>About | Hedwig</title>
-<meta name="description" content="Our vision is a payment-security model trained on curated DeFi and security data, with RAG bringing relevant protocol knowledge into each assessment.">
+<meta name="description" content="Hedwig is the eval gate your payment agent checks before it transacts. The v0.4.2 checker runs locally and returns a policy decision with reasons before signing.">
 <link rel="canonical" href="https://usehedwig.xyz/about">
 <meta property="og:title" content="About | Hedwig">
-<meta property="og:description" content="Our vision is a payment-security model trained on curated DeFi and security data, with RAG bringing relevant protocol knowledge into each assessment.">
+<meta property="og:description" content="Hedwig is the eval gate your payment agent checks before it transacts. The v0.4.2 checker runs locally and returns a policy decision with reasons before signing.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/about">
 <meta property="og:type" content="website">
@@ -20,7 +20,7 @@
 <div class="frame has-panel">
   <div class="rail-top">
     <a href="/" class="rail-name" aria-label="Hedwig home">Hedwig</a>
-    <p class="rail-intro">AI security expert for agentic finance.</p>
+    <p class="rail-intro">Eval gate for payment agents.</p>
     <nav aria-label="Main">
       <ul class="rail-nav">
         <li><a href="/about" aria-current="page">About</a></li>
@@ -32,9 +32,11 @@
   </div>
   <main class="panel" id="main" tabindex="-1">
     <h1>About Hedwig</h1>
-    <p>Hedwig is an AI security expert for agentic finance.</p>
-    <p>It helps people check what a payment agent is about to sign. A wrong token or recipient can turn a routine payment into a loss.</p>
-    <p>Our vision is a payment-security model trained on curated DeFi and security data, with RAG bringing relevant protocol knowledge into each assessment. Payment agents get an expert check before moving funds; their owners can inspect the reasons.</p>
+    <p>Hedwig is the eval gate your payment agent checks before it transacts.</p>
+    <p>A wrong recipient, asset or amount can turn a routine payment into a loss. The local checker compares a proposed payment or swap with the owner's policy and available evidence, then returns a decision with reasons.</p>
+    <p>The open-source v0.4.2 checker runs locally through MCP. Your payment agent controls signing and execution.</p>
+    <h2>In development</h2>
+    <p>The hosted RAG-backed score and original-report workflow is being built on Jev by TypeSafe. Model training has not run.</p>
     <p>The core is <a href="https://github.com/gabchess/hedwig" target="_blank" rel="noopener noreferrer">open source</a>.</p>
     <p><a href="/how-it-works">How it works</a> &middot; <a href="/roadmap">Roadmap</a></p>
   </main>

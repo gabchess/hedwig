@@ -8,9 +8,9 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?labelColor=0d0b16" alt="license: MIT"></a>
 </p>
 
-Hedwig is built to help agents and humans check an onchain payment before they sign.
+Hedwig is the eval gate your payment agent checks before it transacts.
 
-Hedwig checks a proposed payment or swap against your rules and available evidence, then returns a decision with reasons. Your wallet or app controls signing and execution.
+The open-source v0.4.2 checker runs locally through MCP. It checks a proposed payment or swap against the owner's policy and available evidence, then returns a decision with reasons. Your payment agent controls signing and execution.
 
 [Try Hedwig](https://usehedwig.xyz/agents): give the setup prompt to a coding agent that supports local MCP tools. The [setup guide](docs/agents.md) installs v0.4.2; component guides label later changes on `main`.
 
@@ -24,7 +24,7 @@ The optional [Trigger guard](consult/README.md#trigger-guard) calls your signer 
 
 ## In development
 
-We are building an expert assessment service for payment agents and their users. The first planned workflows assess a Monad swap proposal and a Tempo token transfer, with Scout as the first caller. A fast scoring model will assess blockchain evidence and curated knowledge in DeFi, online security, blockchain security and onchain payments. The planned 0–1 score will come with reasons; a separate language model will explain the assessment on request and answer DeFi questions. Signing stays with the caller.
+The hosted RAG-backed score and original-report workflow is being built on Jev by TypeSafe. Model training has not run. Hosted access, end-to-end latency, cost and chain-specific proof must be verified before those capabilities are presented as available.
 
 ## Documentation
 
