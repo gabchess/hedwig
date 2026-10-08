@@ -187,6 +187,11 @@ reviews:
         Failure cases: a lock change with no matching Cargo.toml change, or the reverse; a source that is a git URL or a path instead of the crates.io registry; a checksum that changed while the version stayed the same; a new crate with a build script in the program dependency tree; a name one edit away from a well-known crate; a downgrade of a crate that carries a security fix.
 
         List each added or upgraded crate and say whether the PR description names it.
+    - path: "CHANGELOG.md"
+      instructions: |
+        A changelog entry records what that PR shipped at the time it merged. Check it against the diff and the repository at that commit only.
+
+        Failure cases: an entry that claims something the diff does not ship. Do not flag an entry for differing from a later release, a later version number, or the current roadmap state.
 chat:
   auto_reply: false
   art: false
