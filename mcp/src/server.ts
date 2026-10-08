@@ -14,7 +14,7 @@ import { pinPolicyFile } from "./policy";
 const POLICY_PATH_ENV = "HEDWIG_POLICY_FILE";
 const TOOL_NAME = "consult";
 const TOOL_DESCRIPTION =
-  "Checks a payment or swap request against the owner's policy and returns whether to proceed, with a verdict, a support score from 0 to 1, a band, and the result of each check. Act on proceed only.";
+  "Hedwig is the eval gate your payment agent checks before it transacts. The local checker evaluates payment and swap proposals against the owner's policy and returns a verdict, a 0-to-1 support score for evidence coverage (not safety probability), and each check's result and reason. It does not sign or submit transactions; the caller controls execution and should act only on 'proceed'.";
 
 // Bounds one incoming message before the transport finishes buffering it
 // into a JSON-RPC line, so a message far larger than any real call never

@@ -1,8 +1,9 @@
 # Evidence
 
 Deployment records describe the dated devnet runs they link to. Tests cover
-local behavior. The hosted expert service, human chat and Monad demonstration
-remain in development.
+local behavior. Hosted scoring and original reports are in development on Jev
+by TypeSafe. Model training has not run. The Monad assessment is in
+development; broad DeFi chat and longer histories are later work.
 
 | Shipped | Proof |
 | --- | --- |
