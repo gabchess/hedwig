@@ -22,9 +22,11 @@ The [local checker](consult/README.md) returns `ALLOW_UNDER_POLICY`, `DENY` or `
 
 The optional [Trigger guard](consult/README.md#trigger-guard) calls your signer only after an allowed result. It covers calls routed through it. An allow applies to the stated policy and checks; see the component guide for supported checks and limits.
 
-## In development
+## Product vision
 
-We are building an expert assessment service for payment agents and their users. The first planned workflows assess a Monad swap proposal and a Tempo token transfer, with Scout as the first caller. A fast scoring model will assess blockchain evidence and curated knowledge in DeFi, online security, blockchain security and onchain payments. The planned 0–1 score will come with reasons; a separate language model will explain the assessment on request and answer DeFi questions. Signing stays with the caller.
+An AI security expert for agentic finance. Our vision combines a model trained on curated DeFi and security data with retrieval-augmented generation (RAG) for relevant payment knowledge. Payment agents get a score before signing; owners can inspect the evidence behind the original result.
+
+The first hosted workflow will check a proposed MON-to-USDC swap on Monad and flag an output token that differs from the verified USDC contract. A Tempo payment check follows, with Scout as the first caller. The hosted service and model training remain development work; the local checker above is available now.
 
 ## Documentation
 
