@@ -189,9 +189,11 @@ reviews:
         List each added or upgraded crate and say whether the PR description names it.
     - path: "CHANGELOG.md"
       instructions: |
-        A changelog entry records what that PR shipped at the time it merged. Check it against the diff and the repository at that commit only.
+        A changelog entry records what a PR shipped at the time it merged. A release entry may describe earlier merged PRs, so the diff alone is not the test.
 
-        Failure cases: an entry that claims something the diff does not ship. Do not flag an entry for differing from a later release, a later version number, or the current roadmap state.
+        Check each line this PR adds or edits against the repository at this PR's head. Failure case: a line this PR adds or edits that claims something the repository at this PR's head does not show.
+
+        Leave alone each entry this PR does not touch. Do not compare it with any state after the commit that wrote it.
 chat:
   auto_reply: false
   art: false
