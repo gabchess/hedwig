@@ -193,7 +193,7 @@ reviews:
 
         Check each line this PR adds or edits against the repository at this PR's head. Failure case: a line this PR adds or edits that claims something the repository at this PR's head does not show.
 
-        Leave alone each entry this PR does not touch. Do not compare it with any state after the commit that wrote it.
+        Leave alone each line this PR does not add or edit. Do not compare it with any later state.
 chat:
   auto_reply: false
   art: false
