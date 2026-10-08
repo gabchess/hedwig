@@ -190,6 +190,12 @@ for (const file of ["docs/agents.md", "web/agents.md", "web/docs.html"]) {
     const result = runRecipe(file, release);
     reportWarnings(context, result.output);
     assert.equal(result.status, 0, result.output);
+    assert.ok(
+      result.commands.some(
+        ([tool, command]) => tool === "yarn" && command === "install"
+      ),
+      "Yarn dependency install was skipped"
+    );
     assert.equal(result.lifecycleRan, false, "untrusted postinstall executed");
     assert.equal(
       result.npmLifecycleRan,
