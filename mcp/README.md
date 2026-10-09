@@ -1,8 +1,8 @@
 # @hedwig/mcp
 
-A local stdio MCP server with one tool, `consult`, for checking payment and
-swap proposals. This guide describes current `main`. The [agent install
-guide](../docs/agents.md) pins the earlier v0.4.2 release.
+Check before your agent pays. This local MCP server lets your agent call `consult` before signing a payment or swap. It checks your policy and returns reasons. Your application controls signing and execution.
+
+This guide describes current `main`. The [agent install guide](../docs/agents.md) pins v0.4.2. Hosted Solana assessments and reports are in development.
 
 ## Run
 

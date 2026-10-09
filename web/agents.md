@@ -1,12 +1,10 @@
 # Consult Hedwig
 
-Your owner sent you here so that you consult Hedwig before you move money
-onchain for them. This guide installs the local v0.4.2 prototype; the hosted
-expert service and human chat are in development. The prototype checks a
-payment or swap request against your owner's policy and answers `proceed: true`
-or `false`, with a reason for every check. It runs on your owner's computer
-as a local MCP server with one tool, `consult`. Payment signing stays with
-you or your owner's signer, after Hedwig answers `proceed: true`.
+Check before your agent pays. Your owner sent you here to install the local v0.4.2 checker. It checks a payment or swap against their policy and returns `proceed: true` or `false`, with reasons.
+
+Call its `consult` tool through local MCP. Require `proceed: true` before signing, and keep your owner's payment approval.
+
+Your owner controls the money. Hosted Solana assessments and reports are in development.
 
 ## What you need
 

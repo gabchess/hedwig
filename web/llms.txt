@@ -1,17 +1,17 @@
 # Hedwig
 
-> Hedwig is an AI security expert for agentic finance. It helps payment agents catch transaction mistakes before signing and gives owners findings they can understand.
+> Check before your agent pays. Install Hedwig's local checker and review a proposed transaction before signing. Your wallet keeps control.
 
 ## Pages
 
-- [Hedwig | AI security expert for agentic finance](https://usehedwig.xyz/): Hedwig is an AI security expert for agentic finance. It helps payment agents catch transaction mistakes before signing and gives owners findings they can understand.
-- [About | Hedwig](https://usehedwig.xyz/about): Our vision is a payment-security model trained on curated DeFi and security data, with RAG bringing relevant protocol knowledge into each assessment.
-- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): The workflow we are building combines current chain facts with relevant DeFi and security knowledge. Agents get a score; owners can ask for the reasons.
-- [Proof | Hedwig](https://usehedwig.xyz/proof): Inspect a recorded Solana devnet run covering an allowed request, an amount over the limit, missing evidence and a revoked role.
-- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Our roadmap combines a specialist payment-security model with RAG-backed protocol knowledge, starting with Monad and Tempo assessments.
+- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Check before your agent pays. Install Hedwig's local checker and review a proposed transaction before signing. Your wallet keeps control.
+- [About | Hedwig](https://usehedwig.xyz/about): Let your agent move money with a check before signing. Start with Hedwig's local checker. Solana assessments and reports are in development.
+- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Put Hedwig before your agent's signing step. Try a local policy check. Solana scores and reports are in development.
+- [Proof | Hedwig](https://usehedwig.xyz/proof): Inspect Hedwig's recorded Solana devnet checks, including a request over its amount limit and a revoked role.
+- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Try Hedwig's local checker today. Next are Solana assessments with one score for each action and a short report on request.
 - [Team | Hedwig](https://usehedwig.xyz/team): Hi, I'm Gabe. I'm focused full time on Hedwig.
-- [Docs | Hedwig](https://usehedwig.xyz/docs): Connect Hedwig through local MCP, set your policy and inspect a sample payment check. Your application controls signing.
-- [Try Hedwig](https://usehedwig.xyz/agents): Connect Hedwig to a coding agent that supports local MCP tools. Copy the setup prompt, approve the install and run a sample check.
+- [Docs | Hedwig](https://usehedwig.xyz/docs): Install Hedwig as a local MCP tool, set your payment rules and run a sample check. Your wallet or application controls signing.
+- [Install Hedwig](https://usehedwig.xyz/agents): Add an eval gate to your payment agent. Install Hedwig v0.4.2 locally and run a sample check without sending funds.
 
 ## Setup
 
