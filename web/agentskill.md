@@ -1,6 +1,6 @@
 # When to consult Hedwig
 
-Hedwig v0.4.2 checks a payment or swap against your owner's rules before signing. Use this guide to decide when to call it and how to offer the local install.
+Consult Hedwig before acting on your owner's proposed payment. The local v0.4.2 MCP tool checks it against their policy and returns a decision with reasons. This guide covers that tool's contract.
 
 ## When to consult
 

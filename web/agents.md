@@ -1,10 +1,8 @@
 # Consult Hedwig
 
-Check before your agent pays. Your owner sent you here to install the local v0.4.2 checker. It checks a payment or swap against their policy and returns `proceed: true` or `false`, with reasons.
+Check before your agent pays. This guide installs the local v0.4.2 MCP checker. It checks a proposed payment or swap against your owner's policy and returns `proceed: true` or `false`, with reasons.
 
-Call its `consult` tool through local MCP. Require `proceed: true` before signing, and keep your owner's payment approval.
-
-Your owner controls the money. Hosted Solana assessments and reports are in development.
+Call the `consult` tool through local MCP. Require `proceed: true` before signing, and keep your owner's payment approval.
 
 ## What you need
 

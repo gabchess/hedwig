@@ -6,8 +6,6 @@ Install the local v0.4.2 checker through MCP. It compares a payment or swap with
 
 Your wallet or application controls signing. The MCP server holds no signing key.
 
-Hosted Solana assessments and reports are in development. This guide installs the local checker.
-
 ## Point an agent at Hedwig
 
 Paste this line into an agent that can run commands on your computer:
@@ -50,8 +48,7 @@ owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
 
 Current `main` contains later work, including asset-specific caps and registry
-reader code. The commands above continue to install v0.4.2. The Solana score and
-original report flow remain in development.
+reader code. The commands above continue to install v0.4.2.
 
 The transaction-binding change also requires unsigned call bytes on current
 source and changes the guard's signer argument. Read the
