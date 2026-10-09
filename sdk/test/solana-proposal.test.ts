@@ -284,6 +284,7 @@ describe("public Solana caller pre-sign guard", () => {
       sign: async () => { signCalls++; return signed(); },
     });
     expect(result.status).to.equal("held");
+    expect(result.code).to.equal("SOLANA_QUOTE_EXPIRED");
     expect(result.signerOutcome).to.equal("not-attempted");
     expect(signCalls).to.equal(0);
   });

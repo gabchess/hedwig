@@ -304,7 +304,7 @@ function receipt(input: unknown, capture: CapturedSolanaProposal, nowMs: number)
   if (r.verdict !== "ALLOW_UNDER_POLICY") fail("SOLANA_ASSESSMENT_REFUSED");
   return r as unknown as SolanaAssessmentBinding;
 }
-async function bounded<T>(fn: (assertInTime: () => void) => Promise<T>, ms: number): Promise<T> {
+async function bounded<T>(fn: () => Promise<T>, ms: number, before: () => void): Promise<T> {
   const started = performance.now();
   const timeout = new Error("SOLANA_DEPENDENCY_TIMEOUT");
   const assertInTime = () => {
@@ -314,14 +314,20 @@ async function bounded<T>(fn: (assertInTime: () => void) => Promise<T>, ms: numb
     const timer = setTimeout(() => reject(timeout), ms);
     Promise.resolve().then(() => {
       assertInTime();
-      return fn(assertInTime);
+      before();
+      assertInTime();
+      // Only dependency failures are masked. These trusted pre-effect checks
+      // retain their reason so the caller can replace an expired proposal.
+      try {
+        return Promise.resolve(fn()).catch(() => { throw new Error("SOLANA_DEPENDENCY_FAILED"); });
+      } catch { throw new Error("SOLANA_DEPENDENCY_FAILED"); }
     }).then(value => {
       clearTimeout(timer);
       if (performance.now() - started >= ms) reject(timeout);
       else resolve(value);
     }, error => {
       clearTimeout(timer);
-      reject(error === timeout ? timeout : new Error("SOLANA_DEPENDENCY_FAILED"));
+      reject(error);
     });
   });
 }
@@ -344,20 +350,18 @@ export async function runSolanaPreSignGuard(input: SolanaPreSignGuardInput): Pro
       if (time >= expiresAtMs) fail("SOLANA_ASSESSMENT_EXPIRED");
       return time;
     };
-    const call = <T>(fn: (assertInTime: () => void) => Promise<T>) => {
+    const call = <T>(fn: () => Promise<T>, before?: () => void) => {
       const time = live();
-      return bounded(assertInTime => { live(); return fn(assertInTime); }, Math.min(deadline, expiresAtMs - time));
+      return bounded(fn, Math.min(deadline, expiresAtMs - time), () => { live(); before?.(); });
     };
     const assessed = receipt(await call(() => assess(capture)), capture, now());
     expiresAtMs = Math.min(expiresAtMs, assessed.expiresAtMs);
     const refreshed = await call(() => refreshContext(capture));
     unchanged(capture, refreshed, now()); receipt(assessed, capture, now());
-    const artifact = await call(assertInTime => {
-      unchanged(capture, refreshed, now()); receipt(assessed, capture, now());
-      assertInTime();
+    const artifact = await call(() => {
       signerOutcome = "unknown";
       return sign(capture);
-    });
+    }, () => { unchanged(capture, refreshed, now()); receipt(assessed, capture, now()); });
     signerOutcome = "settled";
     receipt(assessed, capture, now());
     const finalContext = await call(() => refreshContext(capture));
