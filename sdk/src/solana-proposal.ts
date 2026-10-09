@@ -539,6 +539,20 @@ function unchanged(
     fail("SOLANA_ALT_CHANGED");
   return c;
 }
+// Internal profile composition only, deliberately absent from the SDK index.
+// The WeakMap proves this is the original capture. A supplied observation also
+// reuses the guard's freshness, network, quote, blockhash and ALT checks.
+export function solanaCaptureContextForProfile(
+  capture: CapturedSolanaProposal,
+  observed?: SolanaBindingContext,
+  nowMs = Date.now()
+): SolanaBindingContext {
+  const original = captured.get(capture);
+  if (!original) fail("SOLANA_CAPTURE_INVALID");
+  return observed === undefined
+    ? original
+    : unchanged(capture, observed, nowMs);
+}
 function base58(bytes: Uint8Array): string {
   const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   let leading = 0;
