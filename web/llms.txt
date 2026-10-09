@@ -1,12 +1,12 @@
 # Hedwig
 
-> Hedwig is designed to advise payment agents using curated knowledge and a score before signing. Ask for a short report to understand the result.
+> Our vision pairs curated knowledge with a Jev score and a report on request. Start with a free local policy check.
 
 ## Pages
 
-- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Hedwig is designed to advise payment agents using curated knowledge and a score before signing. Ask for a short report to understand the result.
+- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Our vision pairs curated knowledge with a Jev score and a report on request. Start with a free local policy check.
 - [About | Hedwig](https://usehedwig.xyz/about): Hedwig brings an eval into your agent's payment flow. Its product vision combines curated knowledge, a Jev score and a report when you ask.
-- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Hedwig's product vision puts an assessment before signing. Jev scores the proposed payment using retrieved facts; Hedwig explains the saved result on request.
+- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Explore Hedwig's product vision: a Jev payment assessment and a report on request. Start with the local policy checker.
 - [Proof | Hedwig](https://usehedwig.xyz/proof): Inspect Hedwig's recorded Solana devnet checks, including a request over its amount limit and a revoked role.
 - [Product direction | Hedwig](https://usehedwig.xyz/roadmap): Hedwig's direction: payment assessments informed by curated knowledge, an explanation on request, and an open core with paid hosted assessments.
 - [Team | Hedwig](https://usehedwig.xyz/team): Hi, I'm Gabe. I'm focused full time on Hedwig.

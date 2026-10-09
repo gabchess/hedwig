@@ -12,7 +12,7 @@
 
 Hedwig is an eval gate for safer agentic finance. It's designed to advise payment agents using relevant facts from a curated knowledge base.
 
-Hedwig uses Jev to assess the proposed action and return a score from 0 to 1. Ask for a short report to understand the saved result and its sources. The calling agent and wallet control execution.
+Our vision pairs an assessment using Jev with a score from 0 to 1 and a report on request. The report explains the saved assessment and its sources. The calling agent and wallet control execution.
 
 [Add an eval gate to your payment agent.](https://usehedwig.xyz/agents) · [How it works](https://usehedwig.xyz/how-it-works)
 
