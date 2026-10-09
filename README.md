@@ -10,7 +10,9 @@
 
 **Check before your agent pays.**
 
-Your agent can pick the wrong token or send money to a bad destination. Hedwig checks the proposed action before signing. Your wallet keeps control of the money.
+Hedwig is an eval gate for safer agentic finance. It's designed to advise payment agents using relevant facts from a curated knowledge base.
+
+Our vision pairs an assessment using Jev with a score from 0 to 1 and a report on request. The report explains the saved assessment and its sources. The calling agent and wallet control execution.
 
 [Add an eval gate to your payment agent.](https://usehedwig.xyz/agents) · [How it works](https://usehedwig.xyz/how-it-works)
 
@@ -21,12 +23,6 @@ The [setup guide](docs/agents.md) installs Hedwig v0.4.2 as a local MCP tool. Se
 The local checker returns a decision with reasons. Your integration must require `proceed: true` before signing. Read the [supported checks and limits](consult/README.md) before using it with funds.
 
 The optional [Trigger guard](consult/README.md#trigger-guard) wraps your signer and checks calls routed through it.
-
-## Next: Solana
-
-We're building Solana checks for native USDC and bad deposit destinations. Each action will get one score from 0 to 1. Ask for a short report to understand the original result.
-
-This flow uses Jev by TypeSafe. The live PayBox workflow and hosted access are in development. The setup above installs the local checker.
 
 ## Documentation
 

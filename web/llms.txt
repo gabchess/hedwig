@@ -1,17 +1,17 @@
 # Hedwig
 
-> Check before your agent pays. Install Hedwig's local checker and review a proposed transaction before signing. Your wallet keeps control.
+> Our vision pairs curated knowledge with a Jev score and a report on request. Start with a free local policy check.
 
 ## Pages
 
-- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Check before your agent pays. Install Hedwig's local checker and review a proposed transaction before signing. Your wallet keeps control.
-- [About | Hedwig](https://usehedwig.xyz/about): Let your agent move money with a check before signing. Start with Hedwig's local checker. Solana assessments and reports are in development.
-- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Put Hedwig before your agent's signing step. Try a local policy check. Solana scores and reports are in development.
+- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Our vision pairs curated knowledge with a Jev score and a report on request. Start with a free local policy check.
+- [About | Hedwig](https://usehedwig.xyz/about): Hedwig brings an eval into your agent's payment flow. Its product vision combines curated knowledge, a Jev score and a report when you ask.
+- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Explore Hedwig's product vision: a Jev payment assessment and a report on request. Start with the local policy checker.
 - [Proof | Hedwig](https://usehedwig.xyz/proof): Inspect Hedwig's recorded Solana devnet checks, including a request over its amount limit and a revoked role.
-- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Try Hedwig's local checker today. Next are Solana assessments with one score for each action and a short report on request.
+- [Product direction | Hedwig](https://usehedwig.xyz/roadmap): Hedwig's direction: payment assessments informed by curated knowledge, an explanation on request, and an open core with paid hosted assessments.
 - [Team | Hedwig](https://usehedwig.xyz/team): Hi, I'm Gabe. I'm focused full time on Hedwig.
-- [Docs | Hedwig](https://usehedwig.xyz/docs): Install Hedwig as a local MCP tool, set your payment rules and run a sample check. Your wallet or application controls signing.
-- [Install Hedwig](https://usehedwig.xyz/agents): Add an eval gate to your payment agent. Install Hedwig v0.4.2 locally and run a sample check without sending funds.
+- [Docs | Hedwig](https://usehedwig.xyz/docs): Add the local Hedwig MCP checker to your agent, set your payment rules and run a sample. Your wallet or application controls signing.
+- [Add an eval gate | Hedwig](https://usehedwig.xyz/agents): Add Hedwig to your agent through local MCP. Install the free policy checker and run a sample without sending funds.
 
 ## Setup
 
