@@ -8,11 +8,13 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?labelColor=0d0b16" alt="license: MIT"></a>
 </p>
 
-Hedwig is the eval gate your payment agent checks before it transacts.
+**Check before your agent pays.**
 
-The open-source v0.4.2 checker runs locally through MCP. It checks a proposed payment or swap against the owner's policy and available evidence, then returns a decision with reasons. Your payment agent controls signing and execution.
+Hedwig checks a payment agent's proposed action against the owner's rules and available evidence, then returns a result with reasons. Your wallet or app controls signing and execution.
 
-[Try Hedwig](https://usehedwig.xyz/agents): give the setup prompt to a coding agent that supports local MCP tools. The [setup guide](docs/agents.md) installs v0.4.2; component guides label later changes on `main`.
+[Add an eval gate to your payment agent](https://usehedwig.xyz/agents) · [See the recorded checks](https://usehedwig.xyz/proof) · [Read the evidence](docs/evidence.md)
+
+The [setup guide](docs/agents.md) installs the local v0.4.2 checker. Component guides label later changes on `main`. The Solana-mainnet PayBox flow, transaction score and original report are in development.
 
 ## Run a local check
 
@@ -24,7 +26,11 @@ The optional [Trigger guard](consult/README.md#trigger-guard) calls your signer 
 
 ## In development
 
-The hosted RAG-backed score and original-report workflow is being built on Jev by TypeSafe. Model training has not run. Hosted access, end-to-end latency, cost and chain-specific proof must be verified before those capabilities are presented as available.
+You ask your agent to swap SOL into native USDC, then deposit it into a vault. The Solana demo we are building checks each prepared transaction before signing: let a swap that passes the checks proceed and hold a controlled invalid vault proposal. Ask for the saved assessment when you want the reason.
+
+The planned flow uses Jev by TypeSafe with current chain facts and relevant DeFi knowledge. It returns one score from 0 to 1 for each assessment. An allowed result applies to the configured checks; it cannot guarantee an investment outcome. The original report explains that assessment without scoring it again.
+
+A complete live PayBox flow and hosted MCP access still need qualification. Ethereum, Monad and Tempo have separate adapter and evidence requirements. The current local checker and recorded Solana devnet checks are linked above.
 
 ## Documentation
 

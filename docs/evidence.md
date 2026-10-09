@@ -1,9 +1,13 @@
 # Evidence
 
-Deployment records describe the dated devnet runs they link to. Tests cover
-local behavior. Hosted scoring and original reports are in development on Jev
-by TypeSafe. Model training has not run. The Monad assessment is in
-development; broad DeFi chat and longer histories are later work.
+Deployment records describe the dated Solana devnet runs they link to.
+Tests cover local behavior. The planned Solana-mainnet PayBox swap and
+controlled invalid-deposit demo still need live proof. Hosted scoring
+and original reports are in development on Jev by TypeSafe.
+
+These records do not establish a completed mainnet payment flow or
+coverage for every chain and DeFi action. Each adapter needs its own
+checks and evidence.
 
 | Shipped | Proof |
 | --- | --- |

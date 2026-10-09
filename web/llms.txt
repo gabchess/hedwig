@@ -1,17 +1,17 @@
 # Hedwig
 
-> Hedwig is the eval gate your payment agent checks before it transacts. The local checker returns a policy decision with reasons before signing; your payment agent controls execution.
+> Check before your agent pays. Hedwig checks a proposed transaction against your rules and returns reasons. Try the local checker; the Solana demo is in development.
 
 ## Pages
 
-- [Hedwig | Eval gate for payment agents](https://usehedwig.xyz/): Hedwig is the eval gate your payment agent checks before it transacts. The local checker returns a policy decision with reasons before signing; your payment agent controls execution.
-- [About | Hedwig](https://usehedwig.xyz/about): Hedwig is the eval gate your payment agent checks before it transacts. The v0.4.2 checker runs locally and returns a policy decision with reasons before signing.
-- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): The local v0.4.2 checker evaluates payment and swap proposals against policy and returns a decision with reasons. The payment agent controls signing.
+- [Hedwig | Check before your agent pays](https://usehedwig.xyz/): Check before your agent pays. Hedwig checks a proposed transaction against your rules and returns reasons. Try the local checker; the Solana demo is in development.
+- [About | Hedwig](https://usehedwig.xyz/about): Hedwig helps people check what their payment agent is about to sign. Start with the local checker and follow the Solana demo in development.
+- [How it works | Hedwig](https://usehedwig.xyz/how-it-works): Check each proposed action before signing. Try the local checker today; the Solana PayBox demo with a score and original report is in development.
 - [Proof | Hedwig](https://usehedwig.xyz/proof): Inspect a recorded Solana devnet run covering an allowed request, an amount over the limit, missing evidence and a revoked role.
-- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Available: local v0.4.2 payment and swap checks through MCP. In development: hosted scoring and original reports. Model training has not run.
+- [Roadmap | Hedwig](https://usehedwig.xyz/roadmap): Start with the local checker. Next: a Solana PayBox demo that checks a swap, holds an invalid deposit and explains the original result.
 - [Team | Hedwig](https://usehedwig.xyz/team): Hi, I'm Gabe. I'm focused full time on Hedwig.
 - [Docs | Hedwig](https://usehedwig.xyz/docs): Connect Hedwig through local MCP, set your policy and inspect a sample payment check. Your application controls signing.
-- [Try Hedwig](https://usehedwig.xyz/agents): Connect Hedwig to a coding agent that supports local MCP tools. Copy the setup prompt, approve the install and run a sample check.
+- [Add Hedwig to your agent](https://usehedwig.xyz/agents): Add an eval gate to your payment agent. Install Hedwig v0.4.2 locally, set your rules and run a sample check without sending funds.
 
 ## Setup
 

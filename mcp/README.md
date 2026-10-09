@@ -1,10 +1,13 @@
 # @hedwig/mcp
 
-Hedwig is the eval gate your payment agent checks before it transacts. This
-local stdio MCP server exposes one tool, `consult`, for checking payment and
-swap proposals against the owner’s policy. It returns a decision with reasons;
-the caller controls signing and execution. This guide describes current `main`.
-The [agent install guide](../docs/agents.md) pins the earlier v0.4.2 release.
+Check before your agent pays. This local stdio MCP server exposes one
+tool, `consult`, for payment and swap proposals. It checks the owner's
+policy and returns a result with reasons. The caller controls signing
+and execution.
+
+This guide describes current `main`. The [agent install guide](../docs/agents.md)
+pins the earlier v0.4.2 release. The Solana PayBox score and original-report
+flow remain in development; they are not tools in this server.
 
 ## Run
 

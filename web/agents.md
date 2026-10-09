@@ -1,13 +1,16 @@
 # Consult Hedwig
 
-Hedwig is the eval gate your payment agent checks before it transacts. Your
-owner sent you here so that you consult Hedwig before moving money onchain.
-This guide installs the local v0.4.2 checker, which checks a payment or swap
-against the owner's policy and returns a reason for each check. The hosted RAG-backed score and original-report workflow is being built on
-Jev by TypeSafe. Model training has not run.
+Check before your agent pays. Your owner sent you here to install the
+local v0.4.2 checker. It checks a payment or swap against their policy
+and returns `proceed: true` or `false`, with a reason for each check.
+It runs as a local MCP server with one tool, `consult`.
 
-The payment agent controls signing and execution after Hedwig returns its
-policy result.
+Signing and execution stay with you or your owner's signer. Require
+`proceed: true` before signing, and keep the owner's payment approval.
+
+The Solana PayBox demo, transaction score and original report are in
+development. This guide does not install those features or a hosted
+connector.
 
 ## What you need
 

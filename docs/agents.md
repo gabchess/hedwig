@@ -1,13 +1,15 @@
 # Call Hedwig from an agent
 
-Hedwig is the eval gate your payment agent checks before it transacts. The
-open-source v0.4.2 checker runs locally through MCP and checks a `pay` or
-`swap` request against the owner's policy. It returns a decision and the
-result of each check. The integration must require `proceed: true` before
-calling its signer. The MCP server holds no signing key.
+**Check before your agent pays.**
 
-The hosted RAG-backed score and original-report workflow is being built on
-Jev by TypeSafe. Model training has not run.
+The local v0.4.2 checker runs through MCP. It checks a `pay` or `swap`
+request against the owner's policy and returns a result with reasons.
+The integration must require `proceed: true` before calling its signer.
+The MCP server holds no signing key.
+
+The Solana PayBox demo, transaction score and original report are in
+development on Jev by TypeSafe. This guide installs the current local
+checker; it does not add hosted access or the planned report tool.
 
 ## Point an agent at Hedwig
 
@@ -51,8 +53,8 @@ owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
 
 Current `main` contains later work, including asset-specific caps and registry
-reader code. The commands above continue to install v0.4.2. Hosted scoring and
-original reports remain in development; model training has not run.
+reader code. The commands above continue to install v0.4.2. The Solana score and
+original report flow remain in development.
 
 The transaction-binding change also requires unsigned call bytes on current
 source and changes the guard's signer argument. Read the

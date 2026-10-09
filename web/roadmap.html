@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Roadmap | Hedwig</title>
-<meta name="description" content="Available: local v0.4.2 payment and swap checks through MCP. In development: hosted scoring and original reports. Model training has not run.">
+<meta name="description" content="Start with the local checker. Next: a Solana PayBox demo that checks a swap, holds an invalid deposit and explains the original result.">
 <link rel="canonical" href="https://usehedwig.xyz/roadmap">
 <meta property="og:title" content="Roadmap | Hedwig">
-<meta property="og:description" content="Available: local v0.4.2 payment and swap checks through MCP. In development: hosted scoring and original reports. Model training has not run.">
+<meta property="og:description" content="Start with the local checker. Next: a Solana PayBox demo that checks a swap, holds an invalid deposit and explains the original result.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/roadmap">
 <meta property="og:type" content="website">
@@ -20,7 +20,7 @@
 <div class="frame has-panel">
   <div class="rail-top">
     <a href="/" class="rail-name" aria-label="Hedwig home">Hedwig</a>
-    <p class="rail-intro">Eval gate for payment agents.</p>
+    <p class="rail-intro">Check before your agent pays.</p>
     <nav aria-label="Main">
       <ul class="rail-nav">
         <li><a href="/about">About</a></li>
@@ -33,11 +33,15 @@
   <main class="panel" id="main" tabindex="-1">
     <h1>Roadmap</h1>
     <h2>Available now</h2>
-    <p>The open-source v0.4.2 checker runs locally through MCP. It checks payment and swap proposals against policy and available evidence, returning a decision with reasons. The payment agent controls signing and execution.</p>
-    <p><a href="/agents">Try Hedwig</a> or inspect the <a href="/proof">recorded Solana devnet proof</a>.</p>
-    <h2>In development</h2>
-    <p>The hosted RAG-backed score and original-report workflow is being built on Jev by TypeSafe. Model training has not run. Hosted access, latency, cost and chain-specific proof must be verified before those capabilities are presented as available.</p>
-    <p>The Monad swap assessment is still in development; no live hosted Monad proof is available. Broader DeFi chat and longer histories are later work.</p>
+    <p>The open-source v0.4.2 checker runs locally through MCP. It compares payment and swap proposals with your rules and available evidence, then returns a result with reasons. Your wallet or app controls signing.</p>
+    <p><a href="/agents">Try the local setup</a> or inspect the <a href="/proof">recorded Solana devnet checks</a>.</p>
+    <h2>Next: the Solana PayBox demo</h2>
+    <p>Check a prepared SOL-to-native-USDC swap before signing, then hold a controlled invalid vault proposal. Return one score from 0 to 1 and let the owner request the original report.</p>
+    <p>We are building this flow on Jev by TypeSafe, with current chain facts and relevant DeFi knowledge. The complete mainnet flow, hosted access, latency and cost still need qualification.</p>
+    <h2>After that proof</h2>
+    <p>Ethereum, Monad and Tempo need their own adapters and demonstrated workflows. Broader DeFi chat, longer histories and specialist model training remain later work.</p>
+    <h2>How we plan to charge</h2>
+    <p>The core checker and local examples stay open source. We plan to offer a bounded free allowance for hosted assessments, then paid usage with the original report included. Prices and quotas will follow cost measurements and customer feedback.</p>
     <p><a href="https://github.com/gabchess/hedwig/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a></p>
   </main>
   <div class="art">
