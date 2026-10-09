@@ -1,9 +1,12 @@
 # Call Hedwig from an agent
 
-Hedwig's local prototype checks a `pay` or `swap` request against the owner's
-policy. It runs as a stdio MCP server with one tool, `consult`, which returns
-a decision and the result of each check. The integration must require
-`proceed: true` before calling its signer. The MCP server holds no signing key.
+**Check before your agent pays.**
+
+Install the local v0.4.2 checker through MCP. It compares a payment or swap with your rules and returns reasons. Your integration must require `proceed: true` before calling its signer.
+
+Your wallet or application controls signing. The MCP server holds no signing key.
+
+Hosted Solana assessments and reports are in development. This guide installs the local checker.
 
 ## Point an agent at Hedwig
 
@@ -47,8 +50,8 @@ owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
 
 Current `main` contains later work, including asset-specific caps and registry
-reader code. The commands above continue to install v0.4.2. The hosted expert
-service and human chat are in development.
+reader code. The commands above continue to install v0.4.2. The Solana score and
+original report flow remain in development.
 
 The transaction-binding change also requires unsigned call bytes on current
 source and changes the guard's signer argument. Read the

@@ -1,8 +1,8 @@
 # Evidence
 
-Deployment records describe the dated devnet runs they link to. Tests cover
-local behavior. The hosted expert service, human chat and Monad demonstration
-remain in development.
+These records cover Hedwig's Solana devnet role checks and local signer guard. Open each link for the run or test it describes.
+
+The live Solana PayBox workflow, hosted assessments and original reports are in development. Use the [local setup guide](agents.md) to try the released checker.
 
 | Shipped | Proof |
 | --- | --- |
