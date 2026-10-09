@@ -1,13 +1,8 @@
 # @hedwig/mcp
 
-Check before your agent pays. This local stdio MCP server exposes one
-tool, `consult`, for payment and swap proposals. It checks the owner's
-policy and returns a result with reasons. The caller controls signing
-and execution.
+Check before your agent pays. This local MCP server lets your agent call `consult` before signing a payment or swap. It checks your policy and returns reasons. Your application controls signing and execution.
 
-This guide describes current `main`. The [agent install guide](../docs/agents.md)
-pins the earlier v0.4.2 release. The Solana PayBox score and original-report
-flow remain in development; they are not tools in this server.
+This guide describes current `main`. The [agent install guide](../docs/agents.md) pins v0.4.2. Hosted Solana assessments and reports are in development.
 
 ## Run
 

@@ -1,16 +1,10 @@
 # Consult Hedwig
 
-Check before your agent pays. Your owner sent you here to install the
-local v0.4.2 checker. It checks a payment or swap against their policy
-and returns `proceed: true` or `false`, with a reason for each check.
-It runs as a local MCP server with one tool, `consult`.
+Check before your agent pays. Your owner sent you here to install the local v0.4.2 checker. It checks a payment or swap against their policy and returns `proceed: true` or `false`, with reasons.
 
-Signing and execution stay with you or your owner's signer. Require
-`proceed: true` before signing, and keep the owner's payment approval.
+Call its `consult` tool through local MCP. Require `proceed: true` before signing, and keep your owner's payment approval.
 
-The Solana PayBox demo, transaction score and original report are in
-development. This guide does not install those features or a hosted
-connector.
+Your owner controls the money. Hosted Solana assessments and reports are in development.
 
 ## What you need
 

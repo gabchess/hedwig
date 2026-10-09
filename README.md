@@ -10,27 +10,23 @@
 
 **Check before your agent pays.**
 
-Hedwig checks a payment agent's proposed action against the owner's rules and available evidence, then returns a result with reasons. Your wallet or app controls signing and execution.
+Your agent can pick the wrong token or send money to a bad destination. Hedwig checks the proposed action before signing. Your wallet keeps control of the money.
 
-[Add an eval gate to your payment agent](https://usehedwig.xyz/agents) · [See the recorded checks](https://usehedwig.xyz/proof) · [Read the evidence](docs/evidence.md)
+[Add an eval gate to your payment agent.](https://usehedwig.xyz/agents) · [How it works](https://usehedwig.xyz/how-it-works)
 
-The [setup guide](docs/agents.md) installs the local v0.4.2 checker. Component guides label later changes on `main`. The Solana-mainnet PayBox flow, transaction score and original report are in development.
+## Try a local check
 
-## Run a local check
+The [setup guide](docs/agents.md) installs Hedwig v0.4.2 as a local MCP tool. Set your payment rules and run the sample. Change the recipient or amount to see a different result. The sample sends no funds.
 
-Set your policy and run the sample payment check. Change the recipient to see how the result changes. The sample sends no funds.
+The local checker returns a decision with reasons. Your integration must require `proceed: true` before signing. Read the [supported checks and limits](consult/README.md) before using it with funds.
 
-The [local checker](consult/README.md) returns `ALLOW_UNDER_POLICY`, `DENY` or `UNKNOWN`, with reasons and missing evidence. Its `support` value measures evidence coverage, not safety probability.
+The optional [Trigger guard](consult/README.md#trigger-guard) wraps your signer and checks calls routed through it.
 
-The optional [Trigger guard](consult/README.md#trigger-guard) calls your signer only after an allowed result. It covers calls routed through it. An allow applies to the stated policy and checks; see the component guide for supported checks and limits.
+## Next: Solana
 
-## In development
+We're building Solana checks for native USDC and bad deposit destinations. Each action will get one score from 0 to 1. Ask for a short report to understand the original result.
 
-You ask your agent to swap SOL into native USDC, then deposit it into a vault. The Solana demo we are building checks each prepared transaction before signing: let a swap that passes the checks proceed and hold a controlled invalid vault proposal. Ask for the saved assessment when you want the reason.
-
-The planned flow uses Jev by TypeSafe with current chain facts and relevant DeFi knowledge. It returns one score from 0 to 1 for each assessment. An allowed result applies to the configured checks; it cannot guarantee an investment outcome. The original report explains that assessment without scoring it again.
-
-A complete live PayBox flow and hosted MCP access still need qualification. Ethereum, Monad and Tempo have separate adapter and evidence requirements. The current local checker and recorded Solana devnet checks are linked above.
+This flow uses Jev by TypeSafe. The live PayBox workflow and hosted access are in development. The setup above installs the local checker.
 
 ## Documentation
 

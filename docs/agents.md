@@ -2,14 +2,11 @@
 
 **Check before your agent pays.**
 
-The local v0.4.2 checker runs through MCP. It checks a `pay` or `swap`
-request against the owner's policy and returns a result with reasons.
-The integration must require `proceed: true` before calling its signer.
-The MCP server holds no signing key.
+Install the local v0.4.2 checker through MCP. It compares a payment or swap with your rules and returns reasons. Your integration must require `proceed: true` before calling its signer.
 
-The Solana PayBox demo, transaction score and original report are in
-development on Jev by TypeSafe. This guide installs the current local
-checker; it does not add hosted access or the planned report tool.
+Your wallet or application controls signing. The MCP server holds no signing key.
+
+Hosted Solana assessments and reports are in development. This guide installs the local checker.
 
 ## Point an agent at Hedwig
 
