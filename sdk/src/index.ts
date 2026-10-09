@@ -76,3 +76,9 @@ export {
   type ClassicSolanaTokenAccountInput,
   type ClassicSolanaTokenAccount,
 } from "./solana-token-account";
+
+export {
+  verifySolanaOwnerAtas,
+  type SolanaOwnerAtaAccountFacts,
+  type SolanaOwnerAtaFacts,
+} from "./solana-owner-atas";
