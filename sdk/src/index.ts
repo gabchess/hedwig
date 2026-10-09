@@ -34,3 +34,17 @@ export {
 } from "./instructions";
 
 export type { HedwigSol } from "./idl/hedwig_sol";
+
+export {
+  captureSolanaProposal,
+  verifySolanaSignedArtifact,
+  runSolanaPreSignGuard,
+  type SolanaProposalRequest,
+  type SolanaBindingContext,
+  type SolanaAddressTableObservation,
+  type CapturedSolanaProposal,
+  type VerifiedSolanaArtifact,
+  type SolanaAssessmentBinding,
+  type SolanaPreSignGuardInput,
+  type SolanaPreSignGuardResult,
+} from "./solana-proposal";
