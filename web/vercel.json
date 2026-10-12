@@ -1,6 +1,14 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/about", "destination": "/", "permanent": false },
+    { "source": "/how-it-works", "destination": "/", "permanent": false },
+    { "source": "/roadmap", "destination": "/", "permanent": false },
+    { "source": "/team", "destination": "/", "permanent": false },
+    { "source": "/proof", "destination": "/#recorded-run", "permanent": false },
+    { "source": "/agents", "destination": "/#try", "permanent": false }
+  ],
   "headers": [
     {
       "source": "/agents.md",

@@ -1,19 +1,17 @@
 # Consult Hedwig
 
-Check before your agent pays. This guide installs the local v0.4.2 MCP checker. It checks a proposed payment or swap against your owner's policy and returns `proceed: true` or `false`, with reasons.
-
-Call the `consult` tool through local MCP. Require `proceed: true` before signing, and keep your owner's payment approval.
+This guide installs the local v0.4.2 Hedwig MCP server. Its `consult` tool checks a proposed payment or swap against your owner's policy and returns `proceed: true` or `false`, with reasons. Require `proceed: true` before you sign. Your owner still approves each payment.
 
 ## What you need
 
 A shell on your owner's computer, git, Node.js 22 or newer, and Yarn. If
-you can't run commands on your owner's computer, tell them Hedwig needs an
-agent that can, and stop here.
+you can't run commands there, tell your owner Hedwig needs an agent that
+can, and stop here.
 
 ## Step 1: Ask your owner
 
-Send your owner one message before you install anything. Say that you want
-to install Hedwig release v0.4.2 from `https://github.com/gabchess/hedwig`
+Before you install anything, send your owner one message. Say that you
+want to install Hedwig release v0.4.2 from `https://github.com/gabchess/hedwig`
 and run it on their computer, and ask for their policy. Name the fields it needs:
 
 - `permits`: `true` to allow any payment at all.
@@ -28,13 +26,13 @@ For swaps, the policy also names `maxSlippageBps`, `maxDeadlineSeconds`
 and `ownerAddresses`.
 
 **Every value in the policy comes from your owner.** When a field is
-missing, ask for it. The policy is their file. You write down what they
-told you, they save it, and you never write or edit the file yourself.
+missing, ask for it. You write down what they told you, they save the
+file, and you never write or edit it yourself.
 
-Ask the owner to open the
+Ask your owner to open the
 [v0.4.2 release on GitHub](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
-directly and confirm the full commit in Step 2. A hash from this page alone
-does not authenticate the release. Stop if the repository or revision differs.
+and confirm the full commit in Step 2. A hash on this page alone does not
+prove the release. Stop if the repository or revision differs.
 
 This step is done when your owner has approved that repository and revision,
 said yes to running its code and given you every policy field.
@@ -51,16 +49,16 @@ test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-This fetches the exact commit published as v0.4.2, by its full hash, and
-stops if any step fails. If any step fails, stop, show your owner the
-error, and install nothing else. If an earlier attempt left a `hedwig`
-folder, ask your owner, and delete it only after they say yes. Delete only
-the `hedwig` folder in the directory where you ran these commands.
+They fetch the v0.4.2 commit by its full hash and stop at the first
+failure. If a step fails, show your owner the error and install nothing
+else. If an earlier attempt left a `hedwig` folder, ask your owner. Delete
+only that folder, in the directory where you ran these commands, and only
+after they say yes.
 
-Dependency lifecycle scripts are disabled. The explicit build commands and
-server still execute code from the approved checkout and its dependencies.
-This procedure does not claim a signed release or protect a compromised
-GitHub account.
+Dependency lifecycle scripts are off. The build commands and the server
+still run code from the approved checkout and its dependencies. This
+procedure does not claim a signed release or cover a compromised GitHub
+account.
 
 Run `pwd` in the `hedwig` directory and keep the absolute path it prints.
 
@@ -72,10 +70,19 @@ exists.
 Show your owner the policy as JSON text, with the values they gave you.
 Ask them to save it as a file outside the `hedwig` directory, for example
 `~/.hedwig/policy.json`, and to tell you the absolute path. Don't create
-or edit that file yourself. Hedwig pins the file's bytes when the server starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so your owner should keep it where you can't write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
+or edit that file yourself.
+
+Hedwig pins the file's bytes when the server starts. While the bytes
+differ, `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED`. Each
+restart pins whatever the file holds then, so your owner should keep it
+where you can't write it. A deleted, unreadable or too-large file answers
+`UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. Both codes come with
+`proceed: false`. If `consult` answers either code, stop and tell your
+owner. Never restart the server or reconnect your MCP client to clear it.
 
 Add Hedwig to your MCP client as a stdio server. Both paths must be
-absolute: a relative path resolves against the client's working directory.
+absolute, because a relative path resolves against the client's working
+directory.
 
 ```json
 {
@@ -92,7 +99,7 @@ absolute: a relative path resolves against the client's working directory.
 The server exits at start when `HEDWIG_POLICY_FILE` is unset. A policy
 that requires a Solana role also needs `HEDWIG_SOLANA_RPC_URL_DEVNET` or
 `_MAINNET` and the matching `HEDWIG_SOLANA_FEE_PAYER_*`. Ask your owner
-to add those to the `env` block themselves. A hosted RPC URL often
+to add those to the `env` block themselves. An RPC provider's URL often
 contains the provider's key, and that key belongs in your owner's local
 MCP config, not in your chat.
 
@@ -102,7 +109,7 @@ client lists one Hedwig tool, `consult`.
 ## Step 4: Consult before every payment
 
 Before you sign or send a payment or swap, call `consult` with one
-argument, `request`. Fill it from the exact payment you're about to sign:
+argument, `request`, filled from the exact payment you're about to sign:
 
 ```json
 {
@@ -126,8 +133,9 @@ argument, `request`. Fill it from the exact payment you're about to sign:
 `pay`, the router for a `swap`. For an EIP-3009 authorization, add
 `validBefore` in unix seconds. A `swap` action carries `tokenIn`,
 `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`,
-`recipient` and `approvalAmount`; the example is in the
-[payment check README](https://github.com/gabchess/hedwig/blob/main/consult/README.md).
+`recipient` and `approvalAmount`; the
+[payment check README](https://github.com/gabchess/hedwig/blob/main/consult/README.md)
+has the example.
 
 You send only `request`. The server reads the policy and supplies the time
 and any role fact itself.
@@ -150,8 +158,8 @@ only field you act on.
 
 ## Tell your owner
 
-After each consult, report one line: the verdict, then the `code` and
-`evidence` of the first row whose `status` isn't `PASS`, if there is one.
+After each consult, tell your owner one line: the verdict, then the `code`
+and `evidence` of the first row whose `status` isn't `PASS`, if there is one.
 
 ## Remember this
 
@@ -168,7 +176,7 @@ Before I sign or send an onchain payment or swap for [owner's name], I consult H
 calls your signer only when the verdict is `ALLOW_UNDER_POLICY`. See the
 [Trigger guard](https://github.com/gabchess/hedwig/blob/main/consult/README.md#trigger-guard).
 
-## Safety
+## What Hedwig never asks for
 
 Hedwig asks for no private key, seed phrase, API key or funds. Your
 owner's Solana RPC URL may contain a key from their RPC provider. That

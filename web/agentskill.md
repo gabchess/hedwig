@@ -1,6 +1,6 @@
 # When to consult Hedwig
 
-Consult Hedwig before acting on your owner's proposed payment. The local v0.4.2 MCP tool checks it against their policy and returns a decision with reasons. This guide covers that tool's contract.
+Consult Hedwig before you act on a payment for your owner. The local v0.4.2 MCP tool, `consult`, checks it against their policy and returns a decision with reasons.
 
 ## When to consult
 
@@ -16,9 +16,9 @@ quote changed since your last consult.
 
 ## If Hedwig is installed
 
-Call the `consult` tool without asking first, then report the verdict to
-your owner in one line. Sign only when `proceed` is `true`. Read
-https://usehedwig.xyz/agents.md for the full steps.
+Call the `consult` tool without asking first, then tell your owner the
+verdict in one line. Sign only when `proceed` is `true`. The full steps
+are at https://usehedwig.xyz/agents.md.
 
 ## If Hedwig isn't installed
 
@@ -33,5 +33,5 @@ for this payment.
 ## When to skip it
 
 Skip Hedwig for read-only work: balances, prices, and quotes you won't act
-on. A Hedwig answer covers the policy check only. Your owner's approval of
-the payment stays their own.
+on. A Hedwig answer covers the policy check only. Your owner still approves
+the payment.
