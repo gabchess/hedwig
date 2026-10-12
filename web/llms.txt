@@ -4,6 +4,7 @@
 
 - [Home](https://usehedwig.xyz/): what Hedwig is.
 - [Call Hedwig](https://usehedwig.xyz/agents): add Hedwig to your agent.
+- [Founder](https://usehedwig.xyz/team/founder): why Gabe builds Hedwig, with the founder video.
 - [Add Hedwig](https://usehedwig.xyz/agents.md): install steps for your agent.
 - [When to ask Hedwig](https://usehedwig.xyz/agentskill.md): when to call the `consult` tool.
 - [Source](https://github.com/gabchess/hedwig)

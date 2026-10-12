@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0d0b16">
 <title>Call Hedwig | Hedwig</title>
-<meta name="description" content="Add Hedwig to the agent you already use. Paste one prompt, or set it up by hand.">
+<meta name="description" content="Add Hedwig to the agent you already use. Paste one line, or set it up by hand.">
 <link rel="canonical" href="https://usehedwig.xyz/agents">
 <meta property="og:title" content="Call Hedwig | Hedwig">
-<meta property="og:description" content="Add Hedwig to the agent you already use. Paste one prompt, or set it up by hand.">
+<meta property="og:description" content="Add Hedwig to the agent you already use. Paste one line, or set it up by hand.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/agents">
 <meta property="og:type" content="website">
@@ -26,6 +26,7 @@
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="/agents" aria-current="page">Call Hedwig</a></li>
+        <li><a href="/team/founder">Founder</a></li>
         <li><a href="https://github.com/gabchess/hedwig" target="_blank" rel="noopener noreferrer">GitHub &#8599;</a></li>
         <li><a href="https://x.com/usehedwig" target="_blank" rel="noopener noreferrer">X &#8599;</a></li>
       </ul>
@@ -44,20 +45,20 @@
   <p class="note">You need Git, Node.js 22 or newer, and Yarn.</p>
   <h2>What your agent does</h2>
   <ol>
-    <li>It asks for your OK, then for your limits: which addresses it may pay and how much.</li>
-    <li>Then it builds Hedwig on your computer.</li>
-    <li>You save your limits in a file your agent never edits. It adds Hedwig as a local MCP server named <code>hedwig</code>.</li>
-    <li>Before each payment, it calls <code>consult</code>. Hedwig answers yes or no with the reason, and your agent tells you.</li>
+    <li>It asks for your OK. Then it asks for your limits: who it may pay, and how much.</li>
+    <li>It builds Hedwig on your computer.</li>
+    <li>You save your limits in a file your agent never edits. Hedwig joins as a local MCP server named <code>hedwig</code>.</li>
+    <li>Before each payment, your agent calls <code>consult</code>. Hedwig answers with its reasons, and your agent tells you.</li>
   </ol>
   <h2>Set it up by hand</h2>
-  <p>Confirm the commit: open the <a href="https://github.com/gabchess/hedwig/releases" target="_blank" rel="noopener noreferrer">releases</a> and check that one lists the commit below. Then run:</p>
+  <p>Check the commit first. Open the <a href="https://github.com/gabchess/hedwig/releases" target="_blank" rel="noopener noreferrer">releases</a> and find the one that lists the commit below. Then run:</p>
   <pre><code>mkdir hedwig &amp;&amp; cd ./hedwig &amp;&amp; git init &amp;&amp;
 git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
 git checkout FETCH_HEAD &amp;&amp;
 test &quot;$(git rev-parse HEAD)&quot; = e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
 yarn install --frozen-lockfile --ignore-scripts &amp;&amp; npm ci --ignore-scripts --prefix mcp &amp;&amp; yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
   <h3>JSON config</h3>
-  <p>Save this as <code>.mcp.json</code> in your project, using absolute paths. Your agent may ask you to approve the server.</p>
+  <p>Save this as <code>.mcp.json</code> in your project. Use absolute paths. Your agent may ask you to approve the server.</p>
   <pre><code>{
   "mcpServers": {
     "hedwig": {
@@ -68,14 +69,14 @@ yarn install --frozen-lockfile --ignore-scripts &amp;&amp; npm ci --ignore-scrip
   }
 }</code></pre>
   <h3>TOML config</h3>
-  <p>If your agent reads MCP servers from a TOML file, add this to it.</p>
+  <p>For an agent that reads MCP servers from a TOML file, add this.</p>
   <pre><code>[mcp_servers.hedwig]
 command = "node"
 args = ["/abs/hedwig/mcp/dist/server.js"]
 
 [mcp_servers.hedwig.env]
 HEDWIG_POLICY_FILE = "/abs/policy.json"</code></pre>
-  <p>Replace each path with your own. Your limits file goes where <code>HEDWIG_POLICY_FILE</code> points, and <a href="/agents.md">agents.md</a> lists every field it needs.</p>
+  <p>Swap each path for your own. Your limits file goes where <code>HEDWIG_POLICY_FILE</code> points. <a href="/agents.md">agents.md</a> lists every field.</p>
   <h2>For agents</h2>
   <p>Your agent follows <a href="/agents.md">agents.md</a> and reads <a href="/agentskill.md">agentskill.md</a> to know when to call Hedwig. <a href="/llms.txt">llms.txt</a> lists every page.</p>
 </main>
