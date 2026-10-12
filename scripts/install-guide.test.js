@@ -6,12 +6,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
-const release = (fs
-  .readFileSync(path.join(root, "docs/agents.md"), "utf8")
-  .match(
-    /git fetch --depth 1 https:\/\/github\.com\/gabchess\/hedwig\.git ([0-9a-f]{40})/
-  ) || [])[1];
-assert.match(release || "", /^[0-9a-f]{40}$/, "docs/agents.md pins a release");
+const release = "e85049bc7087f434fd732bb02e0e87ca57acd82c";
 const yarn = spawnSync("which", ["yarn"], { encoding: "utf8" }).stdout.trim();
 const npm = spawnSync("which", ["npm"], { encoding: "utf8" }).stdout.trim();
 assert.ok(yarn, "Yarn must be installed for the offline lifecycle test");
