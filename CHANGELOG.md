@@ -31,7 +31,7 @@ Versions track what ships, code or docs.
 ### Removed
 
 - `augment/`, the agent skill. Agents connect through the MCP server; the agent guide (`docs/agents.md`, `/agents`) explains how.
-- The TypeScript SDK (`sdk/`), both Anchor programs (`programs/`, `Anchor.toml`, the Rust workspace files and the Rust CI jobs), and the demo app (`app/`). They remain in git history at commit b9c97f8.
+- The TypeScript SDK (`sdk/`), both Anchor programs (`programs/`, `Anchor.toml`, the Rust workspace files and the Rust CI steps), and the demo app (`app/`). They remain in git history at commit b9c97f8.
 - The site pages `/docs`, `/how-it-works`, `/team`, `/about`, `/proof` and `/roadmap`, with their copy sync script, `robots.txt` and `sitemap.xml`. The site is now the home page and `/agents`.
 - `CONTRIBUTING.md` and the docs on access control, the role record, EVM call binding, grant progress, the security audit, deployment operations and the older deployment evidence (the 2026-09-27 revoke demo stays). They remain in git history at commit b9c97f8.
 
