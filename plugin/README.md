@@ -1,7 +1,5 @@
 # Hedwig for Claude Code
 
-Know before it pays.
-
 Ask Hedwig before your agent pays. It checks the payment against your limits and says why. It never signs or sends.
 
 ## Install

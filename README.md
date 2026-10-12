@@ -48,6 +48,14 @@ yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --pre
 
 They fetch one release by its full commit hash and stop at the first failure. The [install guide](docs/agents.md) covers the policy file you write, how to register the server with your MCP client, and how the agent calls `consult`.
 
+## Add the plugin
+
+```text
+/plugin install hedwig --marketplace gabchess/hedwig
+```
+
+See the [plugin guide](plugin/README.md).
+
 ## The story
 
 I started Hedwig on 12 June 2026 as a roles program for Solana. An organization gives a wallet a role, and other programs check it before they act. The [source](https://github.com/gabchess/hedwig/tree/v0.4.2/programs) is public.
