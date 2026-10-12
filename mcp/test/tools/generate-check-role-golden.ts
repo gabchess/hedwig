@@ -19,8 +19,8 @@ import {
 } from "@solana/web3.js";
 import { buildCheckRoleTransaction } from "../../src/readers/wire";
 
-// The program id is the repository's own deployed id (programs/hedwig_sol's
-// declare_id!, also in Anchor.toml). role/holder/member/feePayer are
+// The program id is the Hedwig role program's deployed id (source at tag
+// v0.4.2). role/holder/member/feePayer are
 // synthetic keypairs generated fresh below: this golden vector proves the
 // wire format, not any real on-chain account, so it never needs one.
 const PROGRAM_ID = "H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC";
