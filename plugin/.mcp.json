@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "hedwig": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/hedwig-mcp.js"],
+      "env": {
+        "HEDWIG_POLICY_FILE": "${HEDWIG_POLICY_FILE:-${CLAUDE_PLUGIN_ROOT}/sample/limits.json}"
+      }
+    }
+  }
+}

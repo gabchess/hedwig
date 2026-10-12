@@ -1,0 +1,10 @@
+{
+  "name": "hedwig",
+  "version": "0.5.0",
+  "description": "Ask Hedwig before your AI agent pays. It compares the payment with your limits and says why. It never signs or sends.",
+  "author": { "name": "Hedwig", "url": "https://usehedwig.xyz" },
+  "homepage": "https://usehedwig.xyz",
+  "repository": "https://github.com/gabchess/hedwig",
+  "license": "MIT",
+  "keywords": ["payments", "agents", "mcp"]
+}
