@@ -21,7 +21,7 @@ For swaps, also ask for `maxSlippageBps`, `maxDeadlineSeconds` and `ownerAddress
 
 Every value comes from your owner. Ask for any that is missing. They save the file where you can't write it. You never write or edit it.
 
-Ask them to open the [releases](https://github.com/gabchess/hedwig/releases) and confirm that one lists this commit. Stop if the repository or commit differs.
+Ask them to open the [releases](https://github.com/gabchess/hedwig/releases) and confirm that one lists this commit. Stop if the repository or commit differs. Wait for their yes before Step 2.
 
 ## Step 2: Install
 
@@ -110,5 +110,4 @@ Move funds only for a payment your owner asked for. Hedwig never asks for a priv
 
 - [How to call Hedwig](https://github.com/gabchess/hedwig/blob/main/docs/agents.md)
 - [MCP server](https://github.com/gabchess/hedwig/blob/main/mcp/README.md)
-- [Threat model](https://github.com/gabchess/hedwig/blob/main/THREAT-MODEL.md)
 - [When to ask Hedwig](https://usehedwig.xyz/agentskill.md)

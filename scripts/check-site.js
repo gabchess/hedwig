@@ -67,7 +67,6 @@ const MENU_HREFS = [
   "/agents",
   "https://github.com/gabchess/hedwig",
   "https://x.com/usehedwig",
-  "https://github.com/gabchess/hedwig/blob/main/THREAT-MODEL.md",
 ];
 const WORD_CAPS = { index: 100, indexHero: 60, agents: 240 };
 // Human-facing words. Code blocks and inline code are exempt (env var names, API fields).
