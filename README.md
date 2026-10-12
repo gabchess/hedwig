@@ -50,7 +50,7 @@ They fetch one release by its full commit hash and stop at the first failure. Th
 
 ## The story
 
-I started Hedwig on 12 June 2026 as a roles program for Solana. An organization gives a wallet a role, and other programs check it before they act. The [source](https://github.com/gabchess/hedwig/tree/v0.4.2/programs) is public.
+I started Hedwig on 12 June 2026 as a roles program for Solana. An organization gives a wallet a role, and other programs check it before they act. The [source](https://github.com/gabchess/hedwig/tree/e85049bc7087f434fd732bb02e0e87ca57acd82c/programs) is public.
 
 Then agents started holding wallets. I wanted the person behind the agent to know what a payment would do before it went out. Hedwig became a payment check, [`@hedwig/consult`](consult/README.md), and an [MCP server](mcp/README.md) so an agent can call it.
 

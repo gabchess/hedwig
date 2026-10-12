@@ -26,7 +26,7 @@ const PROMPT =
 const RELEASE = "e85049bc7087f434fd732bb02e0e87ca57acd82c";
 const OLD_OG_SHA =
   "af6e8f9d92a482f63b01b9d6ca051262edb55652cfb6d39fc8d0920d119fd3f5";
-const PAGES = ["agents.html", "index.html"];
+const PAGES = ["agents.html", "index.html", "team.html"];
 // Files restored from origin/main b9c97f8 and kept byte for byte.
 const SHA = {
   "owl.js": "7f7bb46d40e4127c17755906b17a9d8d023725b92187efb254865d7325012fa0",
@@ -42,7 +42,6 @@ const GONE = [
   "how-it-works.html",
   "proof.html",
   "roadmap.html",
-  "team.html",
   "docs.html",
   "sync-copy.js",
   "page-copy.json",
@@ -58,17 +57,19 @@ const REDIRECTS = {
   "/about": "/",
   "/how-it-works": "/",
   "/roadmap": "/",
-  "/team": "/",
+  "/team": "/founder",
+  "/team/founder": "/founder",
   "/proof": "/",
   "/docs": "/agents",
 };
 const MENU_HREFS = [
   "/",
   "/agents",
+  "/founder",
   "https://github.com/gabchess/hedwig",
   "https://x.com/usehedwig",
 ];
-const WORD_CAPS = { index: 100, indexHero: 60, agents: 240 };
+const WORD_CAPS = { index: 120, indexHero: 60, agents: 240 };
 // Human-facing words. Code blocks and inline code are exempt (env var names, API fields).
 const BANNED = [
   "not public yet",
@@ -121,7 +122,9 @@ const RUN_WEB_ONLY = [
   /role fact missing/i,
   /role revoked/i,
 ];
-const EXTERNAL_OK = new Set(["github.com", "x.com"]);
+const EXTERNAL_OK = new Set(["github.com", "x.com", "youtu.be"]);
+const VIDEO_URL = "https://youtu.be/DEmfKvlJ4Lk";
+const FRAME_SRC = "https://www.youtube-nocookie.com";
 
 const read = (f) => fs.readFileSync(path.join(web, f), "utf8");
 const exists = (f) => fs.existsSync(path.join(web, f));
@@ -188,6 +191,7 @@ for (const p of PAGES)
   }
 const home = read("index.html");
 const agents = read("agents.html");
+const founder = read("team.html");
 
 // 2. Redirects and CSP
 let vercel = {};
@@ -209,6 +213,12 @@ for (const [src, dst] of Object.entries(REDIRECTS))
 ok(
   !("/agents" in redirects),
   "/agents is a real page now and must not redirect"
+);
+const rewrites = {};
+for (const r of vercel.rewrites || []) rewrites[r.source] = r.destination;
+ok(
+  rewrites["/founder"] === "/team.html",
+  `rewrite /founder -> want /team.html, got ${rewrites["/founder"]}`
 );
 const csp = JSON.stringify(vercel.headers || []);
 ok(
@@ -243,6 +253,7 @@ const menuOf = (html) => {
 for (const [name, html] of [
   ["index.html", home],
   ["agents.html", agents],
+  ["team.html", founder],
 ]) {
   const m = menuOf(html);
   ok(m !== null, `${name}: nav#menu[popover] missing`);
@@ -297,11 +308,12 @@ ok(
 );
 const mainLinks = [...homeMain.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)];
 ok(
-  mainLinks.length === 1 &&
+  mainLinks.length === 2 &&
     /class="button"/.test(mainLinks[0][0]) &&
     /href="\/agents"/.test(mainLinks[0][0]) &&
-    strip(mainLinks[0][1]) === CTA,
-  `index main must hold exactly one link: the "${CTA}" button to /agents (found ${mainLinks.length})`
+    strip(mainLinks[0][1]) === CTA &&
+    /href="\/founder"/.test(mainLinks[1][0]),
+  `index main must hold exactly two links: the "${CTA}" button to /agents, then the founder link (found ${mainLinks.length})`
 );
 ok(
   !/<button\b/.test(
@@ -310,17 +322,17 @@ ok(
   "index main has a second button outside the owl controls"
 );
 ok(
-  ["hero", "why", "how"].every((n) => block(home, n)),
+  ["hero", "why", "how", "founder"].every((n) => block(home, n)),
   "index needs data-block hero, why and how"
 );
 ok(
   [...home.matchAll(/data-block="(\w+)"/g)].map((m) => m[1]).join() ===
-    "header,hero,why,how",
-  "index data-block order must be header, hero, why, how"
+    "header,hero,why,how,founder",
+  "index data-block order must be header, hero, why, how, founder"
 );
 ok(
-  !/<video\b|<audio\b|autoplay/i.test(home + agents),
-  "no video, audio element or autoplay on either page (the ad is not embedded)"
+  !/<video\b|<audio\b|<iframe\b|autoplay/i.test(home + agents + founder),
+  "no video, audio, iframe or autoplay in page HTML (the founder video loads only on click, from founder.js)"
 );
 const CC = "Cl" + "aude Code",
   CX = "Co" + "dex"; // built from parts to keep client names out of the greppable source
@@ -363,13 +375,18 @@ ok(
   "agents.html must load only /connect.js"
 );
 ok(
-  !/<script>[\s\S]*?\S[\s\S]*?<\/script>/.test(home + agents) &&
-    !/\sstyle="/.test(home + agents) &&
-    !/<style\b/.test(home + agents),
+  JSON.stringify([...founder.matchAll(/<script\b[^>]*>/g)].map((m) => m[0])) ===
+    JSON.stringify(['<script src="/founder.js">']),
+  "team.html must load only /founder.js"
+);
+ok(
+  !/<script>[\s\S]*?\S[\s\S]*?<\/script>/.test(home + agents + founder) &&
+    !/\sstyle="/.test(home + agents + founder) &&
+    !/<style\b/.test(home + agents + founder),
   "no inline script, style tag or style attribute (CSP)"
 );
 ok(
-  !/AudioContext/.test(home + agents),
+  !/AudioContext/.test(home + agents + founder),
   "no audio code in html; sound.js owns it"
 );
 const css = readOr("style.css");
@@ -386,6 +403,13 @@ for (const [n, v] of Object.entries({
     `style.css token --${n} must be ${v} (field.js reads it)`
   );
 }
+ok(
+  new RegExp("frame-src " + FRAME_SRC.replace(/[.]/g, "\\.") + ";").test(csp) &&
+    !/img-src[^;]*(http|ytimg)/.test(csp),
+  "CSP needs frame-src " +
+    FRAME_SRC +
+    " and no remote img-src (the poster is local)"
+);
 ok(
   /prefers-reduced-motion:\s*reduce/.test(css),
   "style.css needs a prefers-reduced-motion block"
@@ -429,8 +453,38 @@ ok(
   "agents.html needs the .mcp.json and the config.toml blocks"
 );
 ok(
-  /Confirm the commit/i.test(strip(agents)),
-  "agents.html must tell the owner to confirm the commit in the releases"
+  /Check the commit/i.test(strip(agents)),
+  "agents.html must tell the owner to check the commit in the releases"
+);
+
+// 7b. /founder contract
+const fh1 = [...founder.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map((m) =>
+  strip(m[1])
+);
+ok(
+  fh1.length === 1 && fh1[0] === "Would I trust an AI agent with my money?",
+  `founder h1 is ${JSON.stringify(fh1)}`
+);
+ok(
+  /id="video-play"[^>]*aria-label="Play the founder video"/.test(founder) &&
+    /data-id="DEmfKvlJ4Lk"/.test(founder) &&
+    founder.includes(`href="${VIDEO_URL}"`),
+  "founder needs the play button, the video id and the YouTube fallback link"
+);
+const fjs = readOr("founder.js");
+ok(
+  fjs.includes("youtube-nocookie.com/embed/") &&
+    !/www\.youtube\.com|ytimg/.test(fjs + founder) &&
+    /addEventListener\("click"/.test(fjs),
+  "founder.js must build a youtube-nocookie iframe on click only"
+);
+ok(
+  /href="\/agents"/.test(founder) && strip(founder).includes(CTA),
+  "founder needs the Try Hedwig today button to /agents"
+);
+ok(
+  words(strip(founder.replace(/<head[\s\S]*?<\/head>/i, ""))) <= 60,
+  "founder page over 60 visible words"
 );
 
 // 8. Words: banned list, caps, 27 September run
@@ -444,6 +498,8 @@ const surfaces = {
   "index meta": scrub(metaText(home)),
   "agents visible": strip(agents.replace(/<head[\s\S]*?<\/head>/i, ""), true),
   "agents meta": metaText(agents),
+  "founder visible": strip(founder.replace(/<head[\s\S]*?<\/head>/i, "")),
+  "founder meta": metaText(founder),
   "llms.txt": readOr("llms.txt"),
   "agents.md": readOr("agents.md").replace(/```[\s\S]*?```/g, " "),
   "agentskill.md": readOr("agentskill.md").replace(/```[\s\S]*?```/g, " "),
@@ -522,6 +578,7 @@ function resolveLocal(ref, from) {
   if (!p.startsWith("/")) p = "/" + p;
   p = p.split("?")[0];
   if (redirects[p] !== undefined && p !== "/") return;
+  if (rewrites[p] !== undefined) p = rewrites[p].replace(/\.html$/, "");
   const file =
     p === "/"
       ? "index.html"
@@ -555,7 +612,8 @@ ok(
 );
 ok(
   /og:image" content="https:\/\/usehedwig\.xyz\/og-image\.png"/.test(home) &&
-    /og:image/.test(agents),
+    /og:image/.test(agents) &&
+    /og:image/.test(founder),
   "og:image tag missing"
 );
 
@@ -567,6 +625,10 @@ ok(
 ok(
   size("agents.html") <= 16 * 1024,
   `agents.html is ${size("agents.html")} bytes, cap 16384`
+);
+ok(
+  size("team.html") <= 8 * 1024,
+  `team.html is ${size("team.html")} bytes, cap 8192`
 );
 ok(
   size("style.css") <= 12 * 1024,
