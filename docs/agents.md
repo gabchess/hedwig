@@ -47,9 +47,6 @@ anything else. If an earlier attempt left a `hedwig` folder, ask your
 owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
 
-Current `main` contains later work, including asset-specific caps and registry
-reader code. The commands above continue to install v0.4.2.
-
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it
 at the example policy in `mcp/test/fixtures/policy.json`:
@@ -81,13 +78,7 @@ working directory, not the repo.
 The policy is the owner's file. Keep it outside the repo. It's a JSON file,
 and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
-This example includes `perActionCapAssets`, which current `main` requires to
-bind a cap to its token. The pinned v0.4.2 release does not enforce that field.
-A v0.4.2 policy cannot name the token a cap applies to. The cap compares one
-number with the request's amount, whatever token the request names. Size each
-cap in USDC base units (6 decimals). A cap sized for WETH (18 decimals) leaves
-USDC almost uncapped. The request below checks 1 USDC on Ethereum against this
-policy.
+A cap is one number. It applies to every token the request names, so size each cap in USDC base units (6 decimals). The request below checks 1 USDC on Ethereum against this policy.
 
 ```json
 {
@@ -95,7 +86,6 @@ policy.
   "chainId": "eip155:1",
   "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
   "perActionCaps": { "pay": "1000000" },
-  "perActionCapAssets": { "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }
@@ -106,8 +96,7 @@ policy.
 | `permits` | Must be `true` for any answer to come back `ALLOW_UNDER_POLICY`. |
 | `chainId` | The one chain the owner allows, as a CAIP-2 id such as `eip155:1` or `eip155:8453`. |
 | `approvedRecipients` | Addresses the owner approved to receive a payment. |
-| `perActionCaps` | The largest amount per action type, as a decimal string. At v0.4.2 the same number applies to every token, so size it in USDC base units. |
-| `perActionCapAssets` | On current `main`, the token contract whose base units each cap uses. |
+| `perActionCaps` | The largest amount per action type, as a decimal string in USDC base units. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
 | `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |
 

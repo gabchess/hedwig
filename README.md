@@ -12,19 +12,31 @@
 
 **Know before it pays.**
 
-Hedwig is a second opinion you ask before your AI agent pays. It is designed to assess the payment your agent has prepared, give you a report when you ask, and leave the call to you. Hedwig never signs or sends.
+Hedwig is an eval gate that makes onchain payments safer. It checks the payment or swap your agent wants to make against curated knowledge bases before it pays. Built for the agent you already use.
+
+## What it is
+
+A second opinion you ask before your agent pays. Hedwig answers with its reasons, gives you a report when you ask, and you make the call. Hedwig never signs or sends.
+
+## Who it is for
+
+Anyone who lets an AI agent handle money, and the builders who connect agents to wallets.
+
+## Why it matters
+
+Agents move money faster than you can read the details. One wrong contract or amount costs real money. Hedwig puts the check at the moment that counts, before the payment.
 
 ## Try Hedwig today
 
-Open the install page at [usehedwig.xyz/agents](https://usehedwig.xyz/agents), or paste this line into your coding agent:
+Ask Hedwig before your agent pays. Paste this line into your coding agent, or open [usehedwig.xyz/agents](https://usehedwig.xyz/agents):
 
 ```
 Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
 ```
 
-Your agent asks you before it installs anything. It sets up release v0.4.2 on your computer as a local MCP server named `hedwig`. Before a payment or swap, the agent calls the `consult` tool. Hedwig compares the recipient, amount and chain with the limits you gave it, checks the token against its built-in list, and answers with its reasons. At v0.4.2 a limit cannot name a token, so size each limit in USDC base units; the same number applies to every token.
+Your agent asks you before it installs anything. It adds a local MCP server named `hedwig`. Before a payment or swap, the agent calls the `consult` tool and Hedwig answers with its reasons.
 
-You need Git, Node.js 22 or newer, and Yarn. Your agent runs these install commands:
+You need Git, Node.js 22 or newer, and Yarn. Your agent runs these commands:
 
 ```sh
 mkdir hedwig && cd ./hedwig && git init &&
@@ -34,23 +46,17 @@ test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-They fetch the exact v0.4.2 commit by its full hash and stop at the first failure. The [install guide](docs/agents.md) covers the rest: the limits file you write, how to register the server with your MCP client, and how the agent calls `consult`.
+They fetch one release by its full commit hash and stop at the first failure. The [install guide](docs/agents.md) covers the limits file you write, how to register the server with your MCP client, and how the agent calls `consult`.
 
 ## The story
 
 I started Hedwig on 12 June 2026 as a roles program for Solana. An organization creates a role, gives it to a wallet with an expiry, and can take it back later. Other programs call `check_role` before they act.
 
-Then agents started holding wallets. I wanted the person behind the agent to know what a payment would do before it went out.
+The first version was a six-instruction Anchor program, a small consumer program and a TypeScript SDK. The program runs on Solana devnet as `H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC`. Its [source](https://github.com/gabchess/hedwig/tree/v0.4.2/programs) is public.
 
-## The first tests
+Then agents started holding wallets. I wanted the person behind the agent to know what a payment would do before it went out. On 20 September 2026 I renamed the repo from `hedwig-sol` to `hedwig`. A wallet's role became one of several things Hedwig looks at before a payment. [`@hedwig/consult`](consult/README.md) holds that logic, and the [MCP server](mcp/README.md) lets an agent call it.
 
-The first version, tag `hedwig-sol-v1`, had the six-instruction Anchor program, a small consumer program that calls `check_role`, and a TypeScript SDK. The program runs on Solana devnet as `H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC`. Its source is at [tag v0.4.2](https://github.com/gabchess/hedwig/tree/v0.4.2/programs).
-
-## The pivot
-
-On 20 September 2026 I renamed the repo from `hedwig-sol` to `hedwig`. A wallet's role became one of several things Hedwig looks at before a payment. [`@hedwig/consult`](consult/README.md) holds that logic, and the [MCP server](mcp/README.md) lets an agent call it.
-
-Release v0.4.2 followed on 30 September 2026. It is what the install page sets up today.
+On 27 September 2026 I sent four payment asks to one Hedwig server on Solana devnet. The last came after I revoked the wallet's role onchain. The [run record](docs/deployment/evidence/2026-09-27-revoke-demo.md) lists every transaction.
 
 ## Build and test
 
