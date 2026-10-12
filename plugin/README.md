@@ -4,7 +4,7 @@ Ask Hedwig before your agent pays. It checks the payment against your limits and
 
 ## Install
 
-You need Node.js 22 or newer. In Claude Code:
+Needs Claude Code 2.1.275 or later and Node.js 22. In a Claude Code session:
 
 ```text
 /plugin install hedwig --marketplace gabchess/hedwig

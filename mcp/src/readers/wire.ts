@@ -121,7 +121,7 @@ export interface CheckRoleAddresses {
 // and programId all land in the same tier here (none are signers or
 // writable), so this is the only thing that decides their order.
 // @solana/web3.js's Transaction.compileMessage applies the identical
-// comparator; the dev-only golden script in mcp/test/tools confirms it for
+// comparator; the golden vector in mcp/test/fixtures/solana-role confirms it for
 // one set of four distinct account keys, not every possible ordering.
 const ACCOUNT_SORT_OPTIONS: Intl.CollatorOptions = {
   localeMatcher: "best fit",

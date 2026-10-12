@@ -2,8 +2,6 @@
 
 Check before your agent pays. This local MCP server lets your agent call `consult` before signing a payment or swap. It checks your policy and returns reasons. Your application controls signing and execution.
 
-This guide describes current `main`. The [agent install guide](../docs/agents.md) pins v0.4.2.
-
 ## Run
 
 Use Node.js 22+ and Yarn. From the repository root:
@@ -82,17 +80,4 @@ While the keys remain empty, the server reads none of these variables.
 
 ## Register with a client
 
-Use absolute paths for `server.js` and `HEDWIG_POLICY_FILE`. Relative paths
-resolve against the client's working directory.
-
-```json
-{
-  "mcpServers": {
-    "hedwig": {
-      "command": "node",
-      "args": ["/path/to/hedwig/mcp/dist/server.js"],
-      "env": { "HEDWIG_POLICY_FILE": "/path/to/policy.json" }
-    }
-  }
-}
-```
+The [install guide](../docs/agents.md#register-the-server-with-your-mcp-client) shows the server config.
