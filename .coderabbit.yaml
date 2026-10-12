@@ -91,6 +91,7 @@ reviews:
     - "**/yarn.lock"
     - "**/package-lock.json"
     - "**/*.lock"
+    - "!plugin/server/**"
   path_instructions:
     - path: "consult/**"
       instructions: |
