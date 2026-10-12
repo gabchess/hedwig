@@ -2,8 +2,6 @@
 
 `@hedwig/consult` checks a proposed payment or swap against the owner's policy and returns a decision with the result of each check.
 
-The install guide installs the published release. This README may describe code that release does not have yet.
-
 ```ts
 import { consult } from "@hedwig/consult";
 

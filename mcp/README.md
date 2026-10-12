@@ -4,8 +4,6 @@ Check before your agent pays. This local MCP server lets your agent call `consul
 
 ## Run
 
-The install guide installs the published release. This README may describe code that release does not have yet.
-
 Use Node.js 22+ and Yarn. From the repository root:
 
 ```sh
