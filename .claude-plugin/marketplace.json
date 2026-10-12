@@ -1,0 +1,14 @@
+{
+  "name": "hedwig",
+  "owner": { "name": "Hedwig", "url": "https://usehedwig.xyz" },
+  "description": "Ask Hedwig before your agent pays.",
+  "plugins": [
+    {
+      "name": "hedwig",
+      "source": "./plugin",
+      "description": "Ask Hedwig before your agent pays. It checks the payment against your limits and says why. It never signs or sends.",
+      "category": "finance",
+      "tags": ["payments", "agents", "mcp"]
+    }
+  ]
+}

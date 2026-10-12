@@ -30,6 +30,14 @@ Help me install Hedwig. Open this exact link and follow its instructions: https:
 
 Built for the agent you already use. The [install guide](docs/agents.md) has every command.
 
+## Add the plugin
+
+```text
+/plugin install hedwig --marketplace gabchess/hedwig
+```
+
+Needs your agent app at version 2.1.275 or later, and Node.js 22. See the [plugin guide](plugin/README.md).
+
 ## The story
 
 I asked myself one question: would I trust an AI agent with my money? An agent might know how to make a payment. But did it understand what I wanted? Is it spending the right amount? Can it explain why?

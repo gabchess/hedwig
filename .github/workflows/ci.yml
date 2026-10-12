@@ -49,6 +49,13 @@ jobs:
           yarn mcp:build
           yarn mcp:test
 
+      - name: Check the plugin
+        run: |
+          cmp plugin/sample/limits.json mcp/test/fixtures/policy.json
+          node scripts/build-plugin.js
+          git diff --exit-code -- plugin/
+          node scripts/plugin-smoke.js
+
       - name: Repeat the concurrent registry persistence check
         run: |
           for attempt in 1 2 3 4 5; do

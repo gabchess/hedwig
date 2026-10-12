@@ -10,5 +10,8 @@
     "@hedwig/consult": "file:../consult",
     "@modelcontextprotocol/sdk": "1.31.0",
     "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
   }
 }

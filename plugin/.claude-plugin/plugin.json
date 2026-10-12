@@ -1,0 +1,9 @@
+{
+  "name": "hedwig",
+  "description": "Ask Hedwig before your agent pays. It checks the payment against your limits and says why. It never signs or sends.",
+  "author": { "name": "Hedwig", "url": "https://usehedwig.xyz" },
+  "homepage": "https://usehedwig.xyz",
+  "repository": "https://github.com/gabchess/hedwig",
+  "license": "MIT",
+  "keywords": ["payments", "agents", "mcp"]
+}
