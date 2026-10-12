@@ -2,7 +2,7 @@
 
 The outcome and run values below are copied from this run's `--out` record,
 [`2026-09-27-revoke-demo.json`](2026-09-27-revoke-demo.json), committed next
-to this file. The Command row and the Reproduce block are not in the record.
+to this file. The Command row is not in the record.
 
 ## What ran
 
@@ -40,15 +40,3 @@ source tree had uncommitted changes.
 | 4, after revoke | `ask4` | `DENY` | `false` | `ROLE_MEMBER_MISSING` | `AMOUNT_WITHIN_CAP` | revoke_role [`3en8dhiTnb29xVsCQnsGLCaZLtnVZJNYGNFc5hkxzZ2UUDkw3ygGQLVgJN1EsvmLDryuzgK9H5sMcuKZU3qbYE6V`](https://explorer.solana.com/tx/3en8dhiTnb29xVsCQnsGLCaZLtnVZJNYGNFc5hkxzZ2UUDkw3ygGQLVgJN1EsvmLDryuzgK9H5sMcuKZU3qbYE6V?cluster=devnet) |
 
 Ask 4 answered on its first attempt: the record has no `ask4FirstAttempt`.
-
-## Reproduce
-
-The demo app is not on `main`. The run used source commit `a7a7e176`, which is
-on no branch or tag. Tag `v0.4.0` is the nearest public tag that has the demo
-script. Check it out and run these commands from that checkout.
-
-```bash
-yarn consult:build && yarn mcp:build
-HEDWIG_DEMO_KEYPAIR=<path to a devnet keypair outside the repository> \
-  npm --prefix app run revoke-demo -- --out <path>
-```

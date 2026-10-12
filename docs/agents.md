@@ -2,7 +2,7 @@
 
 **Know before it pays.**
 
-Install the local v0.4.2 checker through MCP. It compares a payment or swap with your rules and returns reasons. Your integration must require `proceed: true` before calling its signer.
+Hedwig checks a payment or swap against your policy and returns its reasons. This guide installs it as a local MCP server. Your integration must require `proceed: true` before calling its signer.
 
 The MCP server holds no signing key.
 
@@ -23,7 +23,7 @@ yourself, and the agent never writes or edits it.
 You need git, Node.js 22 or newer, and Yarn.
 
 Before running these commands, open the repository's
-[v0.4.2 release](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
+[release page](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
 directly on GitHub and confirm the full commit below. Get the owner's approval
 for that repository and revision. Stop if they differ. A hash copied from
 this website alone does not authenticate a release.
@@ -36,8 +36,7 @@ test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-This fetches the exact commit published as v0.4.2, by its full hash, and
-stops if any step fails. A wrong hash fails at the fetch, before the
+This fetches one exact commit by its full hash and stops if any step fails. A wrong hash fails at the fetch, before the
 install runs. The checked-out revision must also match. Dependency lifecycle
 scripts are disabled. The explicit build commands and server still execute
 code from the approved checkout and its dependencies. This procedure does not
@@ -78,7 +77,7 @@ working directory, not the repo.
 The policy is the owner's file. Keep it outside the repo. It's a JSON file,
 and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
-A cap is one number. It applies to every token the request names, so size each cap in USDC base units (6 decimals). The request below checks 1 USDC on Ethereum against this policy.
+A cap is one number, checked against the request's amount (`amountIn` for a swap). Size each cap in USDC base units (6 decimals). A cap sized for WETH (18 decimals) leaves USDC almost uncapped. The request below checks 1 USDC on Ethereum against this policy.
 
 ```json
 {
