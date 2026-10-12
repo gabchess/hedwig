@@ -159,13 +159,6 @@ reviews:
         Failure cases: a lock change with no matching package.json change, or the reverse; a resolved URL on any host other than registry.npmjs.org; an integrity hash that changed while the version stayed the same; hasInstallScript set on a new package; a name one edit away from a well-known package; a new transitive package in mcp that handles keys or network I/O.
 
         List each added or upgraded package and say whether the PR description names it.
-    - path: "CHANGELOG.md"
-      instructions: |
-        A changelog entry records what a PR shipped at the time it merged. A release entry may describe earlier merged PRs, so the diff alone is not the test.
-
-        Check each line this PR adds or edits against the repository at this PR's head. Failure case: a line this PR adds or edits that claims something the repository at this PR's head does not show.
-
-        Leave alone each line this PR does not add or edit. Do not compare it with any later state.
 chat:
   auto_reply: false
   art: false

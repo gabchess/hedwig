@@ -1,5 +1,7 @@
 # Revoke demo, devnet, 2026-09-27
 
+The Command row ran at the source commit below. The `app/` folder is not on `main`.
+
 The outcome and run values below are copied from this run's `--out` record,
 [`2026-09-27-revoke-demo.json`](2026-09-27-revoke-demo.json), committed next
 to this file. The Command row is not in the record.
