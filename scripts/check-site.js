@@ -126,7 +126,7 @@ const EXTERNAL_OK = new Set(["github.com", "x.com"]);
 const read = (f) => fs.readFileSync(path.join(web, f), "utf8");
 const exists = (f) => fs.existsSync(path.join(web, f));
 const readOr = (f) => (exists(f) ? read(f) : "");
-const size = (f) => fs.statSync(path.join(web, f)).size;
+const size = (f) => (exists(f) ? fs.statSync(path.join(web, f)).size : 0);
 const sha = (f) =>
   crypto
     .createHash("sha256")
@@ -326,7 +326,7 @@ const CC = "Cl" + "aude Code",
   CX = "Co" + "dex"; // built from parts to keep client names out of the greppable source
 if (NO_NAMES)
   ok(
-    !new RegExp(CC + "|" + CX, "i").test(home + agents + read("llms.txt")),
+    !new RegExp(CC + "|" + CX, "i").test(home + agents + readOr("llms.txt")),
     "client names must not appear with --no-client-names"
   );
 else
@@ -372,7 +372,7 @@ ok(
   !/AudioContext/.test(home + agents),
   "no audio code in html; sound.js owns it"
 );
-const css = read("style.css");
+const css = readOr("style.css");
 for (const [n, v] of Object.entries({
   ground: "#0d0b16",
   surface: "#1c1730",

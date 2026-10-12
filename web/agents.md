@@ -35,7 +35,7 @@ test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-If a step fails, stop and show your owner the error. If every command succeeds, run `pwd` in the `hedwig` directory and keep the absolute path.
+If a step fails, stop and show your owner the error. If an earlier attempt left a `hedwig` folder, ask your owner, and delete it only after they say yes. Delete only the `hedwig` folder in the directory where you ran these commands. If every command succeeds, run `pwd` in the `hedwig` directory and keep the absolute path.
 
 ## Step 3: Register the server
 
