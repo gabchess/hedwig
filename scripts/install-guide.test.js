@@ -185,7 +185,12 @@ for (const [tool, args] of [
   });
 }
 
-for (const file of ["docs/agents.md", "web/agents.md", "web/docs.html"]) {
+for (const file of [
+  "README.md",
+  "docs/agents.md",
+  "web/agents.md",
+  "web/agents.html",
+]) {
   test(`${file}: Yarn and npm install lifecycle scripts cannot execute`, (context) => {
     const result = runRecipe(file, release);
     reportWarnings(context, result.output);

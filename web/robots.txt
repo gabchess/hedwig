@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://usehedwig.xyz/sitemap.xml

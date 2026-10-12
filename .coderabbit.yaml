@@ -91,7 +91,6 @@ reviews:
     - "**/yarn.lock"
     - "**/package-lock.json"
     - "**/*.lock"
-    - "!sdk/src/idl/**"
   path_instructions:
     - path: "consult/**"
       instructions: |
@@ -121,26 +120,6 @@ reviews:
         Input bounds. Size caps run before parsing, before the policy file is read and before any network call (64 KB for arguments, 256 KB for the transport). Failure case: a new code path that reads the policy or calls the network before the size check.
 
         Policy file. It is pinned by hash at start and the caller cannot choose its path. Failure cases: a path taken from arguments; a re-read that skips the pin check.
-    - path: "programs/**"
-      instructions: |
-        Anchor programs that record and check onchain roles. Priorities, in order: (1) an account the instruction trusts without proof; (2) signer and authority; (3) PDA derivation; (4) arithmetic; (5) account lifecycle.
-
-        Signer and owner. Every state-changing instruction checks the right Signer and that each account is owned by this program with the expected discriminator. Failure cases: an authority typed AccountInfo or UncheckedAccount with no has_one or address constraint; a Signer that is present but never compared to the stored authority; an account read from remaining_accounts with no owner and discriminator check; check_role treated as authentication (it is not: the consuming program must authenticate the holder).
-
-        PDA seeds. Seeds hold everything that makes the account unique, and the bump is the canonical one or stored. Failure cases: seeds that omit the org or role key so two orgs collide; create_program_address with a caller-supplied bump; variable-length seeds joined with no separator so two inputs make one address.
-
-        Upgrade authority. Say who can upgrade the program and whether the change assumes that key is revoked or held by one signer. Failure case: a security claim that holds only if the upgrade authority is never used, with no matching line in THREAT-MODEL.md.
-
-        Arithmetic. Failure cases: +, - or * on u64 or u32 counters and timestamps without checked_*; an as cast that truncates; a counter that can wrap into a reused id.
-
-        Close and rent. Failure cases: a close that does not zero the data or send lamports to the stated receiver; a revoked role account that can be re-initialised into a live role at the same address; init_if_needed; rent paid by one party and refunded to another.
-
-        A change that touches authorization needs at least one negative test (CONTRIBUTING.md). Failure case: a new check covered only by a happy-path test.
-    - path: "sdk/**"
-      instructions: |
-        Client library. Priorities: (1) no secret or key in code or in a fixture; (2) the PDA seeds and program id match programs/hedwig_sol; (3) types match the instruction arguments.
-
-        Failure cases: a private key, keypair array, RPC URL with an API key or token in source, a test or an example; a PDA seed list that differs from the program's; a hardcoded program id other than the one in the IDL; a signer built from a secret read at import time; a catch that swallows a failed simulation and returns success.
     - path: "web/**"
       instructions: |
         The public site. Priorities, in order: (1) nothing secret or privileged ships in a page; (2) the CSP in web/vercel.json stays strict; (3) audio starts only on a user gesture; (4) interactive controls stay usable by keyboard and screen reader.
@@ -156,14 +135,14 @@ reviews:
       instructions: |
         CI. Priorities: (1) a pinned supply chain; (2) least privilege; (3) no untrusted text in a shell.
 
-        Failure cases: a uses: line pinned to a tag or branch (@v4, @main) instead of a full commit SHA with a version comment; permissions broader than contents: read, or write-all; pull_request_target; an expression such as ${{ github.event.pull_request.title }} interpolated into a run: block; a curl or wget download that runs with no sha256 check; yarn install without --frozen-lockfile, cargo build, test or install without --locked, or npm ci for mcp without --ignore-scripts; a removed npm audit or cargo audit step; a secret echoed or passed to a step that does not need it.
+        Failure cases: a uses: line pinned to a tag or branch (@v4, @main) instead of a full commit SHA with a version comment; permissions broader than contents: read, or write-all; pull_request_target; an expression such as ${{ github.event.pull_request.title }} interpolated into a run: block; a curl or wget download that runs with no sha256 check; yarn install without --frozen-lockfile, or npm ci for mcp without --ignore-scripts; a removed npm audit step; a secret echoed or passed to a step that does not need it.
 
         Name each new action or tool and its source in one line.
     - path: "**/package.json"
       instructions: |
         Dependencies. Priorities: (1) no install-time code; (2) every added or upgraded package is intentional and named in the PR description; (3) pins stay as strict as they are today.
 
-        Failure cases: a new preinstall, install, postinstall or prepare script; a new dependency in consult/package.json (the payment check has no dependencies of its own); a git, url or tarball dependency, or a file: dependency other than the existing consult and sdk links; a ^ or ~ range in mcp/package.json, whose dependencies are exact versions; a package name one edit away from a well-known one; an added or upgraded package the PR description does not name.
+        Failure cases: a new preinstall, install, postinstall or prepare script; a new dependency in consult/package.json (the payment check has no dependencies of its own); a git, url or tarball dependency, or a file: dependency other than the existing consult link; a ^ or ~ range in mcp/package.json, whose dependencies are exact versions; a package name one edit away from a well-known one; an added or upgraded package the PR description does not name.
 
         List each added or upgraded package and say whether the PR description names it.
     - path: "**/yarn.lock"
@@ -175,18 +154,11 @@ reviews:
         List each added or upgraded package and say whether the PR description names it.
     - path: "**/package-lock.json"
       instructions: |
-        Lockfile for the MCP server and the demo app. Priorities: (1) the lock matches the manifest; (2) nothing resolves from an unexpected place; (3) every new package is named in the PR description.
+        Lockfile for the MCP server. Priorities: (1) the lock matches the manifest; (2) nothing resolves from an unexpected place; (3) every new package is named in the PR description.
 
         Failure cases: a lock change with no matching package.json change, or the reverse; a resolved URL on any host other than registry.npmjs.org; an integrity hash that changed while the version stayed the same; hasInstallScript set on a new package; a name one edit away from a well-known package; a new transitive package in mcp that handles keys or network I/O.
 
         List each added or upgraded package and say whether the PR description names it.
-    - path: "**/Cargo.lock"
-      instructions: |
-        Rust lockfile for the onchain programs. Priorities: (1) the lock matches the Cargo.toml files; (2) every crate comes from crates.io; (3) every new crate is named in the PR description.
-
-        Failure cases: a lock change with no matching Cargo.toml change, or the reverse; a source that is a git URL or a path instead of the crates.io registry; a checksum that changed while the version stayed the same; a new crate with a build script in the program dependency tree; a name one edit away from a well-known crate; a downgrade of a crate that carries a security fix.
-
-        List each added or upgraded crate and say whether the PR description names it.
     - path: "CHANGELOG.md"
       instructions: |
         A changelog entry records what a PR shipped at the time it merged. A release entry may describe earlier merged PRs, so the diff alone is not the test.

@@ -175,8 +175,7 @@ function nullPrototypeRecords(_key: string, value: unknown): unknown {
 // getter or toJSON that throws; the caller turns that throw into
 // GUARD_MAPPING_FAILED. Code running in the Caller's process can patch
 // JSON.stringify itself or any toJSON method it calls, and the guard then
-// checks and signs whatever that patched code writes; THREAT-MODEL.md
-// covers that trust boundary.
+// checks and signs whatever that patched code writes.
 //
 // JSON writes a shared reference out once per path that reaches it, so a
 // small object graph can produce very long text. The replacer runs before

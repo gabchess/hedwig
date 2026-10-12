@@ -138,8 +138,8 @@ type OtherAccountRole = "member" | "role" | "holder" | "programId";
 // check_role instruction: one zeroed 64-byte signature slot (sigVerify is
 // off on the simulate call that sends this) and a zeroed recent blockhash
 // (simulateTransaction's replaceRecentBlockhash fills in a real one). The
-// instruction's own account list is fixed by check_role.rs's Accounts
-// struct field order (member, role, holder); the shared account-keys array
+// instruction's own account list is fixed by the Accounts struct
+// of the program's check_role instruction (member, role, holder); the shared account-keys array
 // they and the program id are written into is ordered as described above.
 // Returns undefined, never throws, if any address fails to decode.
 export function buildCheckRoleTransaction(

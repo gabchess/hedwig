@@ -55,7 +55,7 @@ output result's `canonicalAsset` retains the full canonical address and source.
 
 Native swaps remain blocked while native cap, approval and router checks are
 unfinished. A matching output establishes token identity only. Registry keys
-are still empty in the public MCP build; these changes have offline coverage.
+are still empty in the public MCP build.
 
 ## Local swap example
 

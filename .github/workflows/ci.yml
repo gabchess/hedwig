@@ -20,10 +20,8 @@ jobs:
           node-version: "22"
           cache: yarn
 
-      - name: Check website copy and links
-        run: |
-          node web/sync-copy.js --check
-          node scripts/site-copy.test.js
+      - name: Check site
+        run: node scripts/check-site.js web --no-client-names
 
       - name: Install workspace dependencies
         run: yarn install --frozen-lockfile --ignore-scripts
@@ -34,18 +32,10 @@ jobs:
       - name: Check TypeScript formatting
         run: yarn lint
 
-      - name: Typecheck and test the SDK
-        run: |
-          yarn sdk:typecheck
-          yarn sdk:test
-
       - name: Typecheck and test consult
         run: |
           yarn consult:typecheck
           yarn consult:test
-
-      - name: Build the SDK
-        run: yarn sdk:build
 
       - name: Build consult
         run: yarn consult:build
@@ -65,96 +55,5 @@ jobs:
             yarn mcp:test --grep "loses no entry when several server processes write one file"
           done
 
-      - name: Install demo app dependencies
-        run: npm ci --prefix app
-
-      - name: Typecheck the demo app
-        # Needs the built SDK and the app's own node_modules: app/package.json
-        # depends on the SDK through "file:../sdk", whose types resolve to
-        # sdk/dist, and sdk/dist is not committed.
-        run: ./node_modules/.bin/tsc -p app/tsconfig.json --noEmit
-
-      - name: Test the demo app
-        # Pure-logic unit tests only: no live server, no network. Uses the
-        # app's own tsx devDependency, already installed above.
-        run: npm --prefix app test
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
-        with:
-          toolchain: "1.89.0"
-          components: rustfmt, clippy
-
-      - name: Cache cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Cache Solana toolchain
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.local/share/solana/install
-          key: ${{ runner.os }}-solana-v4.0.1
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Build
-        run: cargo build --locked --verbose
-
-      - name: Install Solana (Agave) toolchain
-        run: |
-          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/solana" ]; then
-            curl --fail --location --silent --show-error \
-              https://github.com/anza-xyz/agave/releases/download/v4.0.1/agave-install-init-x86_64-unknown-linux-gnu \
-              --output /tmp/agave-install-init
-            echo "40f102c95bcea4b007aef2557b3be96325deb95c8a9f406c81632e08eaee6e80  /tmp/agave-install-init" \
-              | sha256sum --check --strict
-            chmod u+x /tmp/agave-install-init
-            /tmp/agave-install-init v4.0.1
-          fi
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
-
-      - name: Build on-chain programs (.so)
-        run: |
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-          cargo build-sbf --manifest-path programs/hedwig_consumer/Cargo.toml -- --locked
-          cargo build-sbf --manifest-path programs/hedwig_sol/Cargo.toml -- --locked
-
-      - name: Lint
-        run: |
-          cargo clippy --workspace --all-targets --all-features -- \
-            -A clippy::diverging_sub_expression \
-            -A clippy::result_large_err \
-            -D warnings
-
-      - name: Test
-        run: cargo test --locked --workspace --verbose
-
-      - name: Audit app dependencies
-        run: npm audit --package-lock-only --audit-level=moderate --prefix app
-
       - name: Audit MCP server dependencies
         run: npm audit --package-lock-only --audit-level=moderate --prefix mcp
-
-      - name: Cache cargo-audit binary
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.cargo/bin/cargo-audit
-          key: ${{ runner.os }}-cargo-audit-0.22.2
-
-      - name: Audit Rust dependencies
-        run: |
-          # Pinned exactly, matching the cache key above. 0.22 or newer is
-          # required: 0.21 cannot parse CVSS 4.0 advisories and fails while
-          # loading the current advisory database.
-          if [ ! -x "$HOME/.cargo/bin/cargo-audit" ]; then
-            cargo install cargo-audit --locked --version 0.22.2
-          fi
-          cargo audit
