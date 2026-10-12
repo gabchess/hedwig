@@ -1,7 +1,7 @@
 // Starts the bundled server the way plugin/.mcp.json starts it, with only
 // PATH and CLAUDE_PLUGIN_ROOT set, then does an MCP handshake and four
 // consult calls. Exits 1 on any mismatch. No dependencies.
-const { spawn } = require("node:child_process");
+const { execFileSync, spawn } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -112,6 +112,26 @@ const failures = [];
 function check(label, ok, detail) {
   console.log(`${ok ? "ok  " : "FAIL"} ${label}`);
   if (!ok) failures.push(`${label}: ${detail}`);
+}
+
+// The calldata line in SKILL.md must give the same bytes as transferData, for
+// a small amount and for one past 2^64 base units.
+const calldataLine = /^\s*node -p "(.+)" "\$RECIPIENT" "\$AMOUNT"$/m.exec(
+  skill
+);
+for (const amount of ["1000000", "100000000000000000000"]) {
+  let got = "";
+  if (calldataLine)
+    got = execFileSync(
+      process.execPath,
+      ["-p", calldataLine[1], RECIPIENT, amount],
+      { encoding: "utf8" }
+    ).trim();
+  check(
+    `skill calldata line: ${amount}`,
+    got === transferData(RECIPIENT, amount),
+    got || "line not found in SKILL.md"
+  );
 }
 
 const timer = setTimeout(() => {

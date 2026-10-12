@@ -40,10 +40,10 @@ Send one argument, `request`, with the `action` and the unsigned `transaction` y
 
 - `amount` is a whole number in the token's base units. USDC has 6 decimals, so 1 USDC is `"1000000"` and 50 USDC is `"50000000"`. Never write `"50"` for 50 USDC.
 - `target` and `transaction.to` are the token contract. The recipient goes in `action.recipient` and inside the calldata.
-- `transaction.data` is the ERC-20 `transfer` call. This line builds it:
+- `transaction.data` is the ERC-20 `transfer` call. This line builds it for any amount:
 
   ```sh
-  printf '0xa9059cbb%064s%064x\n' "${RECIPIENT#0x}" "$AMOUNT" | tr ' ' 0
+  node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
   ```
 
 - Use the same recipient, token and amount in `action` and `transaction`.
