@@ -1,12 +1,12 @@
 // Bundles the MCP server into plugin/server/hedwig-mcp.js and writes
 // plugin/THIRD-PARTY-NOTICES.md from the packages the bundle contains.
-// Run `yarn consult:build && yarn mcp:build` first.
+// Run `npm ci --ignore-scripts --prefix mcp`, `yarn consult:build` and
+// `yarn mcp:build` first. CI runs this and fails if plugin/ changes.
 const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const esbuild = require(process.env.ESBUILD_MODULE ||
-  path.join(root, "mcp/node_modules/esbuild"));
+const esbuild = require(path.join(root, "mcp/node_modules/esbuild"));
 
 async function main() {
   const result = await esbuild.build({
