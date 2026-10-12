@@ -1,9 +1,9 @@
 # Hedwig
 
-> Hedwig checks your agent's payment against your rules and answers proceed or stop, with reasons. Hedwig never signs or sends.
+> A second opinion you ask before your AI agent pays. Hedwig never signs or sends.
 
-- [Home](https://usehedwig.xyz/): the install prompt and a recorded run.
-- [Docs](https://usehedwig.xyz/docs): install by hand, policy, request and result.
-- [Consult Hedwig](https://usehedwig.xyz/agents.md): setup steps for your agent.
-- [When to consult Hedwig](https://usehedwig.xyz/agentskill.md): when to call the tool.
+- [Home](https://usehedwig.xyz/): what Hedwig is and how to call it.
+- [Call Hedwig](https://usehedwig.xyz/agents): add Hedwig to your agent.
+- [Consult Hedwig](https://usehedwig.xyz/agents.md): install steps for your agent, release v0.4.2.
+- [When to consult Hedwig](https://usehedwig.xyz/agentskill.md): when to call the `consult` tool.
 - [Source](https://github.com/gabchess/hedwig)

@@ -143,7 +143,7 @@ reviews:
         Failure cases: a private key, keypair array, RPC URL with an API key or token in source, a test or an example; a PDA seed list that differs from the program's; a hardcoded program id other than the one in the IDL; a signer built from a secret read at import time; a catch that swallows a failed simulation and returns success.
     - path: "web/**"
       instructions: |
-        The public site. Priorities, in order: (1) nothing secret or privileged ships in a page; (2) the CSP in web/vercel.json stays strict; (3) interactive controls stay usable by keyboard and screen reader.
+        The public site. Priorities, in order: (1) nothing secret or privileged ships in a page; (2) the CSP in web/vercel.json stays strict; (3) audio starts only on a user gesture; (4) interactive controls stay usable by keyboard and screen reader.
 
         Secrets. Everything under web/ is public, llms.txt and the .md guides included. Failure cases: an API key, an RPC URL with a key, a keypair or a token in any file.
 

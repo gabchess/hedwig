@@ -37,7 +37,7 @@ CI runs the checks on every push and pull request, along with dependency audits.
 
 ## Website copy
 
-Edit `web/index.html` and `web/docs.html` by hand. Run `node scripts/check-site.js web --no-client-names --no-film`. Keep the install block aligned with the pinned release.
+Edit `web/index.html` and `web/agents.html` by hand. Run `node scripts/check-site.js web --no-client-names`. Keep the install block aligned with the pinned release.
 
 ## Repo map
 
