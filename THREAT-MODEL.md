@@ -172,7 +172,7 @@ the consumer migration checks.
 
 A consuming program must bind `holder` to the actor it intends to authorize before trusting a successful CPI. Depending on the integration, that means requiring a `Signer`, validating a PDA owned by the consumer, or applying another explicit identity constraint. Failing to do so can let a caller present someone else's active membership.
 
-The repository ships a tested reference consumer that requires a signer, binds
+Tag [v0.4.2](https://github.com/gabchess/hedwig/tree/v0.4.2/programs/hedwig_consumer) ships a tested reference consumer that requires a signer, binds
 its counter PDA and stored authority to that signer, passes the same account as
 Hedwig's holder, and pins the Hedwig program type. The consumer is live on
 devnet and its first state change is recorded publicly. It remains builder-owned
@@ -275,8 +275,7 @@ The [consumer suite](https://github.com/gabchess/hedwig/tree/v0.4.2/programs/hed
 The [SDK suite](https://github.com/gabchess/hedwig/tree/v0.4.2/sdk/test) covers PDA derivation, all six builders and senders,
 IDL vectors, UTF-8 limits, expiry conversion, signer forwarding, and provider
 failure. The [payment checks](consult/test/), [MCP tests](mcp/test/) and
-[demo app](https://github.com/gabchess/hedwig/tree/v0.4.2/app) have their own suites. See [CI](.github/workflows/ci.yml) for
-the commands used to verify a commit. These suites establish the tested
+[demo app](https://github.com/gabchess/hedwig/tree/v0.4.2/app) have their own suites. The program, consumer, SDK and demo-app suites live at the v0.4.2 tag. [CI](.github/workflows/ci.yml) on `main` runs the `consult/` and `mcp/` checks. These suites establish the tested
 behaviors; deployment and external review need their own evidence.
 
 ## Out of scope for the current devnet program

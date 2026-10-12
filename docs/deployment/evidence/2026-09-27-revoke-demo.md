@@ -44,7 +44,7 @@ Ask 4 answered on its first attempt: the record has no `ask4FirstAttempt`.
 ## Reproduce
 
 The demo app is not on `main`. The run used source commit `a7a7e176`, which is
-on no branch or tag. Tag `v0.4.2` is the nearest public tag that has the demo
+on no branch or tag. Tag `v0.4.0` is the nearest public tag that has the demo
 script. Check it out and run these commands from that checkout.
 
 ```bash

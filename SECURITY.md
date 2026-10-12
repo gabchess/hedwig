@@ -18,10 +18,10 @@ Include:
 
 ## Scope
 
-`consult/` and `mcp/` on `main`, and the v0.4.2 release that the install guide
-uses. There is no bug bounty.
+`consult/` and `mcp/` on `main`, the v0.4.2 release that the install guide
+uses, and the install page at `usehedwig.xyz/agents.md`. There is no bug bounty.
 
-The MCP server holds no signing key, and Hedwig never signs or sends. If you
-wrap your own signer with `runTriggerGuard` from `@hedwig/consult/guard`, your
-code calls that signer, not Hedwig. When Hedwig can't check a request, it says
+The MCP server holds no signing key, and Hedwig never signs or sends. `runTriggerGuard`
+from `@hedwig/consult/guard` runs in your process and calls the signer you pass
+it at most once, only after the check allows. Hedwig holds no key. When Hedwig can't check a request, it says
 so and tells your agent to stop.

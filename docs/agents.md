@@ -83,9 +83,11 @@ and when a key appears twice, the last one applies. The server pins the file's b
 
 This example includes `perActionCapAssets`, which current `main` requires to
 bind a cap to its token. The pinned v0.4.2 release does not enforce that field.
-At v0.4.2 a cap counts the base units of whatever token the request names, so
-use one token per policy file. The request below checks 1 USDC on Ethereum
-against this policy.
+A v0.4.2 policy cannot name the token a cap applies to. The cap compares one
+number with the request's amount, whatever token the request names. Size each
+cap in USDC base units (6 decimals). A cap sized for WETH (18 decimals) leaves
+USDC almost uncapped. The request below checks 1 USDC on Ethereum against this
+policy.
 
 ```json
 {
@@ -104,7 +106,7 @@ against this policy.
 | `permits` | Must be `true` for any answer to come back `ALLOW_UNDER_POLICY`. |
 | `chainId` | The one chain the owner allows, as a CAIP-2 id such as `eip155:1` or `eip155:8453`. |
 | `approvedRecipients` | Addresses the owner approved to receive a payment. |
-| `perActionCaps` | The largest amount per action type, as a decimal string in the same units as the request's amount. |
+| `perActionCaps` | The largest amount per action type, as a decimal string. At v0.4.2 the same number applies to every token, so size it in USDC base units. |
 | `perActionCapAssets` | On current `main`, the token contract whose base units each cap uses. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
 | `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |

@@ -22,7 +22,7 @@ Open the install page at [usehedwig.xyz/agents](https://usehedwig.xyz/agents), o
 Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
 ```
 
-Your agent asks you before it installs anything. It sets up release v0.4.2 on your computer as a local MCP server named `hedwig`. Before a payment or swap, the agent calls the `consult` tool. Hedwig compares the recipient, amount and chain with the limits you gave it, checks the token against its built-in list, and answers with its reasons.
+Your agent asks you before it installs anything. It sets up release v0.4.2 on your computer as a local MCP server named `hedwig`. Before a payment or swap, the agent calls the `consult` tool. Hedwig compares the recipient, amount and chain with the limits you gave it, checks the token against its built-in list, and answers with its reasons. At v0.4.2 a limit cannot name a token, so size each limit in USDC base units; the same number applies to every token.
 
 You need Git, Node.js 22 or newer, and Yarn. Your agent runs these install commands:
 
