@@ -1,17 +1,17 @@
 # Call Hedwig from an agent
 
-**Check before your agent pays.**
+**Know before it pays.**
 
-Install the local v0.4.2 checker through MCP. It compares a payment or swap with your rules and returns reasons. Your integration must require `proceed: true` before calling its signer.
+Hedwig checks a payment or swap against your policy and returns its reasons. This guide installs it as a local MCP server. Your integration must require `proceed: true` before calling its signer.
 
-Your wallet or application controls signing. The MCP server holds no signing key.
+The MCP server holds no signing key.
 
 ## Point an agent at Hedwig
 
 Paste this line into an agent that can run commands on your computer:
 
 ```
-Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
+Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
 ```
 
 The page it opens is the agent-facing copy of this guide. The agent asks
@@ -23,7 +23,7 @@ yourself, and the agent never writes or edits it.
 You need git, Node.js 22 or newer, and Yarn.
 
 Before running these commands, open the repository's
-[v0.4.2 release](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
+[release page](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
 directly on GitHub and confirm the full commit below. Get the owner's approval
 for that repository and revision. Stop if they differ. A hash copied from
 this website alone does not authenticate a release.
@@ -36,8 +36,7 @@ test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-This fetches the exact commit published as v0.4.2, by its full hash, and
-stops if any step fails. A wrong hash fails at the fetch, before the
+This fetches one exact commit by its full hash and stops if any step fails. A wrong hash fails at the fetch, before the
 install runs. The checked-out revision must also match. Dependency lifecycle
 scripts are disabled. The explicit build commands and server still execute
 code from the approved checkout and its dependencies. This procedure does not
@@ -46,14 +45,6 @@ If a step fails, stop and fix the error before you run
 anything else. If an earlier attempt left a `hedwig` folder, ask your
 owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
-
-Current `main` contains later work, including asset-specific caps and registry
-reader code. The commands above continue to install v0.4.2.
-
-The transaction-binding change also requires unsigned call bytes on current
-source and changes the guard's signer argument. Read the
-[migration guide](evm-call-binding.md) before using that source. The pinned
-v0.4.2 release and intent-only example below predate this contract.
 
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it
@@ -86,9 +77,7 @@ working directory, not the repo.
 The policy is the owner's file. Keep it outside the repo. It's a JSON file,
 and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
-This example includes `perActionCapAssets`, which current `main` requires to
-bind a cap to its token. The pinned v0.4.2 release does not enforce that field.
-The request below checks 1 USDC on Ethereum against this policy.
+A cap is one number, checked against the request's amount (`amountIn` for a swap). Size each cap in USDC base units (6 decimals). A cap sized for WETH (18 decimals) leaves USDC almost uncapped. The request below checks 1 USDC on Ethereum against this policy.
 
 ```json
 {
@@ -96,7 +85,6 @@ The request below checks 1 USDC on Ethereum against this policy.
   "chainId": "eip155:1",
   "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
   "perActionCaps": { "pay": "1000000" },
-  "perActionCapAssets": { "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }
@@ -107,8 +95,7 @@ The request below checks 1 USDC on Ethereum against this policy.
 | `permits` | Must be `true` for any answer to come back `ALLOW_UNDER_POLICY`. |
 | `chainId` | The one chain the owner allows, as a CAIP-2 id such as `eip155:1` or `eip155:8453`. |
 | `approvedRecipients` | Addresses the owner approved to receive a payment. |
-| `perActionCaps` | The largest amount per action type, as a decimal string in the same units as the request's amount. |
-| `perActionCapAssets` | On current `main`, the token contract whose base units each cap uses. |
+| `perActionCaps` | The largest amount per action type, as a decimal string in USDC base units. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
 | `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |
 
@@ -207,4 +194,4 @@ Hedwig answer checks a payment against the owner's policy. The owner still
 approves the payment itself.
 
 [MCP server](../mcp/README.md) · [Payment check](../consult/README.md) ·
-[Threat model](../THREAT-MODEL.md) · [Agent instructions](https://usehedwig.xyz/agents.md)
+[Security](../SECURITY.md) · [Agent instructions](https://usehedwig.xyz/agents.md)

@@ -113,7 +113,7 @@ live-evidence checks and do not enable execution.
 
 Slippage checks compare the supplied quote and minimum output with policy.
 The `support` number is calculated after the verdict and cannot authorize a
-payment. See [call binding and migration](docs/evm-call-binding.md).
+payment.
 
 The registry reader in `main` verifies signed rows and chain observations,
 but its pinned public keys are currently empty. It therefore accepts no rows.
@@ -172,7 +172,7 @@ the consumer migration checks.
 
 A consuming program must bind `holder` to the actor it intends to authorize before trusting a successful CPI. Depending on the integration, that means requiring a `Signer`, validating a PDA owned by the consumer, or applying another explicit identity constraint. Failing to do so can let a caller present someone else's active membership.
 
-The repository ships a tested reference consumer that requires a signer, binds
+Tag [v0.4.2](https://github.com/gabchess/hedwig/tree/v0.4.2/programs/hedwig_consumer) ships a tested reference consumer that requires a signer, binds
 its counter PDA and stored authority to that signer, passes the same account as
 Hedwig's holder, and pins the Hedwig program type. The consumer is live on
 devnet and its first state change is recorded publicly. It remains builder-owned
@@ -246,7 +246,7 @@ The upgrade authority is one deployer-controlled key on both programs.
 
 ## Test evidence
 
-The [core LiteSVM suite](programs/hedwig_sol/tests/) covers:
+The [core LiteSVM suite](https://github.com/gabchess/hedwig/tree/v0.4.2/programs/hedwig_sol/tests) covers:
 
 - rejected non-authority role creation;
 - rejected non-admin assignment, revocation, and role toggling;
@@ -261,7 +261,7 @@ The [core LiteSVM suite](programs/hedwig_sol/tests/) covers:
   caller, so a future contributor cannot silently turn the documented
   integration contract into a signer requirement.
 
-The [consumer suite](programs/hedwig_consumer/tests/) covers:
+The [consumer suite](https://github.com/gabchess/hedwig/tree/v0.4.2/programs/hedwig_consumer/tests) covers:
 
 - an authenticated member incrementing protected state;
 - a privileged third party that cannot be substituted for the actor;
@@ -272,11 +272,10 @@ The [consumer suite](programs/hedwig_consumer/tests/) covers:
 - a substituted Hedwig program; and
 - a role account with the wrong owner.
 
-The [SDK suite](sdk/test/) covers PDA derivation, all six builders and senders,
+The [SDK suite](https://github.com/gabchess/hedwig/tree/v0.4.2/sdk/test) covers PDA derivation, all six builders and senders,
 IDL vectors, UTF-8 limits, expiry conversion, signer forwarding, and provider
 failure. The [payment checks](consult/test/), [MCP tests](mcp/test/) and
-[demo app](app/) have their own suites. See [CI](.github/workflows/ci.yml) for
-the commands used to verify a commit. These suites establish the tested
+[demo app](https://github.com/gabchess/hedwig/tree/v0.4.2/app) have their own suites. The program, consumer, SDK and demo-app suites live at the v0.4.2 tag. [CI](.github/workflows/ci.yml) on `main` runs the `consult/` and `mcp/` checks. These suites establish the tested
 behaviors; deployment and external review need their own evidence.
 
 ## Out of scope for the current devnet program

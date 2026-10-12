@@ -1,7 +1,7 @@
 // DEV-ONLY. Not run by `mcp:test` or CI. Generates the golden fixture for
 // the check_role wire test: it builds the same transaction two ways, once
 // with this reader's own pure wire.ts, once with @solana/web3.js (already
-// present in the workspace root through the sdk's dependencies), asserts
+// present in the workspace root's dependencies), asserts
 // the two are byte-for-byte identical, and prints the fixture JSON.
 //
 // Run once, by hand, from the repository root:
@@ -19,8 +19,8 @@ import {
 } from "@solana/web3.js";
 import { buildCheckRoleTransaction } from "../../src/readers/wire";
 
-// The program id is the repository's own deployed id (programs/hedwig_sol's
-// declare_id!, also in Anchor.toml). role/holder/member/feePayer are
+// The program id is the Hedwig role program's deployed id (source at tag
+// v0.4.2). role/holder/member/feePayer are
 // synthetic keypairs generated fresh below: this golden vector proves the
 // wire format, not any real on-chain account, so it never needs one.
 const PROGRAM_ID = "H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC";

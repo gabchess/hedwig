@@ -19,8 +19,8 @@ const MEMBER_SEED = Buffer.from("member", "utf8");
 
 export type DeployableCluster = "devnet" | "mainnet-beta";
 
-// The program id this reader ever calls: the same id programs/hedwig_sol
-// declares (see Anchor.toml and lib.rs's declare_id!). A policy naming any
+// The program id this reader ever calls: the id the Hedwig role program
+// declares (its source is at tag v0.4.2). A policy naming any
 // other id is a configuration mismatch, not a fact about the subject, so
 // it never reaches the network.
 const DEPLOYED_PROGRAM_IDS: Readonly<Record<DeployableCluster, string>> =

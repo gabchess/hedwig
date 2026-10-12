@@ -8,22 +8,60 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b5cf6?labelColor=0d0b16" alt="license: MIT"></a>
 </p>
 
-**Check before your agent pays.**
+**Know before it pays.**
 
-Hedwig is an eval gate for safer agentic finance. It's designed to advise payment agents using relevant facts from a curated knowledge base.
+> If AI is making it easier to transact onchain, we need to make it dramatically safer for everyone to use it.
 
-Our vision pairs an assessment using Jev with a score from 0 to 1 and a report on request. The report explains the saved assessment and its sources. The calling agent and wallet control execution.
+Hedwig is an eval gate that makes onchain payments safer. It checks the payment or swap your agent wants to make against curated knowledge bases before it pays. Built for the agent you already use.
 
-[Add an eval gate to your payment agent.](https://usehedwig.xyz/agents) · [How it works](https://usehedwig.xyz/how-it-works)
+## What it is
 
-## Try a local check
+A second opinion for your AI agent's payments. Tell your agent to ask Hedwig first. To see the reasons, ask for the report. Then you make the call.
 
-The [setup guide](docs/agents.md) installs Hedwig v0.4.2 as a local MCP tool. Set your payment rules and run the sample. Change the recipient or amount to see a different result. The sample sends no funds.
+## Who it is for
 
-The local checker returns a decision with reasons. Your integration must require `proceed: true` before signing. Read the [supported checks and limits](consult/README.md) before using it with funds.
+Anyone who lets an AI agent handle money, and the builders who connect agents to wallets. If your agent can pay or swap, Hedwig is the second opinion it asks first.
 
-The optional [Trigger guard](consult/README.md#trigger-guard) wraps your signer and checks calls routed through it.
+## Why it matters
 
-## Documentation
+Agents move money faster than you can read the details. One wrong contract or amount costs real money. Hedwig checks before the payment, while a mistake is still free to fix.
 
-[Local checker](consult/README.md) · [MCP server](mcp/README.md) · [Solana SDK](sdk/README.md) · [Evidence](docs/evidence.md) · [Build and test](CONTRIBUTING.md) · [Threat model](THREAT-MODEL.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Founder pitch](https://youtu.be/LpKqZql87vk)
+## Try Hedwig today
+
+Ask Hedwig before your agent pays. Paste this line into your coding agent, or open [usehedwig.xyz/agents](https://usehedwig.xyz/agents):
+
+```
+Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
+```
+
+Your agent asks you before it installs anything. It adds a local MCP server named `hedwig`. Before a payment or swap, the agent calls the `consult` tool and Hedwig answers with its reasons.
+
+You need Git, Node.js 22 or newer, and Yarn. Your agent runs these commands:
+
+```sh
+mkdir hedwig && cd ./hedwig && git init &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+git checkout FETCH_HEAD &&
+test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
+```
+
+They fetch one release by its full commit hash and stop at the first failure. The [install guide](docs/agents.md) covers the policy file you write, how to register the server with your MCP client, and how the agent calls `consult`.
+
+## The story
+
+I started Hedwig on 12 June 2026 as a roles program for Solana. An organization gives a wallet a role, and other programs check it before they act. The [source](https://github.com/gabchess/hedwig/tree/v0.4.2/programs) is public.
+
+Then agents started holding wallets. I wanted the person behind the agent to know what a payment would do before it went out. Hedwig became a payment check, [`@hedwig/consult`](consult/README.md), and an [MCP server](mcp/README.md) so an agent can call it.
+
+For the first tests I sent four payment asks to one Hedwig server on Solana devnet, the last after I took the wallet's role away. The [run record](docs/deployment/evidence/2026-09-27-revoke-demo.md) lists every transaction.
+
+## Build and test
+
+```sh
+yarn install --frozen-lockfile --ignore-scripts
+npm ci --ignore-scripts --prefix mcp
+yarn consult:build && yarn mcp:build && yarn consult:test && yarn mcp:test
+```
+
+[usehedwig.xyz](https://usehedwig.xyz) · [Security](SECURITY.md) · [License (MIT)](LICENSE)
