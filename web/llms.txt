@@ -1,9 +1,9 @@
 # Hedwig
 
-> A second opinion you ask before your AI agent pays. Hedwig never signs or sends.
+> Hedwig is an eval gate that makes onchain payments safer. It checks the payment or swap your agent wants to make against curated knowledge bases before it pays. Know before it pays.
 
-- [Home](https://usehedwig.xyz/): what Hedwig is and how to call it.
+- [Home](https://usehedwig.xyz/): what Hedwig is.
 - [Call Hedwig](https://usehedwig.xyz/agents): add Hedwig to your agent.
-- [Consult Hedwig](https://usehedwig.xyz/agents.md): install steps for your agent, release v0.4.2.
-- [When to consult Hedwig](https://usehedwig.xyz/agentskill.md): when to call the `consult` tool.
+- [Add Hedwig](https://usehedwig.xyz/agents.md): install steps for your agent.
+- [When to ask Hedwig](https://usehedwig.xyz/agentskill.md): when to call the `consult` tool.
 - [Source](https://github.com/gabchess/hedwig)

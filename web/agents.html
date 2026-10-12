@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0d0b16">
 <title>Call Hedwig | Hedwig</title>
-<meta name="description" content="Add Hedwig to your agent. Paste one prompt, or set it up by hand. Hedwig never signs or sends.">
+<meta name="description" content="Add Hedwig to the agent you already use. Paste one prompt, or set it up by hand.">
 <link rel="canonical" href="https://usehedwig.xyz/agents">
 <meta property="og:title" content="Call Hedwig | Hedwig">
-<meta property="og:description" content="Add Hedwig to your agent. Paste one prompt, or set it up by hand. Hedwig never signs or sends.">
+<meta property="og:description" content="Add Hedwig to the agent you already use. Paste one prompt, or set it up by hand.">
 <meta property="og:image" content="https://usehedwig.xyz/og-image.png">
 <meta property="og:url" content="https://usehedwig.xyz/agents">
 <meta property="og:type" content="website">
@@ -35,23 +35,23 @@
 </header>
 <main id="main" class="page" tabindex="-1">
   <h1>Call Hedwig</h1>
-  <p class="lede">This installs Hedwig v0.4.2. It runs on your computer.</p>
+  <p class="lede">Add Hedwig to the agent you already use. It runs on your computer.</p>
   <h2 id="try">Paste this into your agent</h2>
   <pre id="install-prompt" tabindex="0">Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md</pre>
   <div class="copy-row">
     <button class="button" type="button" id="copy-prompt" hidden>Copy prompt</button>
     <p class="note" id="copy-status" role="status"></p>
   </div>
-  <p class="note">You need Git, Node.js 22 or newer, and Yarn. Hedwig never signs or sends.</p>
+  <p class="note">You need Git, Node.js, and Yarn.</p>
   <h2>What your agent does</h2>
   <ol>
     <li>It asks for your OK, then for your limits: which addresses it may pay and how much.</li>
-    <li>Then it builds Hedwig on your computer from the pinned v0.4.2 commit.</li>
+    <li>Then it builds Hedwig on your computer.</li>
     <li>You save your limits in a file your agent never edits. It adds Hedwig as a local MCP server named <code>hedwig</code>.</li>
     <li>Before each payment, it calls <code>consult</code>. Hedwig answers yes or no with the reason, and your agent tells you.</li>
   </ol>
   <h2>Set it up by hand</h2>
-  <p>Open the <a href="https://github.com/gabchess/hedwig/releases/tag/v0.4.2" target="_blank" rel="noopener noreferrer">v0.4.2 release page</a> and confirm the commit matches. Then run:</p>
+  <p>Confirm the <a href="https://github.com/gabchess/hedwig/commit/e85049bc7087f434fd732bb02e0e87ca57acd82c" target="_blank" rel="noopener noreferrer">commit</a> matches the one below. Then run:</p>
   <pre><code>mkdir hedwig &amp;&amp; cd ./hedwig &amp;&amp; git init &amp;&amp;
 git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &amp;&amp;
 git checkout FETCH_HEAD &amp;&amp;

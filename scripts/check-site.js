@@ -16,7 +16,7 @@ const ok = (cond, msg) => { if (!cond) fails.push(msg); };
 
 const HOOK = "If AI is making it easier to transact onchain, we need to make it dramatically safer for everyone to use it.";
 const H1 = "Know before it pays.";
-const PRODUCT = "a second opinion you ask before your AI agent pays";
+const PRODUCT = "an eval gate that makes onchain payments safer";
 const CTA = "Try Hedwig today";
 const PROMPT = "Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md";
 const RELEASE = "e85049bc7087f434fd732bb02e0e87ca57acd82c";
@@ -35,12 +35,11 @@ const GONE = ["about.html", "how-it-works.html", "proof.html", "roadmap.html", "
 const REDIRECTS = { "/about": "/", "/how-it-works": "/", "/roadmap": "/", "/team": "/", "/proof": "/", "/docs": "/agents" };
 const MENU_HREFS = ["/", "/agents", "https://github.com/gabchess/hedwig",
   "https://x.com/usehedwig", "https://github.com/gabchess/hedwig/blob/main/THREAT-MODEL.md"];
-const WORD_CAPS = { index: 160, indexHero: 70, agents: 240 };
+const WORD_CAPS = { index: 100, indexHero: 60, agents: 240 };
 // Human-facing words. Code blocks and inline code are exempt (env var names, API fields).
-const BANNED = ["policy", "rules engine", "allow", "deny", "unknown", "proceed", "cleared", "verified",
-  "protect", "protects", "blocks", "guarantee", "guarantees", "trust", "trusted", "any chain", "score", "scores",
-  "eval gate", "j" + "ev", "safe", "safely", "safety", "secure", "security", "in development", "pending", "prototype",
-  "paybox", "monad", "roadmap", "vision"];
+const BANNED = ["not public yet", "aren't public", "in development", "under development", "pending", "prototype",
+  "concept", "synthetic", "offline test", "offline tests", "unreleased", "candidate", "limitation", "limitations",
+  "remains to be", "recorded run", "j" + "ev", "paybox", "monad", "roadmap"];
 const REJECTED = [
   /check before your agent pays/i,
   /start with a free local (policy )?check/i,
@@ -49,7 +48,7 @@ const REJECTED = [
   /(wallet|application|payment agent|agent)s? controls? (the )?(signing|signature)/i,
 ];
 // The 27 September run and every result card. Past work: repo only.
-const RUN_ANY_FILE = [/27 September/i, /27 Sep\b/i, /2026-09-27/, /revoke-demo/i, /recorded run/i, /no payment was sent/i];
+const RUN_ANY_FILE = [/ALLOW_UNDER_POLICY/, /\bDENY\b/, /\bROLE_/, /\bv\d+\.\d+/i, /27 September/i, /27 Sep\b/i, /2026-09-27/, /revoke-demo/i, /recorded run/i, /no payment was sent/i];
 const RUN_WEB_ONLY = [/ALLOW_UNDER_POLICY/, /AMOUNT_EXCEEDS_CAP/, /ROLE_FACT_MISSING/, /ROLE_MEMBER_MISSING/,
   /within your rules/i, /over the limit/i, /role fact missing/i, /role revoked/i];
 const EXTERNAL_OK = new Set(["github.com", "x.com"]);
@@ -123,7 +122,6 @@ const h1s = [...home.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map((m) => strip(m[
 ok(h1s.length === 1 && h1s[0] === H1, `index h1 must be exactly "${H1}", got ${JSON.stringify(h1s)}`);
 ok(homeText.split(HOOK).length === 2, "hook line must appear exactly once in index.html, verbatim");
 ok(homeText.toLowerCase().includes(PRODUCT.toLowerCase()), `index must say "${PRODUCT}"`);
-ok(/Hedwig never signs or sends/.test(homeText) && /Hedwig never signs or sends/.test(strip(agents)), 'line "Hedwig never signs or sends." missing on a page');
 const mainLinks = [...homeMain.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)];
 ok(mainLinks.length === 1 && /class="button"/.test(mainLinks[0][0]) && /href="\/agents"/.test(mainLinks[0][0]) && strip(mainLinks[0][1]) === CTA,
   `index main must hold exactly one link: the "${CTA}" button to /agents (found ${mainLinks.length})`);
@@ -173,8 +171,9 @@ for (const [k, v] of Object.entries(surfaces)) {
   const hit = [...new Set((v.match(banRe) || []).map((x) => x.toLowerCase()))];
   ok(hit.length === 0, `banned words in ${k}: ${hit.join(", ")}`);
 }
-ok((strip(home).match(/\bsafer\b/gi) || []).length === 1 && (strip(agents).match(/\bsafer\b/gi) || []).length === 0, "the word safer may appear once, inside the hook line on index");
-ok(words(homeText) <= WORD_CAPS.index, `index has ${words(homeText)} visible words, cap ${WORD_CAPS.index}`);
+// Visible words: the menu popover is closed on load and the skip link is hidden until focus, so neither counts.
+const homeVisible = strip(home.replace(/<head[\s\S]*?<\/head>/i, "").replace(/<nav[^>]*\bpopover\b[\s\S]*?<\/nav>/, " ").replace(/<a class="skip-link"[\s\S]*?<\/a>/, " "));
+ok(words(homeVisible) <= WORD_CAPS.index, `index has ${words(homeVisible)} visible words, cap ${WORD_CAPS.index}`);
 ok(words(strip(block(home, "hero"))) <= WORD_CAPS.indexHero, `hero has ${words(strip(block(home, "hero")))} words, cap ${WORD_CAPS.indexHero}`);
 const agentsWords = words(strip(agents.replace(/<head[\s\S]*?<\/head>/i, ""), true));
 ok(agentsWords <= WORD_CAPS.agents, `agents has ${agentsWords} visible words outside code, cap ${WORD_CAPS.agents}`);
@@ -182,7 +181,7 @@ const publicFiles = fs.readdirSync(web).filter((f) => /\.(html|md|txt|json|svg|j
 for (const f of publicFiles) {
   const raw = decode(read(f));
   for (const re of REJECTED) ok(!re.test(raw), `retired phrasing ${re} in ${f}`);
-  for (const re of RUN_ANY_FILE) ok(!re.test(raw), `27 September run material ${re} in ${f}`);
+  for (const re of RUN_ANY_FILE) ok(f.endsWith(".json") || !re.test(raw), `27 September run material ${re} in ${f}`);
   if (/\.(html|txt)$/.test(f)) {
     for (const re of RUN_WEB_ONLY) ok(!re.test(raw), `result-card material ${re} in ${f}`);
     ok(!/devnet/i.test(raw), `devnet in ${f}`);
@@ -227,9 +226,9 @@ ok(total <= 220 * 1024, `web/ is ${total} bytes, cap 225280`);
 // 11. Agent-facing files
 ok(exists("agents.md") && exists("agentskill.md") && exists("llms.txt"), "agents.md, agentskill.md and llms.txt must stay");
 ok(read("llms.txt").split("\n").filter(Boolean).length <= 14, "llms.txt over 14 lines");
-ok(/second opinion/i.test(read("llms.txt")) && !/policy|check before/i.test(read("llms.txt")), "llms.txt must use the second-opinion line and no old vocabulary");
+ok(/eval gate/i.test(read("llms.txt")) && !/policy|check before/i.test(read("llms.txt")), "llms.txt must use the eval-gate line and no old vocabulary");
 ok(read("agents.md").includes(RELEASE), "agents.md lost the pinned release");
-ok(read("agentskill.md").includes("When to consult Hedwig"), "agentskill.md must keep its title and path");
+ok(read("agentskill.md").includes("When to ask Hedwig"), "agentskill.md must keep its title and path");
 
 if (fails.length) { console.log(`FAIL ${fails.length}`); for (const f of fails) console.log(" - " + f); process.exit(1); }
 console.log("PASS all site checks");

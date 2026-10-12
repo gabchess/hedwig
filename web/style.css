@@ -55,6 +55,7 @@ p { margin: 0 0 16px; text-wrap: pretty; }
 .band p:not(.hook) { max-width: 34em; }
 .steps { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
 .steps li { display: grid; grid-template-columns: 36px 1fr; counter-increment: s; font-size: 18px; }
+.steps + p { margin-top: 20px; }
 .steps li::before { content: counter(s); color: var(--purple); font: 600 16px/1.9 var(--mono); }
 
 /* owl art and sound controls (rules carried over from the shipped site) */
