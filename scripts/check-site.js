@@ -125,6 +125,7 @@ const EXTERNAL_OK = new Set(["github.com", "x.com"]);
 
 const read = (f) => fs.readFileSync(path.join(web, f), "utf8");
 const exists = (f) => fs.existsSync(path.join(web, f));
+const readOr = (f) => (exists(f) ? read(f) : "");
 const size = (f) => fs.statSync(path.join(web, f)).size;
 const sha = (f) =>
   crypto
@@ -443,9 +444,9 @@ const surfaces = {
   "index meta": scrub(metaText(home)),
   "agents visible": strip(agents.replace(/<head[\s\S]*?<\/head>/i, ""), true),
   "agents meta": metaText(agents),
-  "llms.txt": exists("llms.txt") ? read("llms.txt") : "",
-  "agents.md": read("agents.md").replace(/```[\s\S]*?```/g, " "),
-  "agentskill.md": read("agentskill.md").replace(/```[\s\S]*?```/g, " "),
+  "llms.txt": readOr("llms.txt"),
+  "agents.md": readOr("agents.md").replace(/```[\s\S]*?```/g, " "),
+  "agentskill.md": readOr("agentskill.md").replace(/```[\s\S]*?```/g, " "),
 };
 for (const [k, v] of Object.entries(surfaces)) {
   const hit = [...new Set((v.match(banRe) || []).map((x) => x.toLowerCase()))];
@@ -477,7 +478,8 @@ ok(
 );
 const publicFiles = fs
   .readdirSync(web)
-  .filter((f) => /\.(html|md|txt|json|svg|js|css)$/.test(f));
+  .filter((f) => /\.(html|md|txt|json|svg|js|css)$/.test(f))
+  .filter((f) => exists(f) && fs.statSync(path.join(web, f)).isFile());
 for (const f of publicFiles) {
   const raw = decode(read(f));
   for (const re of REJECTED)
@@ -570,7 +572,18 @@ ok(
   size("style.css") <= 12 * 1024,
   `style.css is ${size("style.css")} bytes, cap 12288`
 );
-const total = fs.readdirSync(web).reduce((a, f) => a + size(f), 0);
+const walk = (d) =>
+  fs
+    .readdirSync(d, { withFileTypes: true })
+    .reduce(
+      (a, e) =>
+        a +
+        (e.isDirectory()
+          ? walk(path.join(d, e.name))
+          : fs.lstatSync(path.join(d, e.name)).size),
+      0
+    );
+const total = walk(web);
 ok(total <= 220 * 1024, `web/ is ${total} bytes, cap 225280`);
 
 // 11. Agent-facing files
@@ -579,17 +592,17 @@ ok(
   "agents.md, agentskill.md and llms.txt must stay"
 );
 ok(
-  read("llms.txt").split("\n").filter(Boolean).length <= 14,
+  readOr("llms.txt").split("\n").filter(Boolean).length <= 14,
   "llms.txt over 14 lines"
 );
 ok(
-  /eval gate/i.test(read("llms.txt")) &&
-    !/policy|check before/i.test(read("llms.txt")),
+  /eval gate/i.test(readOr("llms.txt")) &&
+    !/policy|check before/i.test(readOr("llms.txt")),
   "llms.txt must use the eval-gate line and no old vocabulary"
 );
-ok(read("agents.md").includes(RELEASE), "agents.md lost the pinned release");
+ok(readOr("agents.md").includes(RELEASE), "agents.md lost the pinned release");
 ok(
-  read("agentskill.md").includes("When to ask Hedwig"),
+  readOr("agentskill.md").includes("When to ask Hedwig"),
   "agentskill.md must keep its title and path"
 );
 

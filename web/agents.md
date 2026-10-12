@@ -35,7 +35,7 @@ test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
-If a step fails, stop and show your owner the error. Then run `pwd` in the `hedwig` directory and keep the absolute path.
+If a step fails, stop and show your owner the error. If every command succeeds, run `pwd` in the `hedwig` directory and keep the absolute path.
 
 ## Step 3: Register the server
 
@@ -81,12 +81,12 @@ Before you sign or send a payment or swap, call `consult` with one argument, `re
 }
 ```
 
-`target` is the contract the transaction calls: the token contract for a `pay`, the router for a `swap`. For an EIP-3009 authorization, add `validBefore` in unix seconds. A `swap` also carries `tokenIn`, `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and `approvalAmount`. See the [payment check README](https://github.com/gabchess/hedwig/blob/main/consult/README.md).
+`target` is the contract the transaction calls: the token contract for a `pay`, the router for a `swap`. For an EIP-3009 authorization, add `validBefore` in unix seconds. A `swap` also carries `tokenIn`, `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and `approvalAmount`. See the [payment check README](https://github.com/gabchess/hedwig/blob/e85049bc7087f434fd732bb02e0e87ca57acd82c/consult/README.md).
 
 ## Step 5: Act on `proceed`
 
 - `proceed: true`: continue with the payment your owner asked for.
-- `proceed: false`: stop. Tell your owner the `code` and `evidence` from the answer.
+- `proceed: false`: stop. Tell your owner the `code` and `evidence` of the first entry in `results` whose `status` isn't `PASS`. If every entry passes, tell them the limits don't permit it.
 
 Report one line after each consult. When Hedwig says no, the payment stays unsent until your owner decides.
 
@@ -100,7 +100,7 @@ Before I sign or send an onchain payment or swap for [owner's name], I ask Hedwi
 
 ## If you sign in code
 
-`runTriggerGuard` from `@hedwig/consult/guard` runs the same check and calls your signer only when `proceed` is true. See the [Trigger guard](https://github.com/gabchess/hedwig/blob/main/consult/README.md#trigger-guard).
+`runTriggerGuard` from `@hedwig/consult/guard` runs the same check and calls your signer only when `proceed` is true. See the [Trigger guard](https://github.com/gabchess/hedwig/blob/e85049bc7087f434fd732bb02e0e87ca57acd82c/consult/README.md#trigger-guard).
 
 ## Safety
 

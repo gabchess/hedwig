@@ -102,7 +102,7 @@ A cap is one number, checked against the request's amount (`amountIn` for a swap
 A `swap` policy also reads `maxSlippageBps`, `maxDeadlineSeconds` and
 `ownerAddresses`. A policy that leaves out `role`, or a `pay` policy that
 leaves out `authorizationWindow`, answers `UNKNOWN`. The shapes for a required role and window are in
-[consult/README.md](../consult/README.md).
+[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md).
 
 A policy that requires a Solana role makes the server read that role over
 the RPC named in `HEDWIG_SOLANA_RPC_URL_DEVNET` or `_MAINNET`, with the
@@ -139,7 +139,7 @@ authorization, `validBefore` in unix seconds. A `swap` action carries
 `chainId`, `target` (the router), `tokenIn`, `tokenOut`, `amountIn`,
 `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and
 `approvalAmount`. The swap example is in
-[consult/README.md](../consult/README.md).
+[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md).
 
 ## Read the response
 
@@ -182,7 +182,7 @@ policy file and the clock again, so changed payment terms need a fresh check.
 If your agent signs in code, `runTriggerGuard` from `@hedwig/consult/guard`
 runs the same check and calls your signer only when the verdict is
 `ALLOW_UNDER_POLICY`. Other signing paths remain the integration's responsibility. See the
-[Trigger guard](../consult/README.md#trigger-guard).
+[Trigger guard](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md#trigger-guard).
 
 ## Safety
 

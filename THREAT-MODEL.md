@@ -5,8 +5,8 @@ consumer. It distinguishes checks enforced by Hedwig from checks an integrating
 program must perform. The live Hedwig deployment contains all six reviewed
 instructions, including the `set_role_enabled` circuit breaker.
 
-Hedwig has not completed an external security review. The core and consumer
-LiteSVM integration suites test the behaviors described below.
+Hedwig has not completed an external security review. At tag v0.4.2, the core and
+consumer LiteSVM integration suites test the behaviors described below.
 
 ## Assets and security properties
 
@@ -237,10 +237,10 @@ incremented a consumer-owned counter through Hedwig CPI. Both programs retain
 the same single deployer-controlled upgrade authority, so the live integration
 does not reduce the upgrade-key risk.
 
-The ignored local keypair at `target/deploy/hedwig_sol-keypair.json` does not
-derive the fixed devnet program ID. Every upgrade must therefore name
+At tag v0.4.2, the ignored local keypair at `target/deploy/hedwig_sol-keypair.json`
+does not derive the fixed devnet program ID. Every upgrade must therefore name
 `H4J9wWhraK2Zvn4o9aFheFVmAf7nfaBNPw3d7w77X1eC` explicitly and must deploy the
-artifact whose hash was recorded by the release audit.
+artifact whose hash the [release audit at tag v0.4.2](https://github.com/gabchess/hedwig/blob/v0.4.2/docs/security/reviews/2026-07-24-full-audit.md) recorded.
 
 The upgrade authority is one deployer-controlled key on both programs.
 
