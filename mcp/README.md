@@ -4,6 +4,8 @@ Check before your agent pays. This local MCP server lets your agent call `consul
 
 ## Run
 
+The install guide installs the published release. This README may describe code that release does not have yet.
+
 Use Node.js 22+ and Yarn. From the repository root:
 
 ```sh
@@ -80,4 +82,4 @@ While the keys remain empty, the server reads none of these variables.
 
 ## Register with a client
 
-The [install guide](../docs/agents.md#register-the-server-with-your-mcp-client) shows the server config for each client.
+The [install guide](../docs/agents.md#register-the-server-with-your-mcp-client) shows the server config.
