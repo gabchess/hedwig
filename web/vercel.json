@@ -5,12 +5,10 @@
     { "source": "/about", "destination": "/", "permanent": false },
     { "source": "/how-it-works", "destination": "/", "permanent": false },
     { "source": "/roadmap", "destination": "/", "permanent": false },
-    { "source": "/team/founder", "destination": "/founder", "permanent": false },
-    { "source": "/team", "destination": "/founder", "permanent": false },
     { "source": "/proof", "destination": "/", "permanent": false },
     { "source": "/docs", "destination": "/agents", "permanent": false }
   ],
-  "rewrites": [{ "source": "/founder", "destination": "/team.html" }],
+  "rewrites": [{ "source": "/team/founder", "destination": "/team" }],
   "headers": [
     { "source": "/agents.md", "headers": [{ "key": "Content-Type", "value": "text/markdown; charset=utf-8" }] },
     { "source": "/agentskill.md", "headers": [{ "key": "Content-Type", "value": "text/markdown; charset=utf-8" }] },

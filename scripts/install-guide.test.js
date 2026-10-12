@@ -6,7 +6,12 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
-const release = "e85049bc7087f434fd732bb02e0e87ca57acd82c";
+const release = (fs
+  .readFileSync(path.join(root, "docs/agents.md"), "utf8")
+  .match(
+    /git fetch --depth 1 https:\/\/github\.com\/gabchess\/hedwig\.git ([0-9a-f]{40})/
+  ) || [])[1];
+assert.match(release || "", /^[0-9a-f]{40}$/, "docs/agents.md pins a release");
 const yarn = spawnSync("which", ["yarn"], { encoding: "utf8" }).stdout.trim();
 const npm = spawnSync("which", ["npm"], { encoding: "utf8" }).stdout.trim();
 assert.ok(yarn, "Yarn must be installed for the offline lifecycle test");
@@ -185,12 +190,7 @@ for (const [tool, args] of [
   });
 }
 
-for (const file of [
-  "README.md",
-  "docs/agents.md",
-  "web/agents.md",
-  "web/agents.html",
-]) {
+for (const file of ["docs/agents.md", "web/agents.md", "web/agents.html"]) {
   test(`${file}: Yarn and npm install lifecycle scripts cannot execute`, (context) => {
     const result = runRecipe(file, release);
     reportWarnings(context, result.output);

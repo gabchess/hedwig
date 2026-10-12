@@ -1,6 +1,6 @@
 # Payment and swap checks
 
-`@hedwig/consult` checks a proposed payment or swap against the owner's policy and returns a decision with the result of each check. This guide describes the current `main` branch. The [agent install guide](../docs/agents.md) pins the earlier v0.4.2 release.
+`@hedwig/consult` checks a proposed payment or swap against the owner's policy and returns a decision with the result of each check.
 
 ```ts
 import { consult } from "@hedwig/consult";

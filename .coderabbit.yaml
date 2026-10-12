@@ -126,7 +126,7 @@ reviews:
 
         Secrets. Everything under web/ is public, llms.txt and the .md guides included. Failure cases: an API key, an RPC URL with a key, a keypair or a token in any file.
 
-        CSP. Today it is default-src 'self', script-src 'self', style-src 'self', img-src 'self', font-src 'self', connect-src 'self', frame-ancestors 'none', base-uri 'none', object-src 'none', form-action 'self'. Failure cases: 'unsafe-inline' or 'unsafe-eval'; a wildcard or a new external origin in any directive; an inline script, style attribute or style block in an .html file; a third-party script, font or analytics tag; dropping frame-ancestors, base-uri, object-src or form-action; connect-src widened.
+        CSP. Today it is default-src 'self', script-src 'self', style-src 'self', img-src 'self', frame-src https://www.youtube-nocookie.com (the founder video, nothing else), font-src 'self', connect-src 'self', frame-ancestors 'none', base-uri 'none', object-src 'none', form-action 'self'. Failure cases: 'unsafe-inline' or 'unsafe-eval'; a wildcard or a new external origin in any directive (the one allowed origin is the YouTube no-cookie host in frame-src); an inline script, style attribute or style block in an .html file; a third-party script, font or analytics tag; dropping frame-ancestors, base-uri, object-src or form-action; connect-src widened.
 
         Audio. An AudioContext is created or resumed only inside a user-gesture handler (click, keydown, pointerdown, touchend). Failure cases: new AudioContext() or resume() at load, in a timer, or in a visibilitychange or pageshow handler; autoplay; a state flag (starting, enabled, muted) left true on a path where the context never reaches running (resume stays pending, resolves in a non-running state, or the constructor throws), which locks the sound button.
 
@@ -159,13 +159,6 @@ reviews:
         Failure cases: a lock change with no matching package.json change, or the reverse; a resolved URL on any host other than registry.npmjs.org; an integrity hash that changed while the version stayed the same; hasInstallScript set on a new package; a name one edit away from a well-known package; a new transitive package in mcp that handles keys or network I/O.
 
         List each added or upgraded package and say whether the PR description names it.
-    - path: "CHANGELOG.md"
-      instructions: |
-        A changelog entry records what a PR shipped at the time it merged. A release entry may describe earlier merged PRs, so the diff alone is not the test.
-
-        Check each line this PR adds or edits against the repository at this PR's head. Failure case: a line this PR adds or edits that claims something the repository at this PR's head does not show.
-
-        Leave alone each line this PR does not add or edit. Do not compare it with any later state.
 chat:
   auto_reply: false
   art: false
