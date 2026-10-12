@@ -4,14 +4,14 @@
 
 Install the local v0.4.2 checker through MCP. It compares a payment or swap with your rules and returns reasons. Your integration must require `proceed: true` before calling its signer.
 
-Your wallet or application controls signing. The MCP server holds no signing key.
+The MCP server holds no signing key.
 
 ## Point an agent at Hedwig
 
 Paste this line into an agent that can run commands on your computer:
 
 ```
-Before you move money onchain for me, consult Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
+Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
 ```
 
 The page it opens is the agent-facing copy of this guide. The agent asks
@@ -46,14 +46,6 @@ If a step fails, stop and fix the error before you run
 anything else. If an earlier attempt left a `hedwig` folder, ask your
 owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
-
-Current `main` contains later work, including asset-specific caps and registry
-reader code. The commands above continue to install v0.4.2.
-
-The transaction-binding change also requires unsigned call bytes on current
-source and changes the guard's signer argument. Read the
-[migration guide](evm-call-binding.md) before using that source. The pinned
-v0.4.2 release and intent-only example below predate this contract.
 
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it
@@ -207,4 +199,4 @@ Hedwig answer checks a payment against the owner's policy. The owner still
 approves the payment itself.
 
 [MCP server](../mcp/README.md) · [Payment check](../consult/README.md) ·
-[Threat model](../THREAT-MODEL.md) · [Agent instructions](https://usehedwig.xyz/agents.md)
+[Security](../SECURITY.md) · [Agent instructions](https://usehedwig.xyz/agents.md)

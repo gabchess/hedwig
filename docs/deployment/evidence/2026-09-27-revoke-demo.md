@@ -43,6 +43,9 @@ Ask 4 answered on its first attempt: the record has no `ask4FirstAttempt`.
 
 ## Reproduce
 
+The demo app is not on `main`. Check out tag `v0.4.2` and run these commands
+from that checkout.
+
 ```bash
 yarn consult:build && yarn mcp:build
 HEDWIG_DEMO_KEYPAIR=<path to a devnet keypair outside the repository> \
