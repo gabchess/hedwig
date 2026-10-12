@@ -116,6 +116,7 @@ function check(label, ok, detail) {
 
 const timer = setTimeout(() => {
   console.error("FAIL timeout waiting for the server");
+  if (stderr.trim()) console.error("server stderr:", stderr.trim());
   child.kill();
   process.exit(1);
 }, 30000);

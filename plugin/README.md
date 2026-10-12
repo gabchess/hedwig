@@ -2,7 +2,7 @@
 
 Know before it pays.
 
-Ask Hedwig before your AI agent pays. It checks the payment against your limits and says why. It never signs or sends.
+Ask Hedwig before your agent pays. It checks the payment against your limits and says why. It never signs or sends.
 
 ## Install
 
@@ -12,7 +12,7 @@ You need Node.js 22 or newer. In Claude Code:
 /plugin install hedwig --marketplace gabchess/hedwig
 ```
 
-Run `/mcp` to see `hedwig` connected.
+Run `/reload-plugins`, then `/mcp` to see `hedwig` connected.
 
 ## Try it
 
@@ -30,4 +30,4 @@ Keep your limits file where your agent can't edit it. Start Claude Code with its
 HEDWIG_POLICY_FILE=/absolute/path/limits.json claude
 ```
 
-The fields are in the [MCP server guide](../mcp/README.md).
+The fields are in the [MCP server guide](https://github.com/gabchess/hedwig/blob/main/mcp/README.md).

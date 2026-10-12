@@ -1,6 +1,6 @@
 ---
 name: ask
-description: Ask Hedwig before you pay. Use it before you sign, send or approve a token payment for the owner. Hedwig compares the payment with the owner's limits and says why. It never signs or sends.
+description: Ask Hedwig before you pay. Use it before you sign, send or approve a token payment for the owner. Hedwig checks the payment against the owner's limits and says why. It never signs or sends.
 allowed-tools: mcp__plugin_hedwig_hedwig__consult
 ---
 
@@ -63,4 +63,4 @@ If `consult` is missing or returns an error, ask the owner to run `/mcp` and che
 
 ## Sample limits
 
-The sample limits allow alice (`0x00000000000000000000000000000000a11ce001`) to receive up to 1 USDC per payment on Ethereum (`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`). When the owner says alice, use that address.
+The sample limits allow alice (`0x00000000000000000000000000000000a11ce001`) to receive up to 1 USDC per payment on Ethereum (`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`). When the owner says alice, use that address. The sample addresses are placeholders. Never sign or send a payment to one.
