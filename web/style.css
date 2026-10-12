@@ -104,3 +104,4 @@ pre { margin: 0 0 16px; padding: 16px; overflow-x: auto; border: 1px solid var(-
   .menu { transition: none; }
   .button:active { transform: none; }
 }
+[hidden] { display: none !important; }

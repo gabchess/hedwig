@@ -1,6 +1,6 @@
 # Hedwig
 
-> Hedwig is an eval gate that makes onchain payments safer. It checks the payment or swap your agent wants to make against curated knowledge bases before it pays. Know before it pays.
+> Hedwig is an eval gate that makes onchain payments safer. It checks the payment or swap your agent wants to make against your owner's limits before it pays. Know before it pays.
 
 - [Home](https://usehedwig.xyz/): what Hedwig is.
 - [Call Hedwig](https://usehedwig.xyz/agents): add Hedwig to your agent.
