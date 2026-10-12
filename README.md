@@ -22,7 +22,7 @@ Open the install page at [usehedwig.xyz/agents](https://usehedwig.xyz/agents), o
 Help me install Hedwig. Open this exact link and follow its instructions: https://usehedwig.xyz/agents.md
 ```
 
-Your agent asks you before it installs anything. It sets up release v0.4.2 on your computer as a local MCP server named `hedwig`. Before a payment or swap, the agent calls the `consult` tool. Hedwig compares the recipient, token, amount and chain with the limits you gave it, and it answers with its reasons.
+Your agent asks you before it installs anything. It sets up release v0.4.2 on your computer as a local MCP server named `hedwig`. Before a payment or swap, the agent calls the `consult` tool. Hedwig compares the recipient, amount and chain with the limits you gave it, checks the token against its built-in list, and answers with its reasons.
 
 You need Git, Node.js 22 or newer, and Yarn. Your agent runs these install commands:
 
@@ -49,8 +49,6 @@ The first version, tag `hedwig-sol-v1`, had the six-instruction Anchor program, 
 ## The pivot
 
 On 20 September 2026 I renamed the repo from `hedwig-sol` to `hedwig`. A wallet's role became one of several things Hedwig looks at before a payment. [`@hedwig/consult`](consult/README.md) holds that logic, and the [MCP server](mcp/README.md) lets an agent call it.
-
-A week later I sent four payment asks to one Hedwig server on Solana devnet. The last ask came after I revoked the wallet's role onchain. The [run record](docs/deployment/evidence/2026-09-27-revoke-demo.md) lists every transaction.
 
 Release v0.4.2 followed on 30 September 2026. It is what the install page sets up today.
 

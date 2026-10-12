@@ -43,8 +43,9 @@ Ask 4 answered on its first attempt: the record has no `ask4FirstAttempt`.
 
 ## Reproduce
 
-The demo app is not on `main`. Check out tag `v0.4.2` and run these commands
-from that checkout.
+The demo app is not on `main`. The run used source commit `a7a7e176`, which is
+on no branch or tag. Tag `v0.4.2` is the nearest public tag that has the demo
+script. Check it out and run these commands from that checkout.
 
 ```bash
 yarn consult:build && yarn mcp:build

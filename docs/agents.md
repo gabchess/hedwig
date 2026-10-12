@@ -1,6 +1,6 @@
 # Call Hedwig from an agent
 
-**Check before your agent pays.**
+**Know before it pays.**
 
 Install the local v0.4.2 checker through MCP. It compares a payment or swap with your rules and returns reasons. Your integration must require `proceed: true` before calling its signer.
 
@@ -47,6 +47,9 @@ anything else. If an earlier attempt left a `hedwig` folder, ask your
 owner, and delete it only after they say yes. Delete only the `hedwig`
 folder in the directory where you ran these commands.
 
+Current `main` contains later work, including asset-specific caps and registry
+reader code. The commands above continue to install v0.4.2.
+
 The server reads the owner's policy from the file named in
 `HEDWIG_POLICY_FILE`. It refuses to start without it. To try it, point it
 at the example policy in `mcp/test/fixtures/policy.json`:
@@ -80,7 +83,9 @@ and when a key appears twice, the last one applies. The server pins the file's b
 
 This example includes `perActionCapAssets`, which current `main` requires to
 bind a cap to its token. The pinned v0.4.2 release does not enforce that field.
-The request below checks 1 USDC on Ethereum against this policy.
+At v0.4.2 a cap counts the base units of whatever token the request names, so
+use one token per policy file. The request below checks 1 USDC on Ethereum
+against this policy.
 
 ```json
 {

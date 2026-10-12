@@ -1,7 +1,7 @@
 // DEV-ONLY. Not run by `mcp:test` or CI. Generates the golden fixture for
 // the check_role wire test: it builds the same transaction two ways, once
 // with this reader's own pure wire.ts, once with @solana/web3.js (already
-// present in the workspace root through the sdk's dependencies), asserts
+// present in the workspace root's dependencies), asserts
 // the two are byte-for-byte identical, and prints the fixture JSON.
 //
 // Run once, by hand, from the repository root:

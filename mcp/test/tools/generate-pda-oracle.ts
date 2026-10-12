@@ -1,7 +1,6 @@
 // DEV-ONLY. Not run by `mcp:test` or CI. Generates the oracle fixture for
 // pda.ts: PDA vectors and on-curve vectors, both produced by
-// @solana/web3.js (already present in the workspace root through the
-// sdk's dependencies) so pda.test.ts can check this reader's pure-BigInt
+// @solana/web3.js (already present in the workspace root's dependencies) so pda.test.ts can check this reader's pure-BigInt
 // reimplementation against the reference library on thousands of cases
 // while importing no Solana library itself.
 //
