@@ -10,7 +10,7 @@ Ask again when the payee, the amount, the token contract or the quote changes.
 
 ## If Hedwig is installed
 
-Call the `consult` tool without asking first. Report the answer to your owner in one line. Sign only when `proceed` is `true` and your owner asked for this payment. The full steps are at https://usehedwig.xyz/agents.md.
+Call the `consult` tool without asking first. Report the answer to your owner in one line. Sign only when `proceed` is `true` and your owner asked for this payment. Send exactly the transaction you checked. The full steps are at https://usehedwig.xyz/agents.md.
 
 ## If Hedwig isn't installed
 
