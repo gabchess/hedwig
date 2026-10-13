@@ -13,7 +13,7 @@ Send your owner one message before you install anything. Say you want to install
 - `permits`: `true` to allow any payment at all.
 - `chainId`: the one chain they allow, such as `eip155:1` or `eip155:8453`.
 - `approvedRecipients`: the addresses they approve to receive payments.
-- `perActionCaps`: the largest amount per action, such as `{ "pay": "1000000" }`.
+- `perActionCaps`: the largest amount per action, in the cap token's base units, such as `{ "pay": "1000000" }`.
 - `perActionCapAssets`: the token contract each cap counts in, such as `{ "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" }` for USDC on Ethereum.
 - `role`: `{ "mode": "not-required" }`.
 - `authorizationWindow`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for EIP-3009 authorizations.
@@ -93,6 +93,8 @@ Before you sign or send a payment or swap, call `consult` with one argument, `re
 ```sh
 node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
 ```
+
+Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only.
 
 `target` is the contract the transaction calls: the token contract for a `pay`, the router for a `swap`. For an EIP-3009 authorization, add `validBefore` in unix seconds. A `swap` also carries `tokenIn`, `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and `approvalAmount`. See the [payment check README](https://github.com/gabchess/hedwig/blob/8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665/consult/README.md).
 

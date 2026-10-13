@@ -147,6 +147,8 @@ policy or facts through the tool.
 node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
 ```
 
+Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only.
+
 A `pay` action carries `chainId`, `recipient`, `asset`, `amount`, `target`
 (the token contract the transaction calls) and, for an EIP-3009
 authorization, `validBefore` in unix seconds. A `swap` action carries
