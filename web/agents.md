@@ -8,7 +8,7 @@ A shell on your owner's computer, git, Node.js 22 or newer, and Yarn. If you can
 
 ## Step 1: Ask your owner
 
-Send your owner one message before you install anything. Say you want to install Hedwig from `https://github.com/gabchess/hedwig` at commit `8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665`, and ask for their limits:
+Send your owner one message before you install anything. Say you want to install Hedwig from `https://github.com/gabchess/hedwig` at commit `31d6d4f0033d98589228a44ad15f1da1865d450e`, and ask for their limits:
 
 - `permits`: `true` to allow any payment at all.
 - `chainId`: the one chain they allow, such as `eip155:1` or `eip155:8453`.
@@ -30,9 +30,9 @@ Run these commands, in this order:
 
 ```sh
 mkdir hedwig && cd ./hedwig && git init &&
-git fetch --depth 1 https://github.com/gabchess/hedwig.git 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git 31d6d4f0033d98589228a44ad15f1da1865d450e &&
 git checkout FETCH_HEAD &&
-test "$(git rev-parse HEAD)" = 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &&
+test "$(git rev-parse HEAD)" = 31d6d4f0033d98589228a44ad15f1da1865d450e &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
@@ -96,7 +96,7 @@ node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(proc
 
 Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only. If either value doesn't match, stop and tell your owner.
 
-`target` is the contract the transaction calls: the token contract for a `pay`, the router for a `swap`. A `swap` also carries `tokenIn`, `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and `approvalAmount`. See the [payment check README](https://github.com/gabchess/hedwig/blob/8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665/consult/README.md).
+`target` is the contract the transaction calls: the token contract for a `pay`, the router for a `swap`. A `swap` also carries `tokenIn`, `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and `approvalAmount`. See the [payment check README](https://github.com/gabchess/hedwig/blob/31d6d4f0033d98589228a44ad15f1da1865d450e/consult/README.md).
 
 ## Step 5: Act on `proceed`
 
@@ -115,7 +115,7 @@ Before I sign or send an onchain token transfer or swap for [owner's name], I as
 
 ## If you sign in code
 
-`runTriggerGuard` from `@hedwig/consult/guard` runs the same check and calls your signer only when `proceed` is true. See the [Trigger guard](https://github.com/gabchess/hedwig/blob/8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665/consult/README.md#trigger-guard).
+`runTriggerGuard` from `@hedwig/consult/guard` runs the same check and calls your signer only when `proceed` is true. See the [Trigger guard](https://github.com/gabchess/hedwig/blob/31d6d4f0033d98589228a44ad15f1da1865d450e/consult/README.md#trigger-guard).
 
 ## Safety
 
