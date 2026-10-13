@@ -53,9 +53,9 @@
   <h2>Set it up by hand</h2>
   <p>Check the commit first. Open the <a href="https://github.com/gabchess/hedwig/releases" target="_blank" rel="noopener noreferrer">releases</a> and find the one that lists the commit below. Then run:</p>
   <pre><code>mkdir hedwig &amp;&amp; cd ./hedwig &amp;&amp; git init &amp;&amp;
-git fetch --depth 1 https://github.com/gabchess/hedwig.git 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &amp;&amp;
+git fetch --depth 1 https://github.com/gabchess/hedwig.git 31d6d4f0033d98589228a44ad15f1da1865d450e &amp;&amp;
 git checkout FETCH_HEAD &amp;&amp;
-test &quot;$(git rev-parse HEAD)&quot; = 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &amp;&amp;
+test &quot;$(git rev-parse HEAD)&quot; = 31d6d4f0033d98589228a44ad15f1da1865d450e &amp;&amp;
 yarn install --frozen-lockfile --ignore-scripts &amp;&amp; npm ci --ignore-scripts --prefix mcp &amp;&amp; yarn consult:build &amp;&amp; yarn mcp:build</code></pre>
   <h3>JSON config</h3>
   <p>Save this as <code>.mcp.json</code> in your project. Use absolute paths. Your agent may ask you to approve the server.</p>
