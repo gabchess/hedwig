@@ -21,7 +21,9 @@ jobs:
           cache: yarn
 
       - name: Check site
-        run: node scripts/check-site.js web
+        run: |
+          node scripts/check-site.js web
+          node --test scripts/check-site.test.js
 
       - name: Install workspace dependencies
         run: yarn install --frozen-lockfile --ignore-scripts

@@ -13,9 +13,12 @@ const YT = "https://www.youtube-nocookie.com";
 const CSP = `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; frame-src ${YT}; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'`;
 const HOSTS = ["github.com", "x.com", "www.youtube-nocookie.com", "youtu.be"];
 const BANNED = new RegExp(
-  "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run)\\b",
+  "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run|this readme may describe)\\b",
   "i"
 );
+// Every other public text file in the repo. License text is skipped.
+const LEGAL = /(^|\/)THIRD-PARTY-NOTICES\.md$/;
+const ALLOW = { "SECURITY.md": /proof of concept/gi };
 const CLIENTS = new RegExp("Cl" + "aude Code|Co" + "dex", "i"); // built from parts
 const DASH = String.fromCharCode(0x2014);
 const walk = (d) =>
@@ -33,6 +36,17 @@ const all = files
   .map((f) => [f, read(f)]);
 if (fs.existsSync(readme))
   all.push(["README.md", fs.readFileSync(readme, "utf8")]);
+const root = path.join(web, "..");
+const tree = (d) =>
+  fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(d, e.name);
+    if (/^\.|^node_modules$/.test(e.name) || p === web) return [];
+    return e.isDirectory() ? tree(p) : [path.relative(root, p)];
+  });
+const docs = tree(root)
+  .filter((f) => /\.(md|html|txt)$/.test(f) && f !== "README.md")
+  .filter((f) => !LEGAL.test(f))
+  .map((f) => [f, fs.readFileSync(path.join(root, f), "utf8")]);
 const pages = all.filter(([f]) => f.endsWith(".html"));
 // Visible page text: no scripts, styles, svg, code or menu.
 const text = (h) =>
@@ -128,6 +142,14 @@ for (const [f, t] of human) {
 }
 for (const [f, s] of all.filter(([f]) => /html$|llms/.test(f)))
   ok(!CLIENTS.test(s), `${f}: client name`);
+
+for (const [f, s] of docs) {
+  const t = (f.endsWith(".html") ? text(s) : prose(s)).replace(
+    ALLOW[f] || /(?!)/,
+    " "
+  );
+  ok(!BANNED.test(t), `${f}: banned word "${(t.match(BANNED) || [])[0]}"`);
+}
 
 // Structure the scripts and agents read
 const home = read("index.html");
