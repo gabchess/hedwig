@@ -12,11 +12,11 @@ test("check-site fails on caveat phrases in a page and the README", () => {
   fs.mkdirSync(path.join(root, "web"));
   fs.writeFileSync(
     path.join(root, "web", "index.html"),
-    "<h1>Hedwig</h1><p>Hedwig is in development.</p>"
+    "<h1>Hedwig</h1><p>Hedwig is in development.</p>",
   );
   fs.writeFileSync(
     path.join(root, "README.md"),
-    "# Hedwig\n\nThis README may describe features that are pending.\n"
+    "# Hedwig\n\nThis README may describe features that are pending.\n",
   );
   const run = spawnSync("node", [script, path.join(root, "web")], {
     encoding: "utf8",
@@ -26,32 +26,29 @@ test("check-site fails on caveat phrases in a page and the README", () => {
   assert.match(run.stdout, /index\.html: banned word "in development"/);
   assert.match(
     run.stdout,
-    /README\.md: banned word "This README may describe"/
+    /README\.md: banned word "This README may describe"/,
   );
 });
 
-test("check-site fails on a caveat phrase in a package README", () => {
+test("check-site scans every public text file, with a small allowlist", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "check-site-"));
-  fs.mkdirSync(path.join(root, "web"));
-  fs.mkdirSync(path.join(root, "consult"));
-  fs.mkdirSync(path.join(root, "mcp"));
-  fs.writeFileSync(path.join(root, "web", "index.html"), "<h1>Hedwig</h1>");
-  fs.writeFileSync(
-    path.join(root, "consult", "README.md"),
-    "# consult\n\nThis README may describe features that are not shipped.\n"
-  );
-  fs.writeFileSync(
-    path.join(root, "mcp", "README.md"),
-    "# mcp\n\nA pending item and a prototype are fine here.\n"
-  );
+  for (const d of ["web", "consult", "mcp", "docs", "plugin"])
+    fs.mkdirSync(path.join(root, d));
+  const put = (f, s) => fs.writeFileSync(path.join(root, f), s);
+  put("web/index.html", "<h1>Hedwig</h1>");
+  put("consult/README.md", "# consult\n\nThis README may describe more.\n");
+  put("mcp/README.md", "# mcp\n\nA pending item and a prototype.\n");
+  put("docs/agents.md", "# Agents\n\nHosted reports are in development.\n");
+  put("SECURITY.md", "Never post a working proof of concept in an issue.\n");
+  put("LICENSE", "without limitation the rights\n");
+  put("plugin/THIRD-PARTY-NOTICES.md", "without limitation the rights\n");
   const run = spawnSync("node", [script, path.join(root, "web")], {
     encoding: "utf8",
   });
   fs.rmSync(root, { recursive: true, force: true });
   assert.equal(run.status, 1);
-  assert.match(
-    run.stdout,
-    /consult\/README\.md: banned word "This README may describe"/
-  );
-  assert.doesNotMatch(run.stdout, /mcp\/README\.md/);
+  assert.match(run.stdout, /consult\/README\.md: banned word/);
+  assert.match(run.stdout, /mcp\/README\.md: banned word "pending"/);
+  assert.match(run.stdout, /docs\/agents\.md: banned word "in development"/);
+  assert.doesNotMatch(run.stdout, /SECURITY|LICENSE|THIRD-PARTY/);
 });

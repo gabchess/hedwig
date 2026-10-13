@@ -14,13 +14,11 @@ const CSP = `default-src 'self'; script-src 'self'; style-src 'self'; img-src 's
 const HOSTS = ["github.com", "x.com", "www.youtube-nocookie.com", "youtu.be"];
 const BANNED = new RegExp(
   "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run|this readme may describe)\\b",
-  "i"
+  "i",
 );
-// Package READMEs get the caveat phrases only, not the single banned words.
-const CAVEAT = new RegExp(
-  "\\b(not public yet|aren't public|in development|under development|remains to be|recorded run|this readme may describe)\\b",
-  "i"
-);
+// Every other public text file in the repo. License text is not our copy.
+const LEGAL = /(^|\/)(LICENSE|THIRD-PARTY-NOTICES\.md)$/;
+const ALLOW = { "SECURITY.md": /proof of concept/gi };
 const CLIENTS = new RegExp("Cl" + "aude Code|Co" + "dex", "i"); // built from parts
 const DASH = String.fromCharCode(0x2014);
 const walk = (d) =>
@@ -38,17 +36,24 @@ const all = files
   .map((f) => [f, read(f)]);
 if (fs.existsSync(readme))
   all.push(["README.md", fs.readFileSync(readme, "utf8")]);
-const packages = ["consult", "mcp", "plugin"]
-  .map((d) => path.join(d, "README.md"))
-  .filter((f) => fs.existsSync(path.join(web, "..", f)))
-  .map((f) => [f, fs.readFileSync(path.join(web, "..", f), "utf8")]);
+const root = path.join(web, "..");
+const tree = (d) =>
+  fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(d, e.name);
+    if (/^\.|^node_modules$/.test(e.name) || p === web) return [];
+    return e.isDirectory() ? tree(p) : [path.relative(root, p)];
+  });
+const docs = tree(root)
+  .filter((f) => /\.(md|html|txt)$/.test(f) && f !== "README.md")
+  .filter((f) => !LEGAL.test(f))
+  .map((f) => [f, fs.readFileSync(path.join(root, f), "utf8")]);
 const pages = all.filter(([f]) => f.endsWith(".html"));
 // Visible page text: no scripts, styles, svg, code or menu.
 const text = (h) =>
   h
     .replace(
       /<!--[\s\S]*?-->|<(script|style|svg|pre|code|nav)\b[\s\S]*?<\/\1>/gi,
-      " "
+      " ",
     )
     .replace(/<a class="skip-link"[\s\S]*?<\/a>|<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
@@ -77,7 +82,7 @@ ok(csp && csp.value === CSP, "CSP changed: edit CSP in check-site.js too");
 ok(vercel.cleanUrls === true && vercel.trailingSlash === false, "cleanUrls");
 // A rewrite names a page without .html under cleanUrls, or Vercel 404s.
 const rewrites = new Map(
-  (vercel.rewrites || []).map((r) => [r.source, r.destination])
+  (vercel.rewrites || []).map((r) => [r.source, r.destination]),
 );
 for (const [s, d] of rewrites)
   ok(has(d.slice(1) + ".html"), `rewrite ${s} -> ${d}: name a page, no .html`);
@@ -85,7 +90,7 @@ const moved = new Set((vercel.redirects || []).map((r) => r.source));
 
 // Links and fragments
 for (const [f, src] of all.filter(
-  ([f]) => has(f) && /\.(html|md|txt)$/.test(f)
+  ([f]) => has(f) && /\.(html|md|txt)$/.test(f),
 )) {
   const re = f.endsWith(".html")
     ? /\b(?:href|src)="([^"]*)"/g
@@ -93,7 +98,7 @@ for (const [f, src] of all.filter(
   for (const [, raw] of src.matchAll(re)) {
     const u = new URL(
       raw.startsWith("#") ? "/" + f + raw : raw,
-      "https://usehedwig.xyz/" + f
+      "https://usehedwig.xyz/" + f,
     );
     if (!/^https?:$/.test(u.protocol) || moved.has(u.pathname)) continue;
     if (u.hostname !== "usehedwig.xyz") {
@@ -106,7 +111,7 @@ for (const [f, src] of all.filter(
     if (hit && u.hash && hit.endsWith(".html"))
       ok(
         read(hit).includes(`id="${u.hash.slice(1)}"`),
-        `${f}: dead fragment ${raw}`
+        `${f}: dead fragment ${raw}`,
       );
   }
 }
@@ -117,7 +122,7 @@ for (const [p, h] of pages) {
     ok(src.startsWith(YT + "/embed/"), `${p}: iframe src ${src}`);
   ok(
     !/<script>\s*[^<\s]|<style\b|\sstyle="/.test(h),
-    `${p}: inline script or style`
+    `${p}: inline script or style`,
   );
   ok((h.match(/<h1\b/g) || []).length === 1, `${p}: needs exactly one <h1>`);
   const cap = { "index.html": 120, "agents.html": 240 }[p] || 120;
@@ -138,9 +143,12 @@ for (const [f, t] of human) {
 for (const [f, s] of all.filter(([f]) => /html$|llms/.test(f)))
   ok(!CLIENTS.test(s), `${f}: client name`);
 
-for (const [f, s] of packages) {
-  const t = prose(s);
-  ok(!CAVEAT.test(t), `${f}: banned word "${(t.match(CAVEAT) || [])[0]}"`);
+for (const [f, s] of docs) {
+  const t = (f.endsWith(".html") ? text(s) : prose(s)).replace(
+    ALLOW[f] || /(?!)/,
+    " ",
+  );
+  ok(!BANNED.test(t), `${f}: banned word "${(t.match(BANNED) || [])[0]}"`);
 }
 
 // Structure the scripts and agents read
@@ -148,7 +156,7 @@ const home = read("index.html");
 const agents = read("agents.html");
 ok(
   /<div class="art">\s*<svg class="owl-svg"/.test(home),
-  "index: .art > svg.owl-svg"
+  "index: .art > svg.owl-svg",
 );
 for (const id of ["field-row", "field-sound", "field-motion", "field-hint"])
   ok(home.includes(`id="${id}"`), `index: missing #${id}`);
@@ -158,7 +166,7 @@ ok(
     agents.includes('id="copy-prompt"') &&
     agents.includes('id="copy-status"') &&
     agents.includes('href="https://github.com/gabchess/hedwig/releases"'),
-  "agents.html: prompt, copy button, status or releases link changed"
+  "agents.html: prompt, copy button, status or releases link changed",
 );
 for (const f of ["agents.md", "agentskill.md", "llms.txt"])
   ok(has(f), `${f} must exist`);
