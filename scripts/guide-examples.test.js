@@ -49,8 +49,10 @@ for (const [file, request] of Object.entries(requests)) {
 
 test("web/agents.md Step 1 names every key of the docs example policy", () => {
   const web = read("web/agents.md");
-  const step1 = web.slice(web.indexOf("## Step 1"), web.indexOf("## Step 2"));
-  assert.ok(step1.length > 0, "web/agents.md has Step 1");
+  const start = web.indexOf("## Step 1");
+  const end = web.indexOf("## Step 2");
+  assert.ok(start >= 0 && end > start, "web/agents.md has Step 1, then Step 2");
+  const step1 = web.slice(start, end);
   for (const key of Object.keys(policy)) {
     assert.ok(
       step1.includes(`- \`${key}\``),
