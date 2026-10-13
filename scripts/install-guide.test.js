@@ -6,7 +6,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
-const release = "e85049bc7087f434fd732bb02e0e87ca57acd82c";
+const release = "8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665";
 const yarn = spawnSync("which", ["yarn"], { encoding: "utf8" }).stdout.trim();
 const npm = spawnSync("which", ["npm"], { encoding: "utf8" }).stdout.trim();
 assert.ok(yarn, "Yarn must be installed for the offline lifecycle test");

@@ -46117,7 +46117,7 @@ function logVerdict(result) {
 function main() {
   const policyPath = requirePolicyPath();
   const policyPin = (0, policy_1.pinPolicyFile)(policyPath);
-  const server = new index_js_1.Server({ name: "hedwig-mcp", version: "0.4.2" }, { capabilities: { tools: {} } });
+  const server = new index_js_1.Server({ name: "hedwig-mcp", version: "0.5.0" }, { capabilities: { tools: {} } });
   server.setRequestHandler(types_js_1.ListToolsRequestSchema, async () => ({
     tools: [
       {

@@ -23,16 +23,16 @@ yourself, and the agent never writes or edits it.
 You need git, Node.js 22 or newer, and Yarn.
 
 Before running these commands, open the repository's
-[release page](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
+[release page](https://github.com/gabchess/hedwig/releases/tag/v0.5.0)
 directly on GitHub and confirm the full commit below. Get the owner's approval
 for that repository and revision. Stop if they differ. A hash copied from
 this website alone does not authenticate a release.
 
 ```sh
 mkdir hedwig && cd ./hedwig && git init &&
-git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &&
 git checkout FETCH_HEAD &&
-test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+test "$(git rev-parse HEAD)" = 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
@@ -77,7 +77,7 @@ working directory, not the repo.
 The policy is the owner's file. Keep it outside the repo. It's a JSON file,
 and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
-A cap is one number, checked against the request's amount (`amountIn` for a swap). Size each cap in USDC base units (6 decimals). A cap sized for WETH (18 decimals) leaves USDC almost uncapped. The request below checks 1 USDC on Ethereum against this policy.
+Each cap is an amount in one token, checked against the request's amount (`amountIn` for a swap). `perActionCapAssets` names that token's contract for each action, and the cap uses its base units. A missing cap token, or a request in a different token, answers `UNVERIFIED` for the cap. The request below checks 1 USDC on Ethereum against this policy.
 
 ```json
 {
@@ -85,6 +85,7 @@ A cap is one number, checked against the request's amount (`amountIn` for a swap
   "chainId": "eip155:1",
   "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
   "perActionCaps": { "pay": "1000000" },
+  "perActionCapAssets": { "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }
@@ -95,14 +96,15 @@ A cap is one number, checked against the request's amount (`amountIn` for a swap
 | `permits` | Must be `true` for any answer to come back `ALLOW_UNDER_POLICY`. |
 | `chainId` | The one chain the owner allows, as a CAIP-2 id such as `eip155:1` or `eip155:8453`. |
 | `approvedRecipients` | Addresses the owner approved to receive a payment. |
-| `perActionCaps` | The largest amount per action type, as a decimal string in USDC base units. |
+| `perActionCaps` | The largest amount per action type, as a decimal string in the cap token's base units. |
+| `perActionCapAssets` | The token contract each cap counts in, per action type. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
-| `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |
+| `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`. |
 
 A `swap` policy also reads `maxSlippageBps`, `maxDeadlineSeconds` and
 `ownerAddresses`. A policy that leaves out `role`, or a `pay` policy that
-leaves out `authorizationWindow`, answers `UNKNOWN`. The shapes for a required role and window are in
-[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md).
+leaves out `authorizationWindow`, answers `UNKNOWN`. The shape for a required role is in
+[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.5.0/consult/README.md).
 
 A policy that requires a Solana role makes the server read that role over
 the RPC named in `HEDWIG_SOLANA_RPC_URL_DEVNET` or `_MAINNET`, with the
@@ -128,18 +130,31 @@ policy or facts through the tool.
       },
       "amount": "1000000",
       "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    },
+    "transaction": {
+      "from": "0x00000000000000000000000000000000b0b00002",
+      "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "value": "0",
+      "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
     }
   }
 }
 ```
 
-A `pay` action carries `chainId`, `recipient`, `asset`, `amount`, `target`
-(the token contract the transaction calls) and, for an EIP-3009
-authorization, `validBefore` in unix seconds. A `swap` action carries
+`transaction` is the unsigned call you plan to send. For a `pay`, `transaction.to` is the token contract and `transaction.data` is the ERC-20 `transfer` call. Use the same recipient, token and amount in `action` and `transaction`. This line builds the calldata:
+
+```sh
+node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
+```
+
+Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only. If either value doesn't match, stop and tell your owner.
+
+A `pay` action carries `chainId`, `recipient`, `asset`, `amount` and `target`
+(the token contract the transaction calls). A `swap` action carries
 `chainId`, `target` (the router), `tokenIn`, `tokenOut`, `amountIn`,
 `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and
 `approvalAmount`. The swap example is in
-[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md).
+[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.5.0/consult/README.md).
 
 ## Read the response
 
@@ -182,7 +197,7 @@ policy file and the clock again, so changed payment terms need a fresh check.
 If your agent signs in code, `runTriggerGuard` from `@hedwig/consult/guard`
 runs the same check and calls your signer only when the verdict is
 `ALLOW_UNDER_POLICY`. Other signing paths remain the integration's responsibility. See the
-[Trigger guard](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md#trigger-guard).
+[Trigger guard](https://github.com/gabchess/hedwig/blob/v0.5.0/consult/README.md#trigger-guard).
 
 ## Safety
 

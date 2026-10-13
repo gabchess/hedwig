@@ -2,7 +2,6 @@
 
 Ask Hedwig before you sign or send any of these for your owner:
 
-- An x402 payment or an EIP-3009 authorization.
 - A token transfer.
 - The token approval for a swap, sent as `approvalAmount` in the swap request.
 - A swap.
