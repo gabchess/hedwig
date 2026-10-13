@@ -37,10 +37,13 @@ const all = files
 if (fs.existsSync(readme))
   all.push(["README.md", fs.readFileSync(readme, "utf8")]);
 const root = path.join(web, "..");
+// Local build output, never committed.
+const BUILT = new Set(["consult/dist", "mcp/dist", "coverage"]);
 const tree = (d) =>
   fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(d, e.name);
-    if (/^\.|^(node_modules|dist|coverage)$/.test(e.name)) return [];
+    if (/^\.|^node_modules$/.test(e.name) || BUILT.has(path.relative(root, p)))
+      return [];
     return e.isDirectory() ? tree(p) : [path.relative(root, p)];
   });
 const docs = tree(root)
