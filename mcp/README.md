@@ -1,6 +1,6 @@
 # @hedwig/mcp
 
-Check before your agent pays. This local MCP server lets your agent call `consult` before signing a payment or swap. It checks your policy and returns reasons. Your application controls signing and execution.
+Check before your agent pays. This local MCP server lets your agent call `consult` before signing a token transfer or swap. It checks your policy and returns reasons. Your application controls signing and execution.
 
 ## Run
 

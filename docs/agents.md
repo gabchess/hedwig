@@ -2,7 +2,7 @@
 
 **Know before it pays.**
 
-Hedwig checks a payment or swap against your policy and returns its reasons. This guide installs it as a local MCP server. Your integration must require `proceed: true` before calling its signer.
+Hedwig checks a token transfer or swap against your policy and returns its reasons. This guide installs it as a local MCP server. Your integration must require `proceed: true` before calling its signer.
 
 The MCP server holds no signing key.
 
@@ -183,7 +183,7 @@ the probability that a transaction is safe.
 
 | `verdict` | When | What the agent does |
 |---|---|---|
-| `ALLOW_UNDER_POLICY` | Every mandatory check passed and the policy has `permits: true`. | Continue with the payment the owner asked for. |
+| `ALLOW_UNDER_POLICY` | Every mandatory check passed and the policy has `permits: true`. | Continue with the payment the owner asked for. Sign and send exactly the `transaction` you checked. |
 | `DENY` | At least one check failed. `results[0]` is a FAIL. | Stop. Tell the owner `results[0].code` and `results[0].evidence`. |
 | `UNKNOWN` | A check couldn't be completed, the policy doesn't permit, or the input was malformed. `PASS` rows can still appear, and can come first when every check passed. | Stop and ask the owner. Tell them the `code` and `evidence` of the first row whose `status` isn't `PASS`. If every row is `PASS`, tell them the policy doesn't permit the action. |
 
