@@ -46,6 +46,8 @@ Send one argument, `request`, with the `action` and the unsigned `transaction` y
   node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
   ```
 
+  Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only.
+
 - Use the same recipient, token and amount in `action` and `transaction`.
 
 ## Read the answer

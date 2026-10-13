@@ -99,11 +99,11 @@ Each cap is an amount in one token, checked against the request's amount (`amoun
 | `perActionCaps` | The largest amount per action type, as a decimal string in the cap token's base units. |
 | `perActionCapAssets` | The token contract each cap counts in, per action type. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
-| `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |
+| `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`. |
 
 A `swap` policy also reads `maxSlippageBps`, `maxDeadlineSeconds` and
 `ownerAddresses`. A policy that leaves out `role`, or a `pay` policy that
-leaves out `authorizationWindow`, answers `UNKNOWN`. The shapes for a required role and window are in
+leaves out `authorizationWindow`, answers `UNKNOWN`. The shape for a required role is in
 [consult/README.md](https://github.com/gabchess/hedwig/blob/v0.5.0/consult/README.md).
 
 A policy that requires a Solana role makes the server read that role over
@@ -149,9 +149,8 @@ node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(proc
 
 Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only.
 
-A `pay` action carries `chainId`, `recipient`, `asset`, `amount`, `target`
-(the token contract the transaction calls) and, for an EIP-3009
-authorization, `validBefore` in unix seconds. A `swap` action carries
+A `pay` action carries `chainId`, `recipient`, `asset`, `amount` and `target`
+(the token contract the transaction calls). A `swap` action carries
 `chainId`, `target` (the router), `tokenIn`, `tokenOut`, `amountIn`,
 `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and
 `approvalAmount`. The swap example is in
