@@ -14,6 +14,7 @@ Send your owner one message before you install anything. Say you want to install
 - `chainId`: the one chain they allow, such as `eip155:1` or `eip155:8453`.
 - `approvedRecipients`: the addresses they approve to receive payments.
 - `perActionCaps`: the largest amount per action, such as `{ "pay": "1000000" }`.
+- `perActionCapAssets`: the token contract each cap counts in, such as `{ "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" }` for USDC on Ethereum.
 - `role`: `{ "mode": "not-required" }`.
 - `authorizationWindow`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for EIP-3009 authorizations.
 
@@ -76,9 +77,21 @@ Before you sign or send a payment or swap, call `consult` with one argument, `re
       },
       "amount": "1000000",
       "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    },
+    "transaction": {
+      "from": "0x00000000000000000000000000000000b0b00002",
+      "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "value": "0",
+      "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
     }
   }
 }
+```
+
+`transaction` is the unsigned call you plan to send. For a `pay`, `transaction.to` is the token contract and `transaction.data` is the ERC-20 `transfer` call. Use the same recipient, token and amount in `action` and `transaction`. This line builds the calldata:
+
+```sh
+node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
 ```
 
 `target` is the contract the transaction calls: the token contract for a `pay`, the router for a `swap`. For an EIP-3009 authorization, add `validBefore` in unix seconds. A `swap` also carries `tokenIn`, `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and `approvalAmount`. See the [payment check README](https://github.com/gabchess/hedwig/blob/8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665/consult/README.md).

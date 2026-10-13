@@ -37,8 +37,8 @@ const all = files
 if (fs.existsSync(readme))
   all.push(["README.md", fs.readFileSync(readme, "utf8")]);
 const root = path.join(web, "..");
-// Local build output, never committed.
-const BUILT = new Set(["consult/dist", "mcp/dist", "coverage"]);
+// Build output, ignored by git.
+const BUILT = new Set(["consult/dist", "mcp/dist"]);
 const tree = (d) =>
   fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(d, e.name);

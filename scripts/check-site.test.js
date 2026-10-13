@@ -50,6 +50,13 @@ test("check-site scans every public text file and manifest", () => {
     "docs/agents.md": "# Agents\n\nHosted reports are in development.\n",
     "web/notes.md": "A prototype.\n",
     "web/notes.txt": "Status: `unreleased`\n",
+    "web/llms.txt": "Hedwig\n\nStatus: `pending`\n",
+    "SECURITY.md": "These are not five completed checks.\n",
+    "mcp/dist/notes.md": "A prototype.\n",
+    "docs/dist/notes.md": "A prototype.\n",
+    [`.cl${"aude"}-plugin/marketplace.json`]: JSON.stringify({
+      plugins: [{ name: "hedwig", description: "Under development." }],
+    }),
     [`plugin/.cl${"aude"}-plugin/plugin.json`]: JSON.stringify({
       name: "hedwig",
       description: "A synthetic demo.",
@@ -63,6 +70,11 @@ test("check-site scans every public text file and manifest", () => {
     /web\/notes\.md: banned word "prototype"/,
     /web\/notes\.txt: banned word "unreleased"/,
     /plugin\.json: banned word "synthetic"/,
+    /llms\.txt: banned word "pending"/,
+    /SECURITY\.md: banned word "not five completed"/,
+    /docs\/dist\/notes\.md: banned word "prototype"/,
+    /marketplace\.json: banned word "Under development"/,
   ])
     assert.match(run.stdout, line);
+  assert.doesNotMatch(run.stdout, /mcp\/dist/);
 });

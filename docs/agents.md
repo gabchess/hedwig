@@ -77,7 +77,7 @@ working directory, not the repo.
 The policy is the owner's file. Keep it outside the repo. It's a JSON file,
 and when a key appears twice, the last one applies. The server pins the file's bytes when it starts: `consult` answers `UNKNOWN` with `ADAPTER_POLICY_CHANGED` while the file's bytes differ from that start, and each restart pins whatever the file holds then, so review the file before a restart and keep it where the agent's OS user cannot write it. A deleted, unreadable or too-large file answers `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE` instead. Both codes come with `proceed: false`. If `consult` answers either code, stop and tell your owner. Never restart the server or reconnect your MCP client to clear it.
 
-A cap is one number, checked against the request's amount (`amountIn` for a swap). Size each cap in USDC base units (6 decimals). A cap sized for WETH (18 decimals) leaves USDC almost uncapped. The request below checks 1 USDC on Ethereum against this policy.
+Each cap is an amount in one token, checked against the request's amount (`amountIn` for a swap). `perActionCapAssets` names that token's contract for each action, and the cap uses its base units. A missing cap token, or a request in a different token, answers `UNVERIFIED` for the cap. The request below checks 1 USDC on Ethereum against this policy.
 
 ```json
 {
@@ -85,6 +85,7 @@ A cap is one number, checked against the request's amount (`amountIn` for a swap
   "chainId": "eip155:1",
   "approvedRecipients": ["0x00000000000000000000000000000000a11ce001"],
   "perActionCaps": { "pay": "1000000" },
+  "perActionCapAssets": { "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   "role": { "mode": "not-required" },
   "authorizationWindow": { "mode": "not-required" }
 }
@@ -95,7 +96,8 @@ A cap is one number, checked against the request's amount (`amountIn` for a swap
 | `permits` | Must be `true` for any answer to come back `ALLOW_UNDER_POLICY`. |
 | `chainId` | The one chain the owner allows, as a CAIP-2 id such as `eip155:1` or `eip155:8453`. |
 | `approvedRecipients` | Addresses the owner approved to receive a payment. |
-| `perActionCaps` | The largest amount per action type, as a decimal string in USDC base units. |
+| `perActionCaps` | The largest amount per action type, as a decimal string in the cap token's base units. |
+| `perActionCapAssets` | The token contract each cap counts in, per action type. |
 | `role` | `{ "mode": "not-required" }`, or a Solana role the agent must hold. |
 | `authorizationWindow` | For `pay`: `{ "mode": "not-required" }`, or `{ "mode": "required", "maxSeconds": n }` for an EIP-3009 authorization. |
 
@@ -128,9 +130,21 @@ policy or facts through the tool.
       },
       "amount": "1000000",
       "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    },
+    "transaction": {
+      "from": "0x00000000000000000000000000000000b0b00002",
+      "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "value": "0",
+      "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
     }
   }
 }
+```
+
+`transaction` is the unsigned call you plan to send. For a `pay`, `transaction.to` is the token contract and `transaction.data` is the ERC-20 `transfer` call. Use the same recipient, token and amount in `action` and `transaction`. This line builds the calldata:
+
+```sh
+node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
 ```
 
 A `pay` action carries `chainId`, `recipient`, `asset`, `amount`, `target`
