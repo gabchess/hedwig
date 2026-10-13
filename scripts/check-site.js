@@ -13,7 +13,7 @@ const YT = "https://www.youtube-nocookie.com";
 const CSP = `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; frame-src ${YT}; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'`;
 const HOSTS = ["github.com", "x.com", "www.youtube-nocookie.com", "youtu.be"];
 const BANNED = new RegExp(
-  "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run)\\b",
+  "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run|this readme may describe)\\b",
   "i"
 );
 const CLIENTS = new RegExp("Cl" + "aude Code|Co" + "dex", "i"); // built from parts
