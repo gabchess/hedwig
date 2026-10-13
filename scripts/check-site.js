@@ -13,7 +13,7 @@ const YT = "https://www.youtube-nocookie.com";
 const CSP = `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; frame-src ${YT}; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'`;
 const HOSTS = ["github.com", "x.com", "www.youtube-nocookie.com", "youtu.be"];
 const BANNED = new RegExp(
-  "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run|this readme may describe)\\b",
+  "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run|this readme may describe|caveats?|not five completed)\\b",
   "i"
 );
 // Every other public text file in the repo. License text is skipped.
@@ -40,13 +40,26 @@ const root = path.join(web, "..");
 const tree = (d) =>
   fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(d, e.name);
-    if (/^\.|^node_modules$/.test(e.name) || p === web) return [];
+    if (/^\.|^(node_modules|dist|coverage)$/.test(e.name)) return [];
     return e.isDirectory() ? tree(p) : [path.relative(root, p)];
   });
 const docs = tree(root)
-  .filter((f) => /\.(md|html|txt)$/.test(f) && f !== "README.md")
-  .filter((f) => !LEGAL.test(f))
+  .filter((f) => /\.(md|html|txt)$/.test(f) && !LEGAL.test(f))
   .map((f) => [f, fs.readFileSync(path.join(root, f), "utf8")]);
+// Plugin and marketplace descriptions show in the install UI.
+const notes = (v) =>
+  v && typeof v === "object"
+    ? Object.entries(v).flatMap(([k, x]) =>
+        k === "description" && typeof x === "string" ? [x] : notes(x)
+      )
+    : [];
+const PLUGIN = ".cl" + "aude-plugin"; // built from parts
+const manifests = [`${PLUGIN}/marketplace.json`, `plugin/${PLUGIN}/plugin.json`]
+  .filter((f) => fs.existsSync(path.join(root, f)))
+  .map((f) => [
+    f,
+    notes(JSON.parse(fs.readFileSync(path.join(root, f), "utf8"))).join(" "),
+  ]);
 const pages = all.filter(([f]) => f.endsWith(".html"));
 // Visible page text: no scripts, styles, svg, code or menu.
 const text = (h) =>
@@ -65,7 +78,7 @@ const prose = (s) =>
   s.replace(/```[\s\S]*?```|`[^`\n]*`|\]\([^)]*\)/g, " ").replace(/’/g, "'");
 const human = all
   .filter(([f]) => /^(README\.md|llms\.txt|agents\.md|agentskill\.md)$/.test(f))
-  .map(([f, s]) => [f, prose(s)])
+  .map(([f, s]) => [f, f.endsWith(".txt") ? s : prose(s)])
   .concat(pages.map(([f, h]) => [f, text(h).replace(/’/g, "'")]));
 
 // vercel.json
@@ -143,8 +156,15 @@ for (const [f, t] of human) {
 for (const [f, s] of all.filter(([f]) => /html$|llms/.test(f)))
   ok(!CLIENTS.test(s), `${f}: client name`);
 
-for (const [f, s] of docs) {
-  const t = (f.endsWith(".html") ? text(s) : prose(s)).replace(
+// Files the checks above already read are skipped here.
+const seen = new Set(
+  human.map(([f]) =>
+    f === "README.md" ? f : path.join(path.relative(root, web), f)
+  )
+);
+for (const [f, s] of docs.filter(([f]) => !seen.has(f)).concat(manifests)) {
+  const raw = /\.(txt|json)$/.test(f) ? s : prose(s);
+  const t = (f.endsWith(".html") ? text(s) : raw).replace(
     ALLOW[f] || /(?!)/,
     " "
   );

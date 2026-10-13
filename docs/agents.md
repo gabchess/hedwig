@@ -23,16 +23,16 @@ yourself, and the agent never writes or edits it.
 You need git, Node.js 22 or newer, and Yarn.
 
 Before running these commands, open the repository's
-[release page](https://github.com/gabchess/hedwig/releases/tag/v0.4.2)
+[release page](https://github.com/gabchess/hedwig/releases/tag/v0.5.0)
 directly on GitHub and confirm the full commit below. Get the owner's approval
 for that repository and revision. Stop if they differ. A hash copied from
 this website alone does not authenticate a release.
 
 ```sh
 mkdir hedwig && cd ./hedwig && git init &&
-git fetch --depth 1 https://github.com/gabchess/hedwig.git e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+git fetch --depth 1 https://github.com/gabchess/hedwig.git 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &&
 git checkout FETCH_HEAD &&
-test "$(git rev-parse HEAD)" = e85049bc7087f434fd732bb02e0e87ca57acd82c &&
+test "$(git rev-parse HEAD)" = 8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665 &&
 yarn install --frozen-lockfile --ignore-scripts && npm ci --ignore-scripts --prefix mcp && yarn consult:build && yarn mcp:build
 ```
 
@@ -102,7 +102,7 @@ A cap is one number, checked against the request's amount (`amountIn` for a swap
 A `swap` policy also reads `maxSlippageBps`, `maxDeadlineSeconds` and
 `ownerAddresses`. A policy that leaves out `role`, or a `pay` policy that
 leaves out `authorizationWindow`, answers `UNKNOWN`. The shapes for a required role and window are in
-[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md).
+[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.5.0/consult/README.md).
 
 A policy that requires a Solana role makes the server read that role over
 the RPC named in `HEDWIG_SOLANA_RPC_URL_DEVNET` or `_MAINNET`, with the
@@ -139,7 +139,7 @@ authorization, `validBefore` in unix seconds. A `swap` action carries
 `chainId`, `target` (the router), `tokenIn`, `tokenOut`, `amountIn`,
 `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and
 `approvalAmount`. The swap example is in
-[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md).
+[consult/README.md](https://github.com/gabchess/hedwig/blob/v0.5.0/consult/README.md).
 
 ## Read the response
 
@@ -182,7 +182,7 @@ policy file and the clock again, so changed payment terms need a fresh check.
 If your agent signs in code, `runTriggerGuard` from `@hedwig/consult/guard`
 runs the same check and calls your signer only when the verdict is
 `ALLOW_UNDER_POLICY`. Other signing paths remain the integration's responsibility. See the
-[Trigger guard](https://github.com/gabchess/hedwig/blob/v0.4.2/consult/README.md#trigger-guard).
+[Trigger guard](https://github.com/gabchess/hedwig/blob/v0.5.0/consult/README.md#trigger-guard).
 
 ## Safety
 
