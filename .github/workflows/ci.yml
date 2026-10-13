@@ -42,6 +42,9 @@ jobs:
       - name: Build consult
         run: yarn consult:build
 
+      - name: Check install guide examples
+        run: node --test scripts/guide-examples.test.js
+
       - name: Install mcp dependencies
         run: npm ci --ignore-scripts --prefix mcp
 
