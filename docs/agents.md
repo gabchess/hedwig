@@ -147,7 +147,7 @@ policy or facts through the tool.
 node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
 ```
 
-Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only.
+Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only. If either value doesn't match, stop and tell your owner.
 
 A `pay` action carries `chainId`, `recipient`, `asset`, `amount` and `target`
 (the token contract the transaction calls). A `swap` action carries

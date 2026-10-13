@@ -94,7 +94,7 @@ Before you sign or send a payment or swap, call `consult` with one argument, `re
 node -p "'0xa9059cbb' + process.argv[1].slice(2).padStart(64, '0') + BigInt(process.argv[2]).toString(16).padStart(64, '0')" "$RECIPIENT" "$AMOUNT"
 ```
 
-Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only.
+Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` is digits only. If either value doesn't match, stop and tell your owner.
 
 `target` is the contract the transaction calls: the token contract for a `pay`, the router for a `swap`. A `swap` also carries `tokenIn`, `tokenOut`, `amountIn`, `quotedOut`, `minOut`, `slippageBps`, `deadline`, `recipient` and `approvalAmount`. See the [payment check README](https://github.com/gabchess/hedwig/blob/8622b60fbcb69993ee7fc0477dd0b6b3ba8d7665/consult/README.md).
 
