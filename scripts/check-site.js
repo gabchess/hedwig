@@ -16,6 +16,11 @@ const BANNED = new RegExp(
   "\\b(not public yet|aren't public|in development|under development|pending|prototype|concept|synthetic|offline tests?|unreleased|candidate|limitations?|remains to be|recorded run|this readme may describe)\\b",
   "i"
 );
+// Package READMEs get the caveat phrases only, not the single banned words.
+const CAVEAT = new RegExp(
+  "\\b(not public yet|aren't public|in development|under development|remains to be|recorded run|this readme may describe)\\b",
+  "i"
+);
 const CLIENTS = new RegExp("Cl" + "aude Code|Co" + "dex", "i"); // built from parts
 const DASH = String.fromCharCode(0x2014);
 const walk = (d) =>
@@ -33,6 +38,10 @@ const all = files
   .map((f) => [f, read(f)]);
 if (fs.existsSync(readme))
   all.push(["README.md", fs.readFileSync(readme, "utf8")]);
+const packages = ["consult", "mcp", "plugin"]
+  .map((d) => path.join(d, "README.md"))
+  .filter((f) => fs.existsSync(path.join(web, "..", f)))
+  .map((f) => [f, fs.readFileSync(path.join(web, "..", f), "utf8")]);
 const pages = all.filter(([f]) => f.endsWith(".html"));
 // Visible page text: no scripts, styles, svg, code or menu.
 const text = (h) =>
@@ -128,6 +137,11 @@ for (const [f, t] of human) {
 }
 for (const [f, s] of all.filter(([f]) => /html$|llms/.test(f)))
   ok(!CLIENTS.test(s), `${f}: client name`);
+
+for (const [f, s] of packages) {
+  const t = prose(s);
+  ok(!CAVEAT.test(t), `${f}: banned word "${(t.match(CAVEAT) || [])[0]}"`);
+}
 
 // Structure the scripts and agents read
 const home = read("index.html");
