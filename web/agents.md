@@ -1,6 +1,6 @@
 # Add Hedwig to your agent
 
-Hedwig is an eval gate that makes onchain payments safer. It checks the payment or swap you want to make against your owner's limits before you pay. Its one tool, `consult`, returns `proceed: true` or `false`, with reasons. Sign only when `proceed` is `true`.
+Hedwig is an eval gate that makes onchain payments safer. It checks the token transfer or swap you want to make against your owner's limits before you pay. Its one tool, `consult`, returns `proceed: true` or `false`, with reasons. Sign only when `proceed` is `true`.
 
 ## What you need
 
@@ -100,7 +100,7 @@ Set both in single quotes. `RECIPIENT` is `0x` and 40 hex characters. `AMOUNT` i
 
 ## Step 5: Act on `proceed`
 
-- `proceed: true`: continue with the payment your owner asked for.
+- `proceed: true`: continue with the payment your owner asked for. Sign and send exactly the `transaction` you checked. If anything changes, ask Hedwig again.
 - `proceed: false`: stop. Tell your owner the `code` and `evidence` of the first entry in `results` whose `status` isn't `PASS`. If every entry passes, tell them the limits don't permit it.
 
 Report one line after each consult. When Hedwig says no, the payment stays unsent until your owner decides.

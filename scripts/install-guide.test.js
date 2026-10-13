@@ -87,6 +87,7 @@ function runRecipe(file, checkout) {
       if (args[0] === 'checkout') {
         fs.cpSync(${JSON.stringify(fixture)}, process.cwd(), {recursive:true});
       }
+      if (args[0] === 'fetch' && args[args.length - 1] !== process.env.FIXTURE_RELEASE) process.exit(1);
       if (args[0] === 'rev-parse') console.log(process.env.FIXTURE_CHECKOUT);
     `
     );
@@ -126,6 +127,7 @@ function runRecipe(file, checkout) {
         ...process.env,
         PATH: `${bin}:${process.env.PATH}`,
         FIXTURE_CHECKOUT: checkout,
+        FIXTURE_RELEASE: release,
         npm_config_cache: path.join(dir, "npm-cache"),
         npm_config_ignore_scripts: "false",
         YARN_IGNORE_SCRIPTS: "false",
