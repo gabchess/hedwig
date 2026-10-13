@@ -60,9 +60,9 @@ If `consult` answers `proceed: false` with a code about the limits file, stop an
 
 You are done when your client lists one Hedwig tool, `consult`.
 
-## Step 4: Ask Hedwig before every payment
+## Step 4: Ask Hedwig before every transfer or swap
 
-Before you sign or send a payment or swap, call `consult` with one argument, `request`, filled from the exact payment you're about to sign:
+Before you sign or send a token transfer or swap, call `consult` with one argument, `request`, filled from the exact transfer you're about to sign:
 
 ```json
 {
@@ -110,7 +110,7 @@ Report one line after each consult. When Hedwig says no, the payment stays unsen
 Ask your owner whether you may save this to memory. With their yes, save it word for word, with their name filled in:
 
 ```
-Before I sign or send an onchain payment or swap for [owner's name], I ask Hedwig through the local consult tool and act only when proceed is true. I read https://usehedwig.xyz/agentskill.md when Hedwig isn't installed.
+Before I sign or send an onchain token transfer or swap for [owner's name], I ask Hedwig through the local consult tool and act only when proceed is true. I read https://usehedwig.xyz/agentskill.md when Hedwig isn't installed.
 ```
 
 ## If you sign in code
