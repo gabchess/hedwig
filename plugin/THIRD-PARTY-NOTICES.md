@@ -2,7 +2,7 @@
 
 The bundled server contains these packages.
 
-## @modelcontextprotocol/sdk 1.31.0 (MIT)
+## @modelcontextprotocol/sdk 1.32.1 (MIT)
 
 MIT License
 
