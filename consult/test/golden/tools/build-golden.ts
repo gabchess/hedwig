@@ -164,7 +164,9 @@ const INCIDENT_META: Record<
 const errorRows = incidents.filter((row: any) => row.error !== undefined);
 if (errorRows.length > 0)
   throw new Error(
-    `incidents.json has error rows: ${errorRows.map((row: any) => row.slug).join(", ")}`
+    `incidents.json has error rows: ${errorRows
+      .map((row: any) => row.slug)
+      .join(", ")}`
   );
 const fetchedSlugs = new Set(incidents.map((row: any) => row.slug));
 const missingSlugs = Object.keys(INCIDENT_META).filter(
@@ -184,19 +186,26 @@ const EXPECTED_ORIGIN =
   "consult() output, then independently agreed by the verifier";
 // These cases pin what consult() returns today, which is not what a careful
 // payer wants, so no verifier agreement can make them ground truth.
-const KNOWN_GAPS: Record<string, { desired: string; reason: string }> = {
+const VERIFIER_RECORD = "consult/test/golden/tools/verifier-2026-10-30.md";
+const KNOWN_GAPS: Record<
+  string,
+  { desired: { verdict: string; failIds: string[] }; reason: string }
+> = {
   "pay-real-spoof-eth-token-stays-unknown": {
-    desired: "FAIL",
+    desired: { verdict: "DENY", failIds: ["asset-is-canonical"] },
     reason:
       "A spoof token that claims the ETH symbol gets UNVERIFIED token checks and an UNKNOWN verdict instead of a FAIL.",
   },
   "swap-real-spoof-eth-token-out-stays-unknown": {
-    desired: "FAIL",
+    desired: { verdict: "DENY", failIds: ["token-out-is-canonical"] },
     reason:
       "A spoof ETH output token gets UNVERIFIED on token-out-is-canonical and an UNKNOWN verdict instead of a FAIL.",
   },
   [WBTC_POISONING_ID]: {
-    desired: "FAIL",
+    desired: {
+      verdict: "DENY",
+      failIds: ["recipient-matches-policy", "recipient-not-poison-derived"],
+    },
     reason:
       "recipient-not-poison-derived passes on the lookalike of an address the victim paid minutes earlier, and only recipient-matches-policy fails.",
   },
@@ -541,7 +550,7 @@ for (const c of golden.cases) {
       `${c.id} changed since the verifier agreed it; remove its review and have it reviewed again`
     );
   c.reviewed = true;
-  c.review = prior.review;
+  c.review = { ...prior.review, record: VERIFIER_RECORD };
   c.expected_origin = EXPECTED_ORIGIN;
 }
 
@@ -561,11 +570,11 @@ const out = {
     reviewed:
       "false until an independent verifier model confirms the label against label_source and agrees the expected verdict, band and check ids. true is allowed only with a label_source object, a review object and expected_origin, and never with known_gap.",
     review:
-      "Present only when reviewed is true. { by, date, method } names the verifier, the date it confirmed the label (on or before labelCutoff) and what it checked. The verifier never wrote the case.",
+      "Present only when reviewed is true. { by, date, method, record } names the verifier, the date it confirmed the label (on or before labelCutoff), what it checked and the repository path of its written record. The verifier never wrote the case.",
     expected_origin:
       "Present only when reviewed is true. States that expected is consult() output that the verifier then agreed independently.",
     known_gap:
-      "Optional. { desired, reason } on a case whose expected pins current behavior that a careful payer would not want. A case with known_gap stays reviewed false.",
+      "Optional. { desired, reason } on a case whose expected pins current behavior that a careful payer would not want. desired is { verdict, failIds }: the verdict a careful payer wants and the check ids that should FAIL. A case with known_gap stays reviewed false. Once expected reaches desired, the gap is fixed and the case must be updated.",
   },
   floorIds,
   cases,

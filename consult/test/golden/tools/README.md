@@ -11,7 +11,7 @@ node_modules/.bin/ts-node -P consult/tsconfig.test.json consult/test/golden/tool
 git diff --exit-code consult/test/golden/golden-cases.json
 ```
 
-The second command exits 0 when the committed file is reproduced. The builder keeps `reviewed` and `review` from the file it rewrites, because a verifier model sets them and the builder does not. It stops with an error if a reviewed case's input or expected output changed, because the verifier agreed the old values. It sets `known_gap` and `reviewed: false` on the cases in `KNOWN_GAPS`, whose expected output pins current behavior that a careful payer would not want.
+The second command exits 0 when the committed file is reproduced. The builder keeps `reviewed` and `review` from the file it rewrites, because a verifier model sets them and the builder does not. It stops with an error if a reviewed case's input or expected output changed, because the verifier agreed the old values. It sets `known_gap` and `reviewed: false` on the cases in `KNOWN_GAPS`, whose expected output pins current behavior that a careful payer would not want. Each `known_gap.desired` names the verdict and FAIL check ids a careful payer wants, and the golden test fails once `expected` reaches them, so a fixed gap cannot go unnoticed. The builder sets `review.record` on each reviewed case to `verifier-2026-10-30.md`, the verifier's written record in this folder.
 
 ## Inputs
 

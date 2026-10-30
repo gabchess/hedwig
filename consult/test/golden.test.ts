@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "chai";
 
@@ -26,6 +26,12 @@ interface Review {
   by: string;
   date: string;
   method: string;
+  record: string;
+}
+
+interface KnownGap {
+  desired: { verdict: string; failIds: string[] };
+  reason: string;
 }
 
 interface GoldenCase {
@@ -36,7 +42,7 @@ interface GoldenCase {
   reviewed: boolean;
   review?: Review;
   expected_origin?: string;
-  known_gap?: { desired: string; reason: string };
+  known_gap?: KnownGap;
   policySha256: string;
   input: { request: unknown; policy: unknown; facts?: unknown };
   expected: {
@@ -79,6 +85,8 @@ function policyHash(policy: unknown): string {
     .digest("hex");
 }
 
+const REPO_ROOT = join(__dirname, "..", "..");
+const VERDICTS = ["ALLOW_UNDER_POLICY", "DENY", "UNKNOWN"];
 const SOURCE_KINDS = ["incident", "onchain", "paper", "repo"];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -151,7 +159,9 @@ describe("golden cases", () => {
     GOLDEN.cases.forEach((c) => {
       if (!c.reviewed) {
         expect(c.review, `${c.id} is not reviewed`).to.equal(undefined);
-        expect(c.expected_origin, `${c.id} is not reviewed`).to.equal(undefined);
+        expect(c.expected_origin, `${c.id} is not reviewed`).to.equal(
+          undefined
+        );
         return;
       }
       const review = c.review;
@@ -161,19 +171,28 @@ describe("golden cases", () => {
           .sort()
           .join(),
         c.id
-      ).to.equal("by,date,method");
+      ).to.equal("by,date,method,record");
       expect(review?.by, c.id).to.be.a("string").and.not.equal("");
       expect(review?.method, c.id).to.be.a("string").and.not.equal("");
       expect(review?.method, c.id).to.match(
         /independently agreed the expected verdict, band and check ids/
       );
+      expect(review?.record, c.id).to.match(
+        /^consult\/test\/golden\/tools\/\S+\.md$/
+      );
+      expect(
+        existsSync(join(REPO_ROOT, review?.record ?? "")),
+        `${c.id} cites a verifier record that does not exist`
+      ).to.equal(true);
       expect(review?.date, c.id).to.match(ISO_DATE);
       expect(
         (review?.date ?? "") <= GOLDEN.labelCutoff,
         `${c.id} was reviewed after the label cutoff`
       ).to.equal(true);
       expect(c.expected_origin, c.id).to.match(/consult\(\) output/);
-      expect(c.expected_origin, c.id).to.match(/independently agreed by the verifier/);
+      expect(c.expected_origin, c.id).to.match(
+        /independently agreed by the verifier/
+      );
     });
   });
 
@@ -184,8 +203,24 @@ describe("golden cases", () => {
       expect(Object.keys(c.known_gap).sort().join(), c.id).to.equal(
         "desired,reason"
       );
-      expect(c.known_gap.desired, c.id).to.be.a("string").and.not.equal("");
+      expect(VERDICTS, c.id).to.include(c.known_gap.desired.verdict);
+      expect(c.known_gap.desired.failIds, c.id).to.be.an("array").that.is.not
+        .empty;
       expect(c.known_gap.reason, c.id).to.be.a("string").and.not.equal("");
+    });
+  });
+
+  it("flags a known gap whose expected output already reaches the desired one", () => {
+    GOLDEN.cases.forEach((c) => {
+      if (c.known_gap === undefined) return;
+      const { desired } = c.known_gap;
+      const fixed =
+        c.expected.verdict === desired.verdict &&
+        desired.failIds.every((id) => c.expected.failIds.includes(id));
+      expect(
+        fixed,
+        `${c.id} now meets known_gap.desired; drop the gap and have the case reviewed`
+      ).to.equal(false);
     });
   });
 

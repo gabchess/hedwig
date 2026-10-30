@@ -13,9 +13,9 @@
     "label_source": "A string for an agent-written label. An object { url, kind, quote or line_ref, retrieved } for a label grounded in a public source. kind is incident, repo, paper or onchain.",
     "chain_evidence": "Optional. Each public RPC read used to build the case: chainId, rpc, method, call, block and result, so a verifier can repeat it without an API key.",
     "reviewed": "false until an independent verifier model confirms the label against label_source and agrees the expected verdict, band and check ids. true is allowed only with a label_source object, a review object and expected_origin, and never with known_gap.",
-    "review": "Present only when reviewed is true. { by, date, method } names the verifier, the date it confirmed the label (on or before labelCutoff) and what it checked. The verifier never wrote the case.",
+    "review": "Present only when reviewed is true. { by, date, method, record } names the verifier, the date it confirmed the label (on or before labelCutoff), what it checked and the repository path of its written record. The verifier never wrote the case.",
     "expected_origin": "Present only when reviewed is true. States that expected is consult() output that the verifier then agreed independently.",
-    "known_gap": "Optional. { desired, reason } on a case whose expected pins current behavior that a careful payer would not want. A case with known_gap stays reviewed false."
+    "known_gap": "Optional. { desired, reason } on a case whose expected pins current behavior that a careful payer would not want. desired is { verdict, failIds }: the verdict a careful payer wants and the check ids that should FAIL. A case with known_gap stays reviewed false. Once expected reaches desired, the gap is fixed and the case must be updated."
   },
   "floorIds": {
     "pay": [
@@ -121,7 +121,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -1781,7 +1782,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -2481,7 +2483,12 @@
       },
       "policySha256": "3919a1f6dc1321675bb29d3b38df312af5ad17d128d0297e94883dc4ead3b34e",
       "known_gap": {
-        "desired": "FAIL",
+        "desired": {
+          "verdict": "DENY",
+          "failIds": [
+            "asset-is-canonical"
+          ]
+        },
         "reason": "A spoof token that claims the ETH symbol gets UNVERIFIED token checks and an UNKNOWN verdict instead of a FAIL."
       }
     },
@@ -2567,7 +2574,12 @@
       },
       "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22",
       "known_gap": {
-        "desired": "FAIL",
+        "desired": {
+          "verdict": "DENY",
+          "failIds": [
+            "token-out-is-canonical"
+          ]
+        },
         "reason": "A spoof ETH output token gets UNVERIFIED on token-out-is-canonical and an UNKNOWN verdict instead of a FAIL."
       }
     },
@@ -2664,7 +2676,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -2760,7 +2773,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -2857,7 +2871,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -2953,7 +2968,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -3050,7 +3066,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -3147,7 +3164,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -3245,7 +3263,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -3351,7 +3370,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -3449,7 +3469,8 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids",
+        "record": "consult/test/golden/tools/verifier-2026-10-30.md"
       },
       "expected_origin": "consult() output, then independently agreed by the verifier"
     },
@@ -3541,7 +3562,13 @@
       },
       "policySha256": "1557bdc9b092752ab990779e7523d8ce488fd6ae0cb84e2e872616e3d7f3204d",
       "known_gap": {
-        "desired": "FAIL",
+        "desired": {
+          "verdict": "DENY",
+          "failIds": [
+            "recipient-matches-policy",
+            "recipient-not-poison-derived"
+          ]
+        },
         "reason": "recipient-not-poison-derived passes on the lookalike of an address the victim paid minutes earlier, and only recipient-matches-policy fails."
       }
     }
