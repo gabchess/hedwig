@@ -58,6 +58,18 @@ function consultWithFloor(
   );
 }
 
+// The owner layer now fails closed on a generic swap: only a supported call
+// binds, so its call-binding row is UNVERIFIED and no swap here can be ALLOW.
+const CALL_BINDING_ID = "transaction-matches-intent";
+
+function notPassing(response: {
+  results: readonly { id: string; status: string }[];
+}) {
+  return response.results
+    .filter((result) => result.status !== "PASS")
+    .map((result) => result.id);
+}
+
 function payFacts(extra: Record<string, unknown> = {}) {
   return { now: NOW, params: floorBundle(), ...extra };
 }
@@ -418,8 +430,8 @@ describe("floor profile: the owner layer on top", () => {
       perActionCaps: { pay: "1000000000", swap: "1000000000" },
     });
     const request = swapAt(CAP + 10);
-    expect(consult(request, permissive, swapFacts()).verdict).to.equal(
-      "ALLOW_UNDER_POLICY"
+    expect(notPassing(consult(request, permissive, swapFacts()))).to.deep.equal(
+      [CALL_BINDING_ID]
     );
     const response = consultWithFloor(request, permissive, swapFacts());
     expect(response.verdict).to.equal("DENY");
@@ -460,10 +472,11 @@ describe("floor profile: the owner layer on top", () => {
     expect(response.verdict).to.equal("UNKNOWN");
   });
 
-  it("all-PASS floor and owner is ALLOW, one row per id, worst rows first", () => {
+  it("an all-PASS floor and owner, but for the unbound call, is UNKNOWN, one row per id", () => {
     const request = swapAt(CAP - 1);
     const response = consultWithFloor(request, makeSwapPolicy(), swapFacts());
-    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(notPassing(response)).to.deep.equal([CALL_BINDING_ID]);
     const ids = response.results.map((result) => result.id);
     expect(new Set(ids).size).to.equal(ids.length);
     expect(ids).to.include.members([
@@ -483,7 +496,8 @@ describe("floor profile: the owner layer on top", () => {
     expect(ids).to.not.include(SLIPPAGE_ID);
     expect(CATALOG.swap.map((c) => c.id)).to.not.include(TAX_ID);
     expect(CATALOG.swap.map((c) => c.id)).to.not.include(SLIPPAGE_ID);
-    expect(response.verdict).to.equal("ALLOW_UNDER_POLICY");
+    expect(response.verdict).to.equal("UNKNOWN");
+    expect(notPassing(response)).to.deep.equal([CALL_BINDING_ID]);
   });
 
   it("the owner path answers the same with and without the four new constants in the bundle", () => {
