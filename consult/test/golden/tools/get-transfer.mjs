@@ -1,0 +1,10 @@
+import { writeFileSync } from "node:fs";
+const RPC = "https://eth.drpc.org";
+const rpc = async (m, p) => { const r = await (await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: m, params: p }) })).json(); if (r.error) throw new Error(JSON.stringify(r.error)); return r.result; };
+const h = process.argv[2];
+const tx = await rpc("eth_getTransactionByHash", [h]);
+const rc = await rpc("eth_getTransactionReceipt", [h]);
+const blk = await rpc("eth_getBlockByNumber", [tx.blockNumber, false]);
+const transfer = { hash: tx.hash, block: parseInt(tx.blockNumber, 16), time: new Date(parseInt(blk.timestamp, 16) * 1000).toISOString(), from: tx.from, to: tx.to, value: BigInt(tx.value).toString(), data: tx.input, status: rc.status };
+console.log(JSON.stringify(transfer));
+writeFileSync(new URL("./transfer.json", import.meta.url), JSON.stringify(transfer, null, 2));

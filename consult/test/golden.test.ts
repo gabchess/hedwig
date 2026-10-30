@@ -22,12 +22,19 @@ interface ChainEvidence {
   result: string;
 }
 
+interface Review {
+  by: string;
+  date: string;
+  method: string;
+}
+
 interface GoldenCase {
   id: string;
   description: string;
   label_source: string | LabelSource;
   chain_evidence?: ChainEvidence[];
   reviewed: boolean;
+  review?: Review;
   policySha256: string;
   input: { request: unknown; policy: unknown; facts?: unknown };
   expected: {
@@ -108,7 +115,10 @@ describe("golden cases", () => {
   it("pins the policy version and the label cutoff", () => {
     expect(GOLDEN.schemaVersion).to.equal(1);
     expect(GOLDEN.policyVersion).to.equal("golden-policy-1");
-    expect(GOLDEN.notice).to.match(/verifier model/);
+    expect(GOLDEN.notice).to.match(
+      /confirmed by their cited public source plus an independent verifier model/
+    );
+    expect(GOLDEN.notice).to.match(/H-0001/);
     expect(GOLDEN.labelCutoff).to.match(ISO_DATE);
     expect(GOLDEN.cases.length).to.be.at.least(30);
     expect(new Set(GOLDEN.cases.map((c) => c.id)).size).to.equal(
@@ -126,6 +136,26 @@ describe("golden cases", () => {
       } else {
         expect(c.label_source, c.id).to.be.an("object");
       }
+    });
+  });
+
+  it("records who confirmed each reviewed case, when and how", () => {
+    GOLDEN.cases.forEach((c) => {
+      if (!c.reviewed) {
+        expect(c.review, `${c.id} is not reviewed`).to.equal(undefined);
+        return;
+      }
+      const review = c.review;
+      expect(review, `${c.id} is reviewed without a review`).to.be.an("object");
+      expect(
+        Object.keys(review ?? {})
+          .sort()
+          .join(),
+        c.id
+      ).to.equal("by,date,method");
+      expect(review?.by, c.id).to.be.a("string").and.not.equal("");
+      expect(review?.method, c.id).to.be.a("string").and.not.equal("");
+      expect(review?.date, c.id).to.match(ISO_DATE);
     });
   });
 
@@ -175,9 +205,10 @@ describe("golden cases", () => {
         expect(read.method, c.id).to.match(/^eth_[A-Za-z]+$/);
         expect(read.call, c.id).to.be.a("string").and.not.equal("");
         expect(read.result, c.id).to.be.a("string").and.not.equal("");
-        expect(Number.isSafeInteger(read.block) && read.block > 0, c.id).to.equal(
-          true
-        );
+        expect(
+          Number.isSafeInteger(read.block) && read.block > 0,
+          c.id
+        ).to.equal(true);
       });
     });
   });
