@@ -129,13 +129,22 @@ export function checkParam(
 export const UNKNOWN_TOKEN_PARAMS_ID =
   "defi-param-unknown-token-thresholds.json";
 
+// The params file the floor profile's slippage and tax Conditions read.
+export const SLIPPAGE_MEV_PARAMS_ID = "defi-param-slippage-mev.json";
+
 // Every constant a Condition may read, as [params id, key]. `context.param`
 // returns undefined for a pair not listed here, so this list is the whole set
 // of constants consult can read, and the used-by check reads it as data. A
 // Check adds its pair here when it starts reading one.
+const readsOf = (
+  paramsId: string,
+  keys: readonly string[]
+): (readonly [string, string])[] =>
+  keys.map((key) => Object.freeze([paramsId, key] as const));
+
 export const PARAM_READS: readonly (readonly [string, string])[] =
-  Object.freeze(
-    [
+  Object.freeze([
+    ...readsOf(UNKNOWN_TOKEN_PARAMS_ID, [
       "liquidity_abs_deny_below_usd",
       "liquidity_abs_pass_at_or_above_usd",
       "holders_deny_below",
@@ -144,8 +153,14 @@ export const PARAM_READS: readonly (readonly [string, string])[] =
       "activity_min_distinct_counterparties",
       "activity_recent_event_max_age_hours",
       "qualifying_event_min_usd",
-    ].map((key) => Object.freeze([UNKNOWN_TOKEN_PARAMS_ID, key] as const))
-  );
+      "tax_plus_honest_tolerance_deny_above_bps",
+    ]),
+    ...readsOf(SLIPPAGE_MEV_PARAMS_ID, [
+      "tolerance_cap_deny_above_bps",
+      "tolerance_floor_bps",
+      "tax_plus_honest_tolerance_max_bps",
+    ]),
+  ]);
 
 export type ParamReader = (
   paramsId: string,
