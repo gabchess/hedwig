@@ -35,6 +35,8 @@ interface GoldenCase {
   chain_evidence?: ChainEvidence[];
   reviewed: boolean;
   review?: Review;
+  expected_origin?: string;
+  known_gap?: { desired: string; reason: string };
   policySha256: string;
   input: { request: unknown; policy: unknown; facts?: unknown };
   expected: {
@@ -119,6 +121,12 @@ describe("golden cases", () => {
       /confirmed by their cited public source plus an independent verifier model/
     );
     expect(GOLDEN.notice).to.match(/H-0001/);
+    expect(GOLDEN.notice).to.match(
+      /Every expected block is consult\(\) output, so by itself it only pins current behavior and is not ground truth/
+    );
+    expect(GOLDEN.notice).to.match(
+      /independently agreed the expected verdict, band and check ids/
+    );
     expect(GOLDEN.labelCutoff).to.match(ISO_DATE);
     expect(GOLDEN.cases.length).to.be.at.least(30);
     expect(new Set(GOLDEN.cases.map((c) => c.id)).size).to.equal(
@@ -143,6 +151,7 @@ describe("golden cases", () => {
     GOLDEN.cases.forEach((c) => {
       if (!c.reviewed) {
         expect(c.review, `${c.id} is not reviewed`).to.equal(undefined);
+        expect(c.expected_origin, `${c.id} is not reviewed`).to.equal(undefined);
         return;
       }
       const review = c.review;
@@ -155,7 +164,28 @@ describe("golden cases", () => {
       ).to.equal("by,date,method");
       expect(review?.by, c.id).to.be.a("string").and.not.equal("");
       expect(review?.method, c.id).to.be.a("string").and.not.equal("");
+      expect(review?.method, c.id).to.match(
+        /independently agreed the expected verdict, band and check ids/
+      );
       expect(review?.date, c.id).to.match(ISO_DATE);
+      expect(
+        (review?.date ?? "") <= GOLDEN.labelCutoff,
+        `${c.id} was reviewed after the label cutoff`
+      ).to.equal(true);
+      expect(c.expected_origin, c.id).to.match(/consult\(\) output/);
+      expect(c.expected_origin, c.id).to.match(/independently agreed by the verifier/);
+    });
+  });
+
+  it("never marks a known gap as reviewed", () => {
+    GOLDEN.cases.forEach((c) => {
+      if (c.known_gap === undefined) return;
+      expect(c.reviewed, `${c.id} has a known gap`).to.equal(false);
+      expect(Object.keys(c.known_gap).sort().join(), c.id).to.equal(
+        "desired,reason"
+      );
+      expect(c.known_gap.desired, c.id).to.be.a("string").and.not.equal("");
+      expect(c.known_gap.reason, c.id).to.be.a("string").and.not.equal("");
     });
   });
 

@@ -161,6 +161,18 @@ const INCIDENT_META: Record<
   },
 };
 
+const errorRows = incidents.filter((row: any) => row.error !== undefined);
+if (errorRows.length > 0)
+  throw new Error(
+    `incidents.json has error rows: ${errorRows.map((row: any) => row.slug).join(", ")}`
+  );
+const fetchedSlugs = new Set(incidents.map((row: any) => row.slug));
+const missingSlugs = Object.keys(INCIDENT_META).filter(
+  (slug) => !fetchedSlugs.has(slug)
+);
+if (missingSlugs.length > 0)
+  throw new Error(`incidents.json is missing ${missingSlugs.join(", ")}`);
+
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 const POISON_VICTIM = "0x1e227979f0b5bc691a70deaed2e0f39a6f538fd5";
@@ -168,6 +180,27 @@ const POISON_INTENDED = "0xd9a1b0b1e1ae382dbdc898ea68012ffcb2853a91";
 const POISON_LOOKALIKE = "0xd9a1c3788d81257612e2581a6ea0ada244853a91";
 const SPOOF_TOKEN = "0x739352337c902c3874b95f14e81ebbcf1b7b262e";
 const WBTC_POISONING_ID = "pay-real-wbtc-address-poisoning-denies";
+const EXPECTED_ORIGIN =
+  "consult() output, then independently agreed by the verifier";
+// These cases pin what consult() returns today, which is not what a careful
+// payer wants, so no verifier agreement can make them ground truth.
+const KNOWN_GAPS: Record<string, { desired: string; reason: string }> = {
+  "pay-real-spoof-eth-token-stays-unknown": {
+    desired: "FAIL",
+    reason:
+      "A spoof token that claims the ETH symbol gets UNVERIFIED token checks and an UNKNOWN verdict instead of a FAIL.",
+  },
+  "swap-real-spoof-eth-token-out-stays-unknown": {
+    desired: "FAIL",
+    reason:
+      "A spoof ETH output token gets UNVERIFIED on token-out-is-canonical and an UNKNOWN verdict instead of a FAIL.",
+  },
+  [WBTC_POISONING_ID]: {
+    desired: "FAIL",
+    reason:
+      "recipient-not-poison-derived passes on the lookalike of an address the victim paid minutes earlier, and only recipient-matches-policy fails.",
+  },
+};
 const CHAINALYSIS = "https://www.chainalysis.com/blog/address-poisoning-scam";
 const CHAINALYSIS_QUOTE =
   "The event begins with an initial transfer on 3 May 2024 at 9:14 UTC from the victim (0x1E227) to 0xd9A1b, a seemingly benign address on the Ethereum blockchain. ... the victim made a second transfer, this time unknowingly to an address controlled by the scammer, 0xd9A1c";
@@ -333,7 +366,9 @@ const generatedIds = new Set([
     .filter((key) => key.startsWith("NEW:"))
     .map((key) => key.slice(4)),
 ]);
-const previous = new Map<string, any>(golden.cases.map((c: any) => [c.id, c]));
+const previous = new Map<string, any>(
+  JSON.parse(JSON.stringify(golden.cases)).map((c: any) => [c.id, c])
+);
 golden.cases = golden.cases.filter((c: any) => !generatedIds.has(c.id));
 
 const newCases: any[] = [];
@@ -486,11 +521,28 @@ const existing = new Set(golden.cases.map((c: any) => c.id));
 for (const c of newCases)
   if (existing.has(c.id)) throw new Error(`duplicate ${c.id}`);
 golden.cases.push(...newCases);
+const canonical = (value: unknown) => JSON.stringify(sortKeys(value));
 for (const c of golden.cases) {
+  const gap = KNOWN_GAPS[c.id];
+  if (gap) {
+    c.reviewed = false;
+    delete c.review;
+    delete c.expected_origin;
+    c.known_gap = gap;
+    continue;
+  }
   const prior = previous.get(c.id);
   if (prior?.reviewed !== true) continue;
+  if (
+    canonical(prior.input) !== canonical(c.input) ||
+    canonical(prior.expected) !== canonical(c.expected)
+  )
+    throw new Error(
+      `${c.id} changed since the verifier agreed it; remove its review and have it reviewed again`
+    );
   c.reviewed = true;
   c.review = prior.review;
+  c.expected_origin = EXPECTED_ORIGIN;
 }
 
 const { schemaVersion, policyVersion, fields, floorIds, cases } = golden;
@@ -498,7 +550,7 @@ const out = {
   schemaVersion,
   policyVersion,
   notice:
-    "Labels are confirmed by their cited public source plus an independent verifier model, per the 2026-10-30 change to Hedwig ADR H-0001. No named person reviews labels. A case counts as ground truth only when reviewed is true, which means a verifier model that did not write the case opened its label_source, matched the quote or line reference, and replayed its chain_evidence reads. The review object on that case records who confirmed it, when and how. Cases with a string label_source were written by an agent from THREAT-MODEL.md, consult/README.md and the test fixtures; they cite no independent source and must stay reviewed false. Cases with a label_source object cite a public incident write-up, repository, paper or on-chain record retrieved on or before labelCutoff, and never a list the catalog imports. Their synthetic fields are named in the description. consult/test/golden/tools/build-golden.ts rebuilds the source-grounded cases.",
+    "Labels are confirmed by their cited public source plus an independent verifier model, per the 2026-10-30 change to Hedwig ADR H-0001. No named person reviews labels. Every expected block is consult() output, so by itself it only pins current behavior and is not ground truth. A case counts as ground truth only when reviewed is true, which means a verifier model that did not write the case opened its label_source, matched the quote or line reference, replayed its chain_evidence reads, and independently agreed the expected verdict, band and check ids. The review object on that case records who confirmed it, when and how, and expected_origin records where expected came from. A case with known_gap pins current behavior that a careful payer would not want. known_gap names the desired outcome and the reason, and such a case stays reviewed false. Cases with a string label_source were written by an agent from THREAT-MODEL.md, consult/README.md and the test fixtures; they cite no independent source and must stay reviewed false. Cases with a label_source object cite a public incident write-up, repository, paper or on-chain record retrieved on or before labelCutoff, and never a list the catalog imports. Their synthetic fields are named in the description. consult/test/golden/tools/build-golden.ts rebuilds the source-grounded cases.",
   labelCutoff: "2026-10-30",
   fields: {
     ...fields,
@@ -507,9 +559,13 @@ const out = {
     chain_evidence:
       "Optional. Each public RPC read used to build the case: chainId, rpc, method, call, block and result, so a verifier can repeat it without an API key.",
     reviewed:
-      "false until an independent verifier model confirms the label against label_source. true is allowed only with a label_source object and a review object.",
+      "false until an independent verifier model confirms the label against label_source and agrees the expected verdict, band and check ids. true is allowed only with a label_source object, a review object and expected_origin, and never with known_gap.",
     review:
-      "Present only when reviewed is true. { by, date, method } names the verifier, the date it confirmed the label and what it checked. The verifier never wrote the case.",
+      "Present only when reviewed is true. { by, date, method } names the verifier, the date it confirmed the label (on or before labelCutoff) and what it checked. The verifier never wrote the case.",
+    expected_origin:
+      "Present only when reviewed is true. States that expected is consult() output that the verifier then agreed independently.",
+    known_gap:
+      "Optional. { desired, reason } on a case whose expected pins current behavior that a careful payer would not want. A case with known_gap stays reviewed false.",
   },
   floorIds,
   cases,

@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const RPC = {
   "eip155:1": "https://eth.drpc.org",
@@ -71,4 +71,11 @@ for (const i of INCIDENTS.filter(x=>!ONLY||ONLY.includes(x.slug))) {
     console.log(i.slug, "ERROR", String(e.message ?? e).slice(0, 200));
   }
 }
-writeFileSync(new URL("./incidents.json", import.meta.url), JSON.stringify(out, null, 2));
+// A slug list refreshes only those rows. Every other row stays as it was.
+const OUT = new URL("./incidents.json", import.meta.url);
+const rows = new Map(
+  (existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : []).map((row) => [row.slug, row])
+);
+for (const row of out) rows.set(row.slug, row);
+const merged = INCIDENTS.map((i) => rows.get(i.slug)).filter(Boolean);
+writeFileSync(OUT, JSON.stringify(merged, null, 2));

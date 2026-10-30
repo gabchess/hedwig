@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "policyVersion": "golden-policy-1",
-  "notice": "Labels are confirmed by their cited public source plus an independent verifier model, per the 2026-10-30 change to Hedwig ADR H-0001. No named person reviews labels. A case counts as ground truth only when reviewed is true, which means a verifier model that did not write the case opened its label_source, matched the quote or line reference, and replayed its chain_evidence reads. The review object on that case records who confirmed it, when and how. Cases with a string label_source were written by an agent from THREAT-MODEL.md, consult/README.md and the test fixtures; they cite no independent source and must stay reviewed false. Cases with a label_source object cite a public incident write-up, repository, paper or on-chain record retrieved on or before labelCutoff, and never a list the catalog imports. Their synthetic fields are named in the description. consult/test/golden/tools/build-golden.ts rebuilds the source-grounded cases.",
+  "notice": "Labels are confirmed by their cited public source plus an independent verifier model, per the 2026-10-30 change to Hedwig ADR H-0001. No named person reviews labels. Every expected block is consult() output, so by itself it only pins current behavior and is not ground truth. A case counts as ground truth only when reviewed is true, which means a verifier model that did not write the case opened its label_source, matched the quote or line reference, replayed its chain_evidence reads, and independently agreed the expected verdict, band and check ids. The review object on that case records who confirmed it, when and how, and expected_origin records where expected came from. A case with known_gap pins current behavior that a careful payer would not want. known_gap names the desired outcome and the reason, and such a case stays reviewed false. Cases with a string label_source were written by an agent from THREAT-MODEL.md, consult/README.md and the test fixtures; they cite no independent source and must stay reviewed false. Cases with a label_source object cite a public incident write-up, repository, paper or on-chain record retrieved on or before labelCutoff, and never a list the catalog imports. Their synthetic fields are named in the description. consult/test/golden/tools/build-golden.ts rebuilds the source-grounded cases.",
   "labelCutoff": "2026-10-30",
   "fields": {
     "input": "Exactly what consult(request, policy, facts) takes.",
@@ -12,8 +12,10 @@
     "policyVersion": "Version tag of the policy set in this file. Bump it when any policy object changes.",
     "label_source": "A string for an agent-written label. An object { url, kind, quote or line_ref, retrieved } for a label grounded in a public source. kind is incident, repo, paper or onchain.",
     "chain_evidence": "Optional. Each public RPC read used to build the case: chainId, rpc, method, call, block and result, so a verifier can repeat it without an API key.",
-    "reviewed": "false until an independent verifier model confirms the label against label_source. true is allowed only with a label_source object and a review object.",
-    "review": "Present only when reviewed is true. { by, date, method } names the verifier, the date it confirmed the label and what it checked. The verifier never wrote the case."
+    "reviewed": "false until an independent verifier model confirms the label against label_source and agrees the expected verdict, band and check ids. true is allowed only with a label_source object, a review object and expected_origin, and never with known_gap.",
+    "review": "Present only when reviewed is true. { by, date, method } names the verifier, the date it confirmed the label (on or before labelCutoff) and what it checked. The verifier never wrote the case.",
+    "expected_origin": "Present only when reviewed is true. States that expected is consult() output that the verifier then agreed independently.",
+    "known_gap": "Optional. { desired, reason } on a case whose expected pins current behavior that a careful payer would not want. A case with known_gap stays reviewed false."
   },
   "floorIds": {
     "pay": [
@@ -119,8 +121,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "pay-required-role-with-good-fact-allows",
@@ -1778,8 +1781,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-output-to-non-owner-denies",
@@ -2399,7 +2403,7 @@
         "quote": "the token had a custom design that allowed it to be transferred from an account without the user's consent",
         "retrieved": "2026-10-30"
       },
-      "reviewed": true,
+      "reviewed": false,
       "input": {
         "request": {
           "action": {
@@ -2476,10 +2480,9 @@
         ]
       },
       "policySha256": "3919a1f6dc1321675bb29d3b38df312af5ad17d128d0297e94883dc4ead3b34e",
-      "review": {
-        "by": "independent verifier model (claude fable), not the case author",
-        "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
+      "known_gap": {
+        "desired": "FAIL",
+        "reason": "A spoof token that claims the ETH symbol gets UNVERIFIED token checks and an UNKNOWN verdict instead of a FAIL."
       }
     },
     {
@@ -2491,7 +2494,7 @@
         "quote": "The token transferred had no name listed on Etherscan and was simply referred to as \"ERC-20.\"",
         "retrieved": "2026-10-30"
       },
-      "reviewed": true,
+      "reviewed": false,
       "input": {
         "request": {
           "action": {
@@ -2563,10 +2566,9 @@
         ]
       },
       "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22",
-      "review": {
-        "by": "independent verifier model (claude fable), not the case author",
-        "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
+      "known_gap": {
+        "desired": "FAIL",
+        "reason": "A spoof ETH output token gets UNVERIFIED on token-out-is-canonical and an UNKNOWN verdict instead of a FAIL."
       }
     },
     {
@@ -2662,8 +2664,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-socket-2024-unlimited-approval-denies",
@@ -2757,8 +2760,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-dexible-2023-standing-approval-denies",
@@ -2853,8 +2857,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-rubic-2022-unlimited-approval-denies",
@@ -2948,8 +2953,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-seneca-2024-unlimited-approval-denies",
@@ -3044,8 +3050,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-a152-2026-standing-approval-denies",
@@ -3140,8 +3147,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-squid-multicall-2026-unlimited-approval-denies",
@@ -3237,8 +3245,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-safe-approval-squat-2026-unlimited-approval-denies",
@@ -3342,8 +3351,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "swap-real-gasless-enabler-2026-unlimited-approval-denies",
@@ -3439,8 +3449,9 @@
       "review": {
         "by": "independent verifier model (claude fable), not the case author",
         "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
-      }
+        "method": "opened source, matched quote or lines, replayed public RPC reads, and independently agreed the expected verdict, band and check ids"
+      },
+      "expected_origin": "consult() output, then independently agreed by the verifier"
     },
     {
       "id": "pay-real-wbtc-address-poisoning-denies",
@@ -3469,7 +3480,7 @@
           "result": "from 0x1e227979 to 0xd9a1b0b1e1ae382dbdc898ea68012ffcb2853a91 value 50000000000000000"
         }
       ],
-      "reviewed": true,
+      "reviewed": false,
       "input": {
         "request": {
           "action": {
@@ -3529,10 +3540,9 @@
         ]
       },
       "policySha256": "1557bdc9b092752ab990779e7523d8ce488fd6ae0cb84e2e872616e3d7f3204d",
-      "review": {
-        "by": "independent verifier model (claude fable), not the case author",
-        "date": "2026-10-30",
-        "method": "opened source, matched quote or lines, replayed public RPC reads"
+      "known_gap": {
+        "desired": "FAIL",
+        "reason": "recipient-not-poison-derived passes on the lookalike of an address the victim paid minutes earlier, and only recipient-matches-policy fails."
       }
     }
   ]
