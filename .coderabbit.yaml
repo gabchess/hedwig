@@ -25,7 +25,6 @@ reviews:
       - "[WIP]"
       - "WIP:"
       - "DO NOT MERGE"
-      - WIP
       - '[no-cr]'
     drafts: false                       # a draft PR is reviewed once it is marked ready
     ignore_usernames:
