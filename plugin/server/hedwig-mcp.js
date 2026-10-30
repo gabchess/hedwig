@@ -42204,7 +42204,7 @@ var require_constants = __commonJS({
   "consult/dist/constants.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.UNKNOWN_WITH_FLOOR_FACTOR = exports2.ALLOW_SUPPORT_SPAN = exports2.BAND_RED_MAX = exports2.BAND_GREEN_MIN = exports2.EVIDENCE_CLASS_WEIGHTS = exports2.MAX_AUTHORIZATION_WINDOW_SECONDS = exports2.SECONDS_PER_HOUR = exports2.MAX_MARKET_READING_AGE_SECONDS = exports2.MAX_REGISTRY_LIVE_READ_AGE_SECONDS = exports2.MAX_ROLE_FACT_AGE_SECONDS = exports2.EVIDENCE_ECHO_LIMIT = exports2.MAX_INPUT_JSON_LENGTH = exports2.MAX_CONDITION_ID_LENGTH = exports2.MAX_EXTRA_CONDITIONS = void 0;
+    exports2.UNKNOWN_WITH_FLOOR_FACTOR = exports2.ALLOW_SUPPORT_SPAN = exports2.BAND_RED_MAX = exports2.BAND_GREEN_MIN = exports2.EVIDENCE_CLASS_WEIGHTS = exports2.MAX_AUTHORIZATION_WINDOW_SECONDS = exports2.SECONDS_PER_HOUR = exports2.MAX_TAX_READING_AGE_SECONDS = exports2.MAX_MARKET_READING_AGE_SECONDS = exports2.MAX_REGISTRY_LIVE_READ_AGE_SECONDS = exports2.MAX_ROLE_FACT_AGE_SECONDS = exports2.EVIDENCE_ECHO_LIMIT = exports2.MAX_INPUT_JSON_LENGTH = exports2.MAX_CONDITION_ID_LENGTH = exports2.MAX_EXTRA_CONDITIONS = void 0;
     exports2.MAX_EXTRA_CONDITIONS = 32;
     exports2.MAX_CONDITION_ID_LENGTH = 64;
     exports2.MAX_INPUT_JSON_LENGTH = 64 * 1024;
@@ -42212,12 +42212,14 @@ var require_constants = __commonJS({
     exports2.MAX_ROLE_FACT_AGE_SECONDS = 60;
     exports2.MAX_REGISTRY_LIVE_READ_AGE_SECONDS = 60;
     exports2.MAX_MARKET_READING_AGE_SECONDS = 60;
+    exports2.MAX_TAX_READING_AGE_SECONDS = 60;
     exports2.SECONDS_PER_HOUR = 3600;
     exports2.MAX_AUTHORIZATION_WINDOW_SECONDS = 86400;
     exports2.EVIDENCE_CLASS_WEIGHTS = Object.freeze({
       "onchain-read": 1,
       "owner-policy": 0.9,
       "static-registry": 0.6,
+      simulated: 0.55,
       "caller-stated": 0.5,
       "not-verifiable": 0
     });
@@ -42233,7 +42235,7 @@ var require_params = __commonJS({
   "consult/dist/params.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.PARAM_READS = exports2.UNKNOWN_TOKEN_PARAMS_ID = void 0;
+    exports2.PARAM_READS = exports2.SLIPPAGE_MEV_PARAMS_ID = exports2.UNKNOWN_TOKEN_PARAMS_ID = void 0;
     exports2.isParams = isParams;
     exports2.checkParam = checkParam;
     exports2.paramReader = paramReader;
@@ -42275,16 +42277,26 @@ var require_params = __commonJS({
       return CHECK_READABLE.includes(constant.used_by) ? constant : void 0;
     }
     exports2.UNKNOWN_TOKEN_PARAMS_ID = "defi-param-unknown-token-thresholds.json";
+    exports2.SLIPPAGE_MEV_PARAMS_ID = "defi-param-slippage-mev.json";
+    var readsOf = (paramsId, keys) => keys.map((key) => Object.freeze([paramsId, key]));
     exports2.PARAM_READS = Object.freeze([
-      "liquidity_abs_deny_below_usd",
-      "liquidity_abs_pass_at_or_above_usd",
-      "holders_deny_below",
-      "holders_pass_at_or_above",
-      "activity_window_hours",
-      "activity_min_distinct_counterparties",
-      "activity_recent_event_max_age_hours",
-      "qualifying_event_min_usd"
-    ].map((key) => Object.freeze([exports2.UNKNOWN_TOKEN_PARAMS_ID, key])));
+      ...readsOf(exports2.UNKNOWN_TOKEN_PARAMS_ID, [
+        "liquidity_abs_deny_below_usd",
+        "liquidity_abs_pass_at_or_above_usd",
+        "holders_deny_below",
+        "holders_pass_at_or_above",
+        "activity_window_hours",
+        "activity_min_distinct_counterparties",
+        "activity_recent_event_max_age_hours",
+        "qualifying_event_min_usd",
+        "tax_plus_honest_tolerance_deny_above_bps"
+      ]),
+      ...readsOf(exports2.SLIPPAGE_MEV_PARAMS_ID, [
+        "tolerance_cap_deny_above_bps",
+        "tolerance_floor_bps",
+        "tax_plus_honest_tolerance_max_bps"
+      ])
+    ]);
     function paramReader(params, reads) {
       return (paramsId, key) => reads.some(([id, k]) => id === paramsId && k === key) ? checkParam(params, paramsId, key) : void 0;
     }
@@ -42441,14 +42453,20 @@ var require_catalog = __commonJS({
   "consult/dist/catalog.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.CATALOG = exports2.PAY_CATALOG = exports2.POISON_FLAGGED_RECIPIENT = exports2.CANONICAL_ROUTER_NAME = exports2.CANONICAL_ROUTERS = exports2.CANONICAL_ASSETS = exports2.BASE_WETH_ADDRESS = exports2.BASE_USDC_ADDRESS = exports2.BASE_CHAIN_ID = exports2.CANONICAL_WETH_ADDRESS = exports2.CANONICAL_WETH_SYMBOL = exports2.CANONICAL_ASSET_ADDRESS = exports2.CANONICAL_ASSET_SYMBOL = exports2.CANONICAL_CHAIN_ID = exports2.POLICY_READING_CONDITION_IDS = exports2.MONAD_USDC_ISSUER_URL = void 0;
+    exports2.CATALOG = exports2.PAY_CATALOG = exports2.isAmount = exports2.isUnixSecond = exports2.isWholeBps = exports2.POISON_FLAGGED_RECIPIENT = exports2.CANONICAL_ROUTER_NAME = exports2.CANONICAL_ROUTERS = exports2.CANONICAL_ASSETS = exports2.BASE_WETH_ADDRESS = exports2.BASE_USDC_ADDRESS = exports2.BASE_CHAIN_ID = exports2.CANONICAL_WETH_ADDRESS = exports2.CANONICAL_WETH_SYMBOL = exports2.CANONICAL_ASSET_ADDRESS = exports2.CANONICAL_ASSET_SYMBOL = exports2.CANONICAL_CHAIN_ID = exports2.POLICY_READING_CONDITION_IDS = exports2.MONAD_USDC_ISSUER_URL = void 0;
     exports2.isNativeMonadInput = isNativeMonadInput;
     exports2.passCodesOf = passCodesOf;
     exports2.truncate = truncate;
     exports2.describe = describe;
+    exports2.sameEvmAddress = sameEvmAddress;
+    exports2.ownLookup = ownLookup;
+    exports2.readFactNow = readFactNow;
     exports2.canonicalAddressFor = canonicalAddressFor;
     exports2.deepFreeze = deepFreeze;
     exports2.assetKnownTo = assetKnownTo;
+    exports2.tokenKnownTo = tokenKnownTo;
+    exports2.readSlippageShape = readSlippageShape;
+    exports2.slippageWithin = slippageWithin;
     exports2.validateCatalog = validateCatalog;
     exports2.assertValidCatalog = assertValidCatalog;
     var constants_1 = require_constants();
@@ -42994,16 +43012,23 @@ var require_catalog = __commonJS({
     function assetKnownTo(request, facts) {
       const action = ownLookup(request, "action");
       const asset = ownLookup(action, "asset");
-      const entry = canonicalAddressFor(ownLookup(action, "chainId"), ownLookup(asset, "symbol"), facts);
-      return entry !== void 0 && (entry.source === "code-table" || entry.liveRead === "confirmed") && sameEvmAddress(entry.address, ownLookup(asset, "contractAddress")) === true;
+      return tokenKnownTo(ownLookup(action, "chainId"), ownLookup(asset, "symbol"), ownLookup(asset, "contractAddress"), facts);
     }
+    function tokenKnownTo(chainId, symbol, address, facts) {
+      const entry = canonicalAddressFor(chainId, symbol, facts);
+      return entry !== void 0 && (entry.source === "code-table" || entry.liveRead === "confirmed") && sameEvmAddress(entry.address, address) === true;
+    }
+    var isWholeBps = (value) => typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 1e4;
+    exports2.isWholeBps = isWholeBps;
     var isUnixSecond = (value) => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+    exports2.isUnixSecond = isUnixSecond;
     var isAmount = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
+    exports2.isAmount = isAmount;
     function readThresholds(param, keys) {
       const values = {};
       for (const key of keys) {
         const value = param(params_1.UNKNOWN_TOKEN_PARAMS_ID, key)?.value;
-        if (!isAmount(value)) {
+        if (!(0, exports2.isAmount)(value)) {
           return void 0;
         }
         values[key] = value;
@@ -43032,12 +43057,12 @@ var require_catalog = __commonJS({
         }
       };
     }
-    var LIQUIDITY = bandDimension("liquidity", "usd", isAmount, "liquidity_abs_deny_below_usd", "liquidity_abs_pass_at_or_above_usd", (usd) => `pool liquidity of ${describe(usd)} USD`);
+    var LIQUIDITY = bandDimension("liquidity", "usd", exports2.isAmount, "liquidity_abs_deny_below_usd", "liquidity_abs_pass_at_or_above_usd", (usd) => `pool liquidity of ${describe(usd)} USD`);
     var HOLDERS = bandDimension("holders", "count", (value) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0, "holders_deny_below", "holders_pass_at_or_above", (count) => `a holder count of ${describe(count)}`);
     function isTransfer(value, since, readAt) {
       const at = ownLookup(value, "at");
       const sender = ownLookup(value, "sender");
-      return isUnixSecond(at) && at >= since && at <= readAt && typeof sender === "string" && EVM_ADDRESS_SHAPE.test(sender) && isAmount(ownLookup(value, "usd"));
+      return (0, exports2.isUnixSecond)(at) && at >= since && at <= readAt && typeof sender === "string" && EVM_ADDRESS_SHAPE.test(sender) && (0, exports2.isAmount)(ownLookup(value, "usd"));
     }
     var ACTIVITY = {
       field: "activity",
@@ -43050,7 +43075,7 @@ var require_catalog = __commonJS({
       wellFormed: (reading, readAt) => {
         const since = ownLookup(reading, "since");
         const transfers = ownLookup(reading, "transfers");
-        return isUnixSecond(since) && since <= readAt && Array.isArray(transfers) && transfers.every((transfer) => isTransfer(transfer, since, readAt));
+        return (0, exports2.isUnixSecond)(since) && since <= readAt && Array.isArray(transfers) && transfers.every((transfer) => isTransfer(transfer, since, readAt));
       },
       judge: (reading, thresholds, now) => {
         const windowStart = now - thresholds.activity_window_hours * constants_1.SECONDS_PER_HOUR;
@@ -43103,7 +43128,7 @@ var require_catalog = __commonJS({
           return unverified(codes.subjectMismatch, `the ${name} reading is not about the request's asset on ${describe(chainId)}`);
         }
         const readAt = ownLookup(reading, "readAt");
-        if (reading === null || typeof reading !== "object" || Array.isArray(reading) || !isUnixSecond(readAt) || !dimension.wellFormed(reading, readAt)) {
+        if (reading === null || typeof reading !== "object" || Array.isArray(reading) || !(0, exports2.isUnixSecond)(readAt) || !dimension.wellFormed(reading, readAt)) {
           return unverified(codes.readingMalformed, `the ${name} reading is not well-formed`);
         }
         const now = readFactNow(context.facts);
@@ -43589,16 +43614,14 @@ var require_catalog = __commonJS({
         return result;
       };
     }
-    function checkSlippageWithinCeiling(request, context) {
-      const id = "slippage-within-ceiling";
+    function readSlippageShape(id, request, codes, failClass, approved) {
       const { quotedOut, minOut, slippageBps } = request.action;
-      const maxSlippageBps = context.policy.maxSlippageBps;
       if (typeof quotedOut !== "string" || !AMOUNT_SHAPE.test(quotedOut) || typeof minOut !== "string" || !AMOUNT_SHAPE.test(minOut)) {
         return {
           id,
           status: "FAIL",
-          code: "SLIPPAGE_AMOUNTS_MALFORMED",
-          evidenceClass: "owner-policy",
+          code: codes.amountsMalformed,
+          evidenceClass: failClass,
           evidence: `quotedOut "${describe(quotedOut)}" or minOut "${describe(minOut)}" is not a well-formed non-negative integer string`
         };
       }
@@ -43608,26 +43631,26 @@ var require_catalog = __commonJS({
         return {
           id,
           status: "FAIL",
-          code: "SLIPPAGE_QUOTED_OUT_ZERO",
-          evidenceClass: "owner-policy",
-          evidence: "a quotedOut of 0 is never what the owner approved"
+          code: codes.quotedOutZero,
+          evidenceClass: failClass,
+          evidence: `a quotedOut of 0 is never what ${approved}`
         };
       }
       if (minOutValue === 0n) {
         return {
           id,
           status: "FAIL",
-          code: "SLIPPAGE_MIN_OUT_ZERO",
-          evidenceClass: "owner-policy",
-          evidence: "a minOut of 0 is never what the owner approved"
+          code: codes.minOutZero,
+          evidenceClass: failClass,
+          evidence: `a minOut of 0 is never what ${approved}`
         };
       }
       if (minOutValue > quotedOutValue) {
         return {
           id,
           status: "FAIL",
-          code: "SLIPPAGE_MIN_OUT_EXCEEDS_QUOTE",
-          evidenceClass: "owner-policy",
+          code: codes.minOutExceedsQuote,
+          evidenceClass: failClass,
           evidence: `minOut ${describe(minOut)} exceeds quotedOut ${describe(quotedOut)}`
         };
       }
@@ -43635,8 +43658,8 @@ var require_catalog = __commonJS({
         return {
           id,
           status: "FAIL",
-          code: "SLIPPAGE_BPS_MALFORMED",
-          evidenceClass: "owner-policy",
+          code: codes.bpsMalformed,
+          evidenceClass: failClass,
           evidence: `slippageBps ${describe(slippageBps)} is not an integer in 0..10000`
         };
       }
@@ -43646,12 +43669,36 @@ var require_catalog = __commonJS({
         return {
           id,
           status: "FAIL",
-          code: "SLIPPAGE_DECLARED_MISMATCH",
-          evidenceClass: "owner-policy",
+          code: codes.declaredMismatch,
+          evidenceClass: failClass,
           evidence: `declared slippageBps ${describe(slippageBps)} does not match the derived ${derivedBps.toString()} basis points`
         };
       }
-      if (typeof maxSlippageBps !== "number" || !Number.isInteger(maxSlippageBps) || maxSlippageBps < 0 || maxSlippageBps > 1e4) {
+      return {
+        quotedOut: quotedOutValue,
+        minOut: minOutValue,
+        derivedBps
+      };
+    }
+    function slippageWithin(shape, ceilingBps) {
+      return (shape.quotedOut - shape.minOut) * 10000n <= BigInt(ceilingBps) * shape.quotedOut;
+    }
+    function checkSlippageWithinCeiling(request, context) {
+      const id = "slippage-within-ceiling";
+      const maxSlippageBps = context.policy.maxSlippageBps;
+      const shape = readSlippageShape(id, request, {
+        amountsMalformed: "SLIPPAGE_AMOUNTS_MALFORMED",
+        quotedOutZero: "SLIPPAGE_QUOTED_OUT_ZERO",
+        minOutZero: "SLIPPAGE_MIN_OUT_ZERO",
+        minOutExceedsQuote: "SLIPPAGE_MIN_OUT_EXCEEDS_QUOTE",
+        bpsMalformed: "SLIPPAGE_BPS_MALFORMED",
+        declaredMismatch: "SLIPPAGE_DECLARED_MISMATCH"
+      }, "owner-policy", "the owner approved");
+      if ("status" in shape) {
+        return shape;
+      }
+      const { derivedBps } = shape;
+      if (!(0, exports2.isWholeBps)(maxSlippageBps)) {
         return {
           id,
           status: "UNVERIFIED",
@@ -43660,7 +43707,7 @@ var require_catalog = __commonJS({
           evidence: "policy maxSlippageBps is not configured as an integer in 0..10000"
         };
       }
-      const within = (quotedOutValue - minOutValue) * 10000n <= BigInt(maxSlippageBps) * quotedOutValue;
+      const within = slippageWithin(shape, maxSlippageBps);
       return {
         id,
         status: within ? "PASS" : "FAIL",
@@ -44327,6 +44374,7 @@ var require_core5 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.unknownResponse = unknownResponse;
+    exports2.combineResponses = combineResponses;
     exports2.makeConsult = makeConsult;
     var fold_1 = require_fold();
     var catalog_1 = require_catalog();
@@ -44516,6 +44564,18 @@ var require_core5 = __commonJS({
     function unknownResponse(code, evidence) {
       return singleResultResponse(DEFAULT_RESPONSE_QUESTION, coreResult("input-shape", code, "Is the request and policy shape valid?", evidence), [], false);
     }
+    function combineResponses(first, second) {
+      const byId = /* @__PURE__ */ new Map();
+      for (const result of [...first.results, ...second.results]) {
+        const kept = byId.get(result.id);
+        if (kept === void 0 || STATUS_RANK[result.status] < STATUS_RANK[kept.status]) {
+          byId.set(result.id, result);
+        }
+      }
+      const merged = finalizeResponse(second.question, [...byId.values()], [.../* @__PURE__ */ new Set([...first.floorIds, ...second.floorIds])], first.proceed && second.proceed);
+      const support = Math.min(merged.support, first.support, second.support);
+      return support === merged.support ? merged : Object.freeze({ ...merged, support, band: (0, support_1.bandOf)(support) });
+    }
     function isOversized(value) {
       try {
         const json = JSON.stringify(value);
@@ -44602,16 +44662,281 @@ var require_core5 = __commonJS({
   }
 });
 
+// consult/dist/floor-profile.js
+var require_floor_profile = __commonJS({
+  "consult/dist/floor-profile.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.FLOOR_PROFILE = exports2.TAX_RULE_ID = exports2.SLIPPAGE_FLOOR_ID = void 0;
+    exports2.validateFloorProfile = validateFloorProfile;
+    exports2.consultFloor = consultFloor;
+    var catalog_1 = require_catalog();
+    var core_1 = require_core5();
+    var constants_1 = require_constants();
+    var params_1 = require_params();
+    var SWAP_REFERENCE_ROOT = "consult/references/swap";
+    exports2.SLIPPAGE_FLOOR_ID = "slippage-within-floor-ceiling";
+    exports2.TAX_RULE_ID = "token-tax-within-bound";
+    function checkSlippageWithinFloorCeiling(request, context) {
+      const id = exports2.SLIPPAGE_FLOOR_ID;
+      const shape = (0, catalog_1.readSlippageShape)(id, request, {
+        amountsMalformed: "SWAP_FLOOR_AMOUNTS_MALFORMED",
+        quotedOutZero: "SWAP_FLOOR_QUOTED_OUT_ZERO",
+        minOutZero: "SWAP_FLOOR_MIN_OUT_ZERO",
+        minOutExceedsQuote: "SWAP_FLOOR_MIN_OUT_EXCEEDS_QUOTE",
+        bpsMalformed: "SWAP_FLOOR_BPS_MALFORMED",
+        declaredMismatch: "SWAP_FLOOR_DECLARED_MISMATCH"
+      }, "caller-stated", "the floor allows");
+      if ("status" in shape) {
+        return shape;
+      }
+      const ceiling = context.param(params_1.SLIPPAGE_MEV_PARAMS_ID, "tolerance_cap_deny_above_bps")?.value;
+      if (!(0, catalog_1.isWholeBps)(ceiling)) {
+        return {
+          id,
+          status: "UNVERIFIED",
+          code: "SWAP_FLOOR_CEILING_MISSING",
+          evidenceClass: "not-verifiable",
+          evidence: "the slippage ceiling is not in the params bundle as a whole number of basis points"
+        };
+      }
+      const within = (0, catalog_1.slippageWithin)(shape, ceiling);
+      return {
+        id,
+        status: within ? "PASS" : "FAIL",
+        code: within ? "SWAP_FLOOR_SLIPPAGE_WITHIN_CEILING" : "SWAP_FLOOR_SLIPPAGE_EXCEEDS_CEILING",
+        evidenceClass: "caller-stated",
+        // Names the rule and the request's own derived bps, never the ceiling:
+        // the ceiling is a params value and ADR 0027 keeps it out of public text.
+        evidence: within ? `slippage against the stated quote is ${shape.derivedBps.toString()} bps, within the params ceiling` : `slippage against the stated quote is at least ${shape.derivedBps.toString()} bps, above the params ceiling`
+      };
+    }
+    var SLIPPAGE_FLOOR = {
+      id: exports2.SLIPPAGE_FLOOR_ID,
+      isFloor: true,
+      question: "Is the swap's slippage within the floor's ceiling?",
+      reference: `${SWAP_REFERENCE_ROOT}/${exports2.SLIPPAGE_FLOOR_ID}.md`,
+      codes: {
+        pass: "SWAP_FLOOR_SLIPPAGE_WITHIN_CEILING",
+        fail: [
+          "SWAP_FLOOR_SLIPPAGE_EXCEEDS_CEILING",
+          "SWAP_FLOOR_AMOUNTS_MALFORMED",
+          "SWAP_FLOOR_QUOTED_OUT_ZERO",
+          "SWAP_FLOOR_MIN_OUT_ZERO",
+          "SWAP_FLOOR_MIN_OUT_EXCEEDS_QUOTE",
+          "SWAP_FLOOR_BPS_MALFORMED",
+          "SWAP_FLOOR_DECLARED_MISMATCH"
+        ],
+        unverified: ["SWAP_FLOOR_CEILING_MISSING"]
+      },
+      codeEvidenceClass: {
+        SWAP_FLOOR_SLIPPAGE_WITHIN_CEILING: "caller-stated",
+        SWAP_FLOOR_SLIPPAGE_EXCEEDS_CEILING: "caller-stated",
+        SWAP_FLOOR_AMOUNTS_MALFORMED: "caller-stated",
+        SWAP_FLOOR_QUOTED_OUT_ZERO: "caller-stated",
+        SWAP_FLOOR_MIN_OUT_ZERO: "caller-stated",
+        SWAP_FLOOR_MIN_OUT_EXCEEDS_QUOTE: "caller-stated",
+        SWAP_FLOOR_BPS_MALFORMED: "caller-stated",
+        SWAP_FLOOR_DECLARED_MISMATCH: "caller-stated",
+        SWAP_FLOOR_CEILING_MISSING: "not-verifiable"
+      },
+      policyFields: [],
+      check: checkSlippageWithinFloorCeiling
+    };
+    function legOf(request, label) {
+      const token = (0, catalog_1.ownLookup)(request.action, label);
+      return {
+        label,
+        symbol: (0, catalog_1.ownLookup)(token, "symbol"),
+        address: (0, catalog_1.ownLookup)(token, "contractAddress")
+      };
+    }
+    function entriesFor(facts, chainId, leg) {
+      const list = (0, catalog_1.ownLookup)(facts, "tokenTax");
+      if (!Array.isArray(list)) {
+        return [];
+      }
+      return list.filter((entry) => (0, catalog_1.ownLookup)(entry, "chainId") === chainId && (0, catalog_1.sameEvmAddress)((0, catalog_1.ownLookup)(entry, "address"), leg.address) === true);
+    }
+    var unverified = (code, evidence) => ({
+      id: exports2.TAX_RULE_ID,
+      status: "UNVERIFIED",
+      code,
+      evidenceClass: "not-verifiable",
+      evidence
+    });
+    function checkTokenTaxWithinBound(request, context) {
+      const chainId = request.action.chainId;
+      const legs = [legOf(request, "tokenIn"), legOf(request, "tokenOut")];
+      const found = legs.map((leg) => entriesFor(context.facts, chainId, leg));
+      for (const [i, leg] of legs.entries()) {
+        if (found[i].some((entry) => (0, catalog_1.ownLookup)(entry, "sellBlocked") === true)) {
+          return {
+            id: exports2.TAX_RULE_ID,
+            status: "FAIL",
+            code: "SWAP_TOKEN_SELL_BLOCKED",
+            evidenceClass: "simulated",
+            evidence: `a probe could not sell ${leg.label} ${(0, catalog_1.describe)(leg.address)} after buying it`
+          };
+        }
+      }
+      const now = (0, catalog_1.readFactNow)(context.facts);
+      const taxes = [];
+      let canonical = true;
+      let known = true;
+      for (const [i, leg] of legs.entries()) {
+        if (found[i].length === 0) {
+          return unverified("SWAP_TAX_FACT_MISSING", `no tax reading for ${leg.label} ${(0, catalog_1.describe)(leg.address)}`);
+        }
+        if (found[i].length > 1) {
+          return unverified("SWAP_TAX_FACT_AMBIGUOUS", `more than one tax reading for ${leg.label} ${(0, catalog_1.describe)(leg.address)}`);
+        }
+        const entry = found[i][0];
+        const taxBps = (0, catalog_1.ownLookup)(entry, "taxBps");
+        const sellBlocked = (0, catalog_1.ownLookup)(entry, "sellBlocked");
+        const asOf = (0, catalog_1.ownLookup)(entry, "asOf");
+        const source = (0, catalog_1.ownLookup)(entry, "source");
+        if (!(0, catalog_1.isWholeBps)(taxBps) || typeof sellBlocked !== "boolean" || !(0, catalog_1.isUnixSecond)(asOf) || source !== "simulation" && source !== "canonical") {
+          return unverified("SWAP_TAX_FACT_MALFORMED", `the tax reading for ${leg.label} is not well formed`);
+        }
+        const legKnown = (0, catalog_1.tokenKnownTo)(chainId, leg.symbol, leg.address, context.facts);
+        if (source === "canonical" && !(legKnown && taxBps === 0)) {
+          return unverified("SWAP_TAX_CANONICAL_UNCONFIRMED", `a canonical tax reading for ${leg.label} needs the token named at this address and a tax of 0`);
+        }
+        if (now === void 0 || asOf > now) {
+          return unverified("SWAP_TAX_AGE_UNKNOWN", `the age of the tax reading for ${leg.label} cannot be placed`);
+        }
+        if (now - asOf > constants_1.MAX_TAX_READING_AGE_SECONDS) {
+          return unverified("SWAP_TAX_FACT_STALE", `the tax reading for ${leg.label} is older than ${constants_1.MAX_TAX_READING_AGE_SECONDS} seconds`);
+        }
+        taxes.push(taxBps);
+        canonical = canonical && source === "canonical";
+        known = known && legKnown;
+      }
+      const boundValue = (known ? context.param(params_1.SLIPPAGE_MEV_PARAMS_ID, "tax_plus_honest_tolerance_max_bps") : context.param(params_1.UNKNOWN_TOKEN_PARAMS_ID, "tax_plus_honest_tolerance_deny_above_bps"))?.value;
+      const toleranceValue = context.param(params_1.SLIPPAGE_MEV_PARAMS_ID, "tolerance_floor_bps")?.value;
+      if (!(0, catalog_1.isWholeBps)(boundValue) || !(0, catalog_1.isWholeBps)(toleranceValue)) {
+        return unverified("SWAP_TAX_BOUND_MISSING", "the tax bound or the honest tolerance floor is not in the params bundle as a whole number of basis points");
+      }
+      const total = taxes[0] + taxes[1] + toleranceValue;
+      const within = total <= boundValue;
+      const evidence = `tax ${(0, catalog_1.describe)(taxes[0])} + ${(0, catalog_1.describe)(taxes[1])} bps plus the tolerance floor is ${within ? "within" : "above"} the params bound`;
+      const code = !within ? "SWAP_TAX_EXCEEDS_BOUND" : canonical ? "SWAP_TAX_WITHIN_BOUND_CANONICAL" : "SWAP_TAX_WITHIN_BOUND_SIMULATED";
+      return {
+        id: exports2.TAX_RULE_ID,
+        status: within ? "PASS" : "FAIL",
+        code,
+        evidenceClass: TAX_RULE.codeEvidenceClass[code],
+        evidence
+      };
+    }
+    var TAX_RULE = {
+      id: exports2.TAX_RULE_ID,
+      isFloor: true,
+      question: "Do the swap tokens' transfer taxes plus honest tolerance stay within the bound?",
+      reference: `${SWAP_REFERENCE_ROOT}/${exports2.TAX_RULE_ID}.md`,
+      codes: {
+        pass: [
+          "SWAP_TAX_WITHIN_BOUND_CANONICAL",
+          "SWAP_TAX_WITHIN_BOUND_SIMULATED"
+        ],
+        fail: ["SWAP_TAX_EXCEEDS_BOUND", "SWAP_TOKEN_SELL_BLOCKED"],
+        unverified: [
+          "SWAP_TAX_FACT_MISSING",
+          "SWAP_TAX_FACT_AMBIGUOUS",
+          "SWAP_TAX_FACT_MALFORMED",
+          "SWAP_TAX_CANONICAL_UNCONFIRMED",
+          "SWAP_TAX_AGE_UNKNOWN",
+          "SWAP_TAX_FACT_STALE",
+          "SWAP_TAX_BOUND_MISSING"
+        ]
+      },
+      codeEvidenceClass: {
+        SWAP_TAX_WITHIN_BOUND_CANONICAL: "static-registry",
+        SWAP_TAX_WITHIN_BOUND_SIMULATED: "simulated",
+        SWAP_TAX_EXCEEDS_BOUND: "simulated",
+        SWAP_TOKEN_SELL_BLOCKED: "simulated",
+        SWAP_TAX_FACT_MISSING: "not-verifiable",
+        SWAP_TAX_FACT_AMBIGUOUS: "not-verifiable",
+        SWAP_TAX_FACT_MALFORMED: "not-verifiable",
+        SWAP_TAX_CANONICAL_UNCONFIRMED: "not-verifiable",
+        SWAP_TAX_AGE_UNKNOWN: "not-verifiable",
+        SWAP_TAX_FACT_STALE: "not-verifiable",
+        SWAP_TAX_BOUND_MISSING: "not-verifiable"
+      },
+      policyFields: [],
+      check: checkTokenTaxWithinBound
+    };
+    function member(conditions, id) {
+      const found = conditions.find((condition) => condition.id === id);
+      if (found === void 0) {
+        throw new Error(`floor profile names a Condition that is not shipped: ${id}`);
+      }
+      return found;
+    }
+    exports2.FLOOR_PROFILE = (0, catalog_1.deepFreeze)({
+      pay: [
+        "recipient-not-poison-derived",
+        "asset-is-canonical",
+        "target-is-canonical",
+        "asset-liquidity-sufficient",
+        "asset-holders-sufficient",
+        "asset-activity-sufficient"
+      ].map((id) => member(catalog_1.CATALOG.pay, id)),
+      swap: [
+        ...[
+          "target-is-canonical",
+          "token-in-is-canonical",
+          "token-out-is-canonical",
+          "approval-scoped-to-this-swap"
+        ].map((id) => member(catalog_1.CATALOG.swap, id)),
+        SLIPPAGE_FLOOR,
+        TAX_RULE
+      ]
+    });
+    function validateFloorProfile(profile) {
+      const defect = (0, catalog_1.validateCatalog)(profile);
+      if (defect !== void 0) {
+        return defect;
+      }
+      for (const conditions of Object.values(profile)) {
+        for (const condition of conditions) {
+          if (condition.isFloor !== true) {
+            return `floor profile Condition "${condition.id}" is not a Floor member`;
+          }
+          if ((condition.policyFields ?? []).length > 0) {
+            return `floor profile Condition "${condition.id}" declares a policy field`;
+          }
+        }
+      }
+      return void 0;
+    }
+    var profileDefect = validateFloorProfile(exports2.FLOOR_PROFILE);
+    if (profileDefect !== void 0) {
+      throw new Error(profileDefect);
+    }
+    var FLOOR_POLICY = (0, catalog_1.deepFreeze)({ permits: true });
+    var runFloor = (0, core_1.makeConsult)(exports2.FLOOR_PROFILE);
+    function consultFloor(request, facts) {
+      return runFloor(request, FLOOR_POLICY, facts);
+    }
+  }
+});
+
 // consult/dist/index.js
 var require_dist2 = __commonJS({
   "consult/dist/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.assetKnownTo = exports2.consult = void 0;
+    exports2.assetKnownTo = exports2.consultFloor = exports2.consult = void 0;
     var core_1 = require_core5();
     var catalog_1 = require_catalog();
     Object.defineProperty(exports2, "assetKnownTo", { enumerable: true, get: function() {
       return catalog_1.assetKnownTo;
+    } });
+    var floor_profile_1 = require_floor_profile();
+    Object.defineProperty(exports2, "consultFloor", { enumerable: true, get: function() {
+      return floor_profile_1.consultFloor;
     } });
     exports2.consult = (0, core_1.makeConsult)(catalog_1.CATALOG);
   }
