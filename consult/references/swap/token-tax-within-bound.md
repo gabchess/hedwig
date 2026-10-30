@@ -32,7 +32,7 @@ Order of the check:
    (`SWAP_TAX_CANONICAL_UNCONFIRMED`).
 5. The reading must be no older than 60 seconds against `facts.now`. A reading
    dated after `facts.now`, or with no valid `facts.now`, has an unknown age.
-6. Both constants must be in the bundle as non-negative numbers, else
+6. Both constants must be in the bundle as whole numbers from 0 to 10000, else
    UNVERIFIED (`SWAP_TAX_BOUND_MISSING`).
 7. Tax in plus tax out plus the tolerance floor, above the bound, is FAIL
    (`SWAP_TAX_EXCEEDS_BOUND`). Otherwise PASS.
