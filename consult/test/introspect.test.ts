@@ -2,6 +2,7 @@ import { expect } from "chai";
 
 import { describeCatalog } from "../src/introspect";
 import { CATALOG, CANONICAL_ASSETS, CANONICAL_ROUTERS } from "../src/catalog";
+import { FLOOR_PROFILE } from "../src/floor-profile";
 
 // Walks the whole returned tree: every object and array must already be
 // frozen, and no function value may appear anywhere in it.
@@ -82,5 +83,31 @@ describe("introspect", () => {
         "universal-router": address,
       });
     }
+  });
+
+  it("shows which Conditions are in the floor profile, with the two only it carries", () => {
+    const description = describeCatalog();
+    const total = Object.values(FLOOR_PROFILE).flat().length;
+    expect(description.floorProfile.length).to.equal(total);
+    const inProfile = description.floorProfile.map(
+      (condition) => `${condition.actionTypes.join("+")}:${condition.id}`
+    );
+    expect(inProfile).to.include.members([
+      "pay:asset-is-canonical",
+      "swap:token-in-is-canonical",
+      "swap:slippage-within-floor-ceiling",
+      "swap:token-tax-within-bound",
+    ]);
+    // A Condition that reads a policy field is never in the profile.
+    expect(inProfile).to.not.include("pay:recipient-matches-policy");
+    expect(inProfile).to.not.include("swap:slippage-within-ceiling");
+    description.floorProfile.forEach((condition) => {
+      expect(condition.policyFields, condition.id).to.deep.equal([]);
+      expect(condition.floor, condition.id).to.equal(true);
+    });
+    // The two profile-only Conditions are not in the owner catalog's list.
+    const ownerIds = description.conditions.map((condition) => condition.id);
+    expect(ownerIds).to.not.include("token-tax-within-bound");
+    expect(ownerIds).to.not.include("slippage-within-floor-ceiling");
   });
 });

@@ -3,13 +3,17 @@ export type ConditionStatus = "PASS" | "FAIL" | "UNVERIFIED";
 export type Verdict = "ALLOW_UNDER_POLICY" | "DENY" | "UNKNOWN";
 
 // How strong the proof behind a status is, strongest to weakest.
-// "caller-stated" is a figure only the request itself vouches for, such as
-// a swap's quoted output. "not-verifiable" is what a Condition that could
+// "simulated" is a reading from a probe the service ran, such as a token's
+// transfer tax: a token built to detect a probe can fool it, so it ranks
+// below a static registry and above what the caller states. "caller-stated"
+// is a figure only the request itself vouches for, such as a swap's quoted
+// output. "not-verifiable" is what a Condition that could
 // not run at all reports; it is never a legitimate reason a PASS stands on.
 export type EvidenceClass =
   | "onchain-read"
   | "owner-policy"
   | "static-registry"
+  | "simulated"
   | "caller-stated"
   | "not-verifiable";
 

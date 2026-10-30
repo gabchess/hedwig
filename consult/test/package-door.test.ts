@@ -31,10 +31,31 @@ describe("package door", () => {
     ]);
   });
 
-  it("the package root exports only consult and assetKnownTo at runtime", () => {
+  it("the package root exports only consult, consultFloor and assetKnownTo at runtime", () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const door = require("../src/index");
-    expect(Object.keys(door)).to.deep.equal(["consult", "assetKnownTo"]);
+    expect(Object.keys(door)).to.have.members([
+      "consult",
+      "consultFloor",
+      "assetKnownTo",
+    ]);
+    expect(Object.keys(door)).to.have.length(3);
+  });
+
+  it("the package root never exports the profile itself, a catalog or a validator", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const door = require("../src/index");
+    for (const name of [
+      "FLOOR_PROFILE",
+      "CATALOG",
+      "validateFloorProfile",
+      "consultWith",
+      "consultWithFloor",
+      "combineResponses",
+      "makeConsult",
+    ]) {
+      expect(door, name).to.not.have.property(name);
+    }
   });
 
   it("the guard subpath exports only runTriggerGuard at runtime", () => {
