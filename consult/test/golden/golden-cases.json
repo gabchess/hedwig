@@ -1,14 +1,18 @@
 {
   "schemaVersion": 1,
   "policyVersion": "golden-policy-1",
-  "notice": "UNREVIEWED LABELS. Every case has reviewed false. An agent wrote the expected verdicts, score bands and check ids from THREAT-MODEL.md, consult/README.md and the existing test fixtures. A domain reviewer must confirm each label, then set reviewed to true, before this file counts as ground truth. Addresses are the repo's own synthetic or catalog constants. No case describes a real address.",
+  "notice": "UNREVIEWED LABELS. Every case has reviewed false. A case counts as ground truth only after a verifier model that did not write it checks its label against the cited public source and sets reviewed to true. No named person reviews labels. Cases with a string label_source were written by an agent from THREAT-MODEL.md, consult/README.md and the test fixtures; they cite no independent source and must stay reviewed false. Cases with a label_source object cite a public incident write-up, repository, paper or on-chain record retrieved on or before labelCutoff, and never a list the catalog imports. Their synthetic fields are named in the description.",
+  "labelCutoff": "2026-10-30",
   "fields": {
     "input": "Exactly what consult(request, policy, facts) takes.",
     "expected.failIds": "Sorted ids of the checks with status FAIL.",
     "expected.unverifiedIds": "Sorted ids of the checks with status UNVERIFIED.",
     "expected.band": "green, amber or red, as read from the support score.",
     "policySha256": "SHA-256 of the key-sorted JSON of input.policy. A policy edit changes the hash, so it forces a deliberate label review.",
-    "policyVersion": "Version tag of the policy set in this file. Bump it when any policy object changes."
+    "policyVersion": "Version tag of the policy set in this file. Bump it when any policy object changes.",
+    "label_source": "A string for an agent-written label. An object { url, kind, quote or line_ref, retrieved } for a label grounded in a public source. kind is incident, repo, paper or onchain.",
+    "chain_evidence": "Optional. Each public RPC read used to build the case: chainId, rpc, method, call, block and result, so a verifier can repeat it without an API key.",
+    "reviewed": "false until a verifier model confirms the label against label_source. true is allowed only with a label_source object."
   },
   "floorIds": {
     "pay": [
@@ -42,37 +46,42 @@
   "cases": [
     {
       "id": "pay-clean-direct-transfer-allows",
-      "description": "Direct ERC-20 transfer of canonical USDC to an approved recipient under the cap.",
-      "label_source": "THREAT-MODEL.md section 'The payment check's boundary'; fixture wrong-proceed-corpus.json clean-request-is-an-authorised-allow",
+      "description": "Real transfer: 0x866d3669be9d135eaa47099bbddcc60a9ebcab66a9ec925bad594c25de1723bb, a direct transfer of 40 USDC signed by the externally owned account 0x466ba3edd0783b0e0e675b50e7e59396b0433064, which succeeded on 2026-10-29T11:54:59.000Z. Its benign label rests only on that on-chain outcome. The policy approves the call's recipient and caps pay at the call's amount.",
+      "label_source": {
+        "url": "https://etherscan.io/tx/0x866d3669be9d135eaa47099bbddcc60a9ebcab66a9ec925bad594c25de1723bb",
+        "kind": "onchain",
+        "quote": "receipt status 0x1; transfer(0xe692de2a4c1f8f28ac5d5dffd255e74c1c4acd93, 40000000) on the USDC contract, block 26298232",
+        "retrieved": "2026-10-30"
+      },
       "reviewed": false,
       "input": {
         "request": {
           "action": {
             "type": "pay",
             "chainId": "eip155:1",
-            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "recipient": "0xe692de2a4c1f8f28ac5d5dffd255e74c1c4acd93",
             "asset": {
               "symbol": "USDC",
               "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
             },
-            "amount": "1000000",
+            "amount": "40000000",
             "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
           },
           "transaction": {
-            "from": "0x00000000000000000000000000000000a11ce001",
-            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "from": "0x466ba3edd0783b0e0e675b50e7e59396b0433064",
+            "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
             "value": "0",
-            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+            "data": "0xa9059cbb000000000000000000000000e692de2a4c1f8f28ac5d5dffd255e74c1c4acd930000000000000000000000000000000000000000000000000000000002625a00"
           }
         },
         "policy": {
           "permits": true,
           "chainId": "eip155:1",
           "approvedRecipients": [
-            "0x00000000000000000000000000000000a11ce001"
+            "0xe692de2a4c1f8f28ac5d5dffd255e74c1c4acd93"
           ],
           "perActionCaps": {
-            "pay": "1000000"
+            "pay": "40000000"
           },
           "perActionCapAssets": {
             "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
@@ -95,7 +104,17 @@
         "failIds": [],
         "unverifiedIds": []
       },
-      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+      "policySha256": "565a5fe2c37ae5949704bc86ca4d4fafb50d1227cbdf553ece77c46c17ca3649",
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionByHash",
+          "call": "0x866d3669be9d135eaa47099bbddcc60a9ebcab66a9ec925bad594c25de1723bb",
+          "block": 26298232,
+          "result": "from 0x466ba3edd0783b0e0e675b50e7e59396b0433064 to 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48 status 0x1"
+        }
+      ]
     },
     {
       "id": "pay-required-role-with-good-fact-allows",
@@ -1670,15 +1689,20 @@
     },
     {
       "id": "swap-non-canonical-router-denies",
-      "description": "Swap target is a contract that is not the pinned router for the chain.",
-      "label_source": "fixture wrong-proceed-corpus.json swap-target-is-a-different-contract",
+      "description": "Swap target is SushiSwap RouteProcessor2 0x044b, the router drained in April 2023, not the pinned router for the chain. Amounts, quote, deadline and owner are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2023-04/Sushi_Router_exp.sol#L46-L47",
+        "kind": "repo",
+        "line_ref": "src/test/2023-04/Sushi_Router_exp.sol line 47 names RouteProcessor2 0x044b75f554b886A065b9567891e45c79542d7357",
+        "retrieved": "2026-10-30"
+      },
       "reviewed": false,
       "input": {
         "request": {
           "action": {
             "type": "swap",
             "chainId": "eip155:1",
-            "target": "0x00000000000000000000000000000000000fa4e1",
+            "target": "0x044b75f554b886A065b9567891e45c79542d7357",
             "tokenIn": {
               "symbol": "USDC",
               "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
@@ -1734,7 +1758,17 @@
           "transaction-matches-intent"
         ]
       },
-      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22",
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0x04b166e7b4ab5105a8e9c85f08f6346de1c66368687215b0e0b58d6e5002bc32",
+          "block": 17007842,
+          "result": "status 0x1"
+        }
+      ]
     },
     {
       "id": "swap-output-to-non-owner-denies",
@@ -2344,6 +2378,1091 @@
         ]
       },
       "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "pay-real-spoof-eth-token-stays-unknown",
+      "description": "Real spoof token from the 3 May 2024 address poisoning: contract 0x7393 reports symbol ETH, name Ether and 6 decimals. Its Transfer log moved 50000 units from the victim to the lookalike 0xd9a1c378. The call bytes are rebuilt from that log; the original transaction was sent by the attacker, not signed by the victim. The catalog has no ETH token entry, so the token checks answer UNVERIFIED and the verdict is UNKNOWN, not DENY.",
+      "label_source": {
+        "url": "https://cointelegraph.com/news/address-poisoning-attacker-sends-153-k-ethereum-negotiate",
+        "kind": "incident",
+        "quote": "the token had a custom design that allowed it to be transferred from an account without the user's consent",
+        "retrieved": "2026-10-30"
+      },
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0xd9a1c3788d81257612e2581a6ea0ada244853a91",
+            "asset": {
+              "symbol": "ETH",
+              "contractAddress": "0x739352337c902c3874b95f14e81ebbcf1b7b262e"
+            },
+            "amount": "50000",
+            "target": "0x739352337c902c3874b95f14e81ebbcf1b7b262e"
+          },
+          "transaction": {
+            "from": "0x1e227979f0b5bc691a70deaed2e0f39a6f538fd5",
+            "to": "0x739352337c902c3874b95f14e81ebbcf1b7b262e",
+            "value": "0",
+            "data": "0xa9059cbb000000000000000000000000d9a1c3788d81257612e2581a6ea0ada244853a91000000000000000000000000000000000000000000000000000000000000c350"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0xd9a1c3788d81257612e2581a6ea0ada244853a91"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getLogs",
+          "call": "Transfer logs from 0x1e227979 in blocks 19788556 to 19789150",
+          "block": 19788642,
+          "result": "tx 0x9147d74ef5749b7f27eb2e2528e5a611060b3f609b435f7f50ac87f49e5b957c token 0x739352337c902c3874b95f14e81ebbcf1b7b262e to 0xd9a1c378 amount 50000"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0x739352337c902c3874b95f14e81ebbcf1b7b262e symbol(), name(), decimals()",
+          "block": 19789265,
+          "result": "ETH, Ether, 6"
+        }
+      ],
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "amount-within-cap",
+          "asset-activity-sufficient",
+          "asset-holders-sufficient",
+          "asset-is-canonical",
+          "asset-liquidity-sufficient",
+          "target-is-canonical"
+        ]
+      },
+      "policySha256": "3919a1f6dc1321675bb29d3b38df312af5ad17d128d0297e94883dc4ead3b34e"
+    },
+    {
+      "id": "swap-real-spoof-eth-token-out-stays-unknown",
+      "description": "Output token is the real spoof token 0x7393 (symbol ETH, name Ether, 6 decimals) from the 3 May 2024 address poisoning. Amounts, quote, deadline and owner are synthetic. The catalog has no ETH token entry, so token-out-is-canonical answers UNVERIFIED and the verdict is UNKNOWN, not DENY.",
+      "label_source": {
+        "url": "https://cointelegraph.com/news/address-poisoning-attacker-sends-153-k-ethereum-negotiate",
+        "kind": "incident",
+        "quote": "The token transferred had no name listed on Etherscan and was simply referred to as \"ERC-20.\"",
+        "retrieved": "2026-10-30"
+      },
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "ETH",
+              "contractAddress": "0x739352337c902c3874b95f14e81ebbcf1b7b262e"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0x739352337c902c3874b95f14e81ebbcf1b7b262e symbol(), name(), decimals()",
+          "block": 19789265,
+          "result": "ETH, Ether, 6"
+        }
+      ],
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "token-out-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-real-lifi-2024-unlimited-approval-denies",
+      "description": "Real incident: LI.FI diamond, July 2024. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2024-07/Lifiprotocol_exp.sol#L37-L39",
+        "kind": "repo",
+        "line_ref": "src/test/2024-07/Lifiprotocol_exp.sol lines 37 to 39 name the LiFiDiamond and the victim",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0xdAC17F958D2ee523a2206206994597C13D831ec7.allowance(0xABE45eA636df7Ac90Fb7D8d8C74a081b169F92eF, 0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE)",
+          "block": 20318962,
+          "result": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0xd82fe84e63b1aa52e1ce540582ee0895ba4a71ec5e7a632a3faa1aff3e763873",
+          "block": 20318963,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+            "tokenIn": {
+              "symbol": "USDT",
+              "contractAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0xABE45eA636df7Ac90Fb7D8d8C74a081b169F92eF",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0xABE45eA636df7Ac90Fb7D8d8C74a081b169F92eF"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0xABE45eA636df7Ac90Fb7D8d8C74a081b169F92eF"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "token-in-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "fc08e9925ccc98f105d5aa2db26dce3c1717c70d7537231c6caf8ab07c141ca3"
+    },
+    {
+      "id": "swap-real-socket-2024-unlimited-approval-denies",
+      "description": "Real incident: Socket Gateway route, January 2024. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2024-01/SocketGateway_exp.sol#L38-L41",
+        "kind": "repo",
+        "line_ref": "src/test/2024-01/SocketGateway_exp.sol lines 38 to 41 name the gateway and the target user",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.allowance(0x7d03149A2843E4200f07e858d6c0216806Ca4242, 0x3a23F943181408EAC424116Af7b7790c94Cb97a5)",
+          "block": 19021453,
+          "result": "115792089237316195423570985008687907853269984665640564039457584007913029639935"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0xc6c3331fa8c2d30e1ef208424c08c039a89e510df2fb6ae31e5aa40722e28fd6",
+          "block": 19021454,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x3a23F943181408EAC424116Af7b7790c94Cb97a5",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x7d03149A2843E4200f07e858d6c0216806Ca4242",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457584007913029639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x7d03149A2843E4200f07e858d6c0216806Ca4242"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x7d03149A2843E4200f07e858d6c0216806Ca4242"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "7b50e2c78cdd95eed96f5eb32363260a24aa5bd88d149ae1f7c9ce28d797161a"
+    },
+    {
+      "id": "swap-real-dexible-2023-standing-approval-denies",
+      "description": "Real incident: Dexible, February 2023. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2023-02/Dexible_exp.sol#L45-L46",
+        "kind": "repo",
+        "line_ref": "src/test/2023-02/Dexible_exp.sol lines 45 and 46 name the Dexible contract and the victim",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0x4C19596f5aAfF459fA38B0f7eD92F11AE6543784.allowance(0x58f5F0684C381fCFC203D77B2BbA468eBb29B098, 0xDE62E1b0edAa55aAc5ffBE21984D321706418024)",
+          "block": 16646022,
+          "result": "1796093750000000"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0x138daa4cbeaa3db42eefcec26e234fc2c89a4aa17d6b1870fc460b2856fd11a6",
+          "block": 16646023,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0xDE62E1b0edAa55aAc5ffBE21984D321706418024",
+            "tokenIn": {
+              "symbol": "TRU",
+              "contractAddress": "0x4C19596f5aAfF459fA38B0f7eD92F11AE6543784"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x58f5F0684C381fCFC203D77B2BbA468eBb29B098",
+            "approvalAmount": "1796093750000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x58f5F0684C381fCFC203D77B2BbA468eBb29B098"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0x4C19596f5aAfF459fA38B0f7eD92F11AE6543784"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x58f5F0684C381fCFC203D77B2BbA468eBb29B098"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "token-in-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "f47d6f33faf69ca6bd77d372603e945e830ebd63e018302154ac8378236e8242"
+    },
+    {
+      "id": "swap-real-rubic-2022-unlimited-approval-denies",
+      "description": "Real incident: Rubic proxy, December 2022. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2022-12/Rubic_exp.sol#L49-L61",
+        "kind": "repo",
+        "line_ref": "src/test/2022-12/Rubic_exp.sol line 49 names RubicProxy1 and line 61 names victims[0]",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.allowance(0x6b8D6E89590E41Fa7484691fA372c3552E93e91b, 0x3335A88bb18fD3b6824b59Af62b50CE494143333)",
+          "block": 16260580,
+          "result": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0x9a97d85642f956ad7a6b852cf7bed6f9669e2c2815f3279855acf7f1328e7d46",
+          "block": 16260581,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x3335A88bb18fD3b6824b59Af62b50CE494143333",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x6b8D6E89590E41Fa7484691fA372c3552E93e91b",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x6b8D6E89590E41Fa7484691fA372c3552E93e91b"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x6b8D6E89590E41Fa7484691fA372c3552E93e91b"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "0a7cca7e1d498491a2d783ca5e99746093c18ab4195d2bca5040352d885f7228"
+    },
+    {
+      "id": "swap-real-seneca-2024-unlimited-approval-denies",
+      "description": "Real incident: Seneca Chamber, February 2024. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2024-02/Seneca_exp.sol#L24-L26",
+        "kind": "repo",
+        "line_ref": "src/test/2024-02/Seneca_exp.sol lines 24 to 26 name the Chamber and the victim",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0xB05cABCd99cf9a73b19805edefC5f67CA5d1895E.allowance(0x9CBF099ff424979439dFBa03F00B5961784c06ce, 0x65c210c59B43EB68112b7a4f75C8393C36491F06)",
+          "block": 19325936,
+          "result": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0x23fcf9d4517f7cc39815b09b0a80c023ab2c8196c826c93b4100f2e26b701286",
+          "block": 19325937,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x65c210c59B43EB68112b7a4f75C8393C36491F06",
+            "tokenIn": {
+              "symbol": "PT-rsETH-27JUN2024",
+              "contractAddress": "0xB05cABCd99cf9a73b19805edefC5f67CA5d1895E"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x9CBF099ff424979439dFBa03F00B5961784c06ce",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x9CBF099ff424979439dFBa03F00B5961784c06ce"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0xB05cABCd99cf9a73b19805edefC5f67CA5d1895E"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x9CBF099ff424979439dFBa03F00B5961784c06ce"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "token-in-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "bf75cc85b5b53bac26c86ad535a779c01af7638ae802cc38f200d8a5f2cb4bd1"
+    },
+    {
+      "id": "swap-real-a152-2026-standing-approval-denies",
+      "description": "Real incident: unverified AllowanceTarget 0x2990, April 2026. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2026-04/unverified_a152_exp.sol#L27-L37",
+        "kind": "repo",
+        "line_ref": "src/test/2026-04/unverified_a152_exp.sol line 27 names ALLOWANCE_TARGET and line 37 names USDT_OWNER_TWO",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_call",
+          "call": "0xdAC17F958D2ee523a2206206994597C13D831ec7.allowance(0x1bD7e605A63Df5698fC96B2f9F41Aee1671bcf7a, 0x2990A16D2C37163f26F86d7af219064Ba5CD5605)",
+          "block": 24973581,
+          "result": "84009900000"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0x57709a498f27c7219b634ae20e7d2cbf9ab8dd6aca7b3845fabf93b57760b576",
+          "block": 24973582,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x2990A16D2C37163f26F86d7af219064Ba5CD5605",
+            "tokenIn": {
+              "symbol": "USDT",
+              "contractAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x1bD7e605A63Df5698fC96B2f9F41Aee1671bcf7a",
+            "approvalAmount": "84009900000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x1bD7e605A63Df5698fC96B2f9F41Aee1671bcf7a"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x1bD7e605A63Df5698fC96B2f9F41Aee1671bcf7a"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "token-in-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "c07bd01a66606f4132b06fa2814a42268e8f9d1d6baa56f225f368c0427ed12b"
+    },
+    {
+      "id": "swap-real-squid-multicall-2026-unlimited-approval-denies",
+      "description": "Real incident: SquidMulticall on BNB Chain, April 2026. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2026-04/SquidMulticallAllowanceDrain_exp.sol#L26-L28",
+        "kind": "repo",
+        "line_ref": "src/test/2026-04/SquidMulticallAllowanceDrain_exp.sol lines 26 to 28 name SquidMulticall, the victim and the token",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:56",
+          "rpc": "https://bsc-mainnet.public.blastapi.io",
+          "method": "eth_call",
+          "call": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8.allowance(0xacc0c1f672b03b9a5fed4535f840f09b85f40e98, 0xad6cea45f98444a922a2b4fe96b8c90f0862d2f4)",
+          "block": 91122249,
+          "result": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        {
+          "chainId": "eip155:56",
+          "rpc": "https://bsc-mainnet.public.blastapi.io",
+          "method": "eth_getTransactionReceipt",
+          "call": "0x81d0c429ee7eae19d8c4d9d797dbd3828279060096e703b11cca739c9b1301e9",
+          "block": 91122250,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:56",
+            "target": "0xad6cea45f98444a922a2b4fe96b8c90f0862d2f4",
+            "tokenIn": {
+              "symbol": "ETH",
+              "contractAddress": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"
+            },
+            "tokenOut": {
+              "symbol": "USDC",
+              "contractAddress": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0xacc0c1f672b03b9a5fed4535f840f09b85f40e98",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:56",
+          "approvedRecipients": [
+            "0xacc0c1f672b03b9a5fed4535f840f09b85f40e98"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0xacc0c1f672b03b9a5fed4535f840f09b85f40e98"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap"
+        ],
+        "unverifiedIds": [
+          "target-is-canonical",
+          "token-in-is-canonical",
+          "token-out-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "804fd47d065e10a9f4e6035be48db10330f170f10dd26fe7b0d38d62beaebb39"
+    },
+    {
+      "id": "swap-real-safe-approval-squat-2026-unlimited-approval-denies",
+      "description": "Real incident: Safe approval squat on Avalanche, October 2026. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2026-10/SafeApprovalSquat_exp.sol#L64-L71",
+        "kind": "repo",
+        "line_ref": "src/test/2026-10/SafeApprovalSquat_exp.sol lines 64 and 65 name the Safe and the pre-approved address, line 71 names USDC",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:43114",
+          "rpc": "https://api.avax.network/ext/bc/C/rpc",
+          "method": "eth_call",
+          "call": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E.allowance(0x631FCa4a73AEe699638634479132452ef354b9B8, 0x3725bD4D175283108156c3F15f86e1c51266155d)",
+          "block": 98603854,
+          "result": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        {
+          "chainId": "eip155:43114",
+          "rpc": "https://api.avax.network/ext/bc/C/rpc",
+          "method": "eth_getTransactionReceipt",
+          "call": "0xf88a7960a07832e1bf5be64edbd12a9e615b4f63959a4b87a147f0c63c007ed5",
+          "block": 98605391,
+          "result": "status 0x1"
+        },
+        {
+          "chainId": "eip155:43114",
+          "rpc": "https://api.avax.network/ext/bc/C/rpc",
+          "method": "eth_getTransactionByHash",
+          "call": "0x6952f80bbbcad4368b020bcda600965cf0a520a8694db431b6b1521842d3829e",
+          "block": 79804885,
+          "result": "from 0xffcc49336f12db595d4ecfc10fde1eb0c5cd9a57 to 0x631fca4a73aee699638634479132452ef354b9b8 selector 0x6a761202"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:43114",
+            "target": "0x3725bD4D175283108156c3F15f86e1c51266155d",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"
+            },
+            "tokenOut": {
+              "symbol": "WAVAX",
+              "contractAddress": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x631FCa4a73AEe699638634479132452ef354b9B8",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:43114",
+          "approvedRecipients": [
+            "0x631FCa4a73AEe699638634479132452ef354b9B8"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x631FCa4a73AEe699638634479132452ef354b9B8"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap"
+        ],
+        "unverifiedIds": [
+          "target-is-canonical",
+          "token-in-is-canonical",
+          "token-out-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "de2fcfb1472e31630a2893d8a995e4543789d885999c3188beec8fb39e701eaf"
+    },
+    {
+      "id": "swap-real-gasless-enabler-2026-unlimited-approval-denies",
+      "description": "Real incident: GaslessReservoirEnabler on Polygon, September 2026. The owner, the target (the drained spender), the input token and the approval amount are the victim's on-chain values read at the fork block of the DeFiHackLabs proof of concept. Amounts, quote, deadline and output token are synthetic.",
+      "label_source": {
+        "url": "https://github.com/SunWeb3Sec/DeFiHackLabs/blob/d4bd931e758a375ed7fcecf52322dfeab54f8c0d/src/test/2026-09/GaslessReservoirEnabler_exp.sol#L45-L89",
+        "kind": "repo",
+        "line_ref": "src/test/2026-09/GaslessReservoirEnabler_exp.sol line 45 names the enabler and line 89 names the largest victim",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:137",
+          "rpc": "https://polygon.drpc.org",
+          "method": "eth_call",
+          "call": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619.allowance(0x2F785EF4f514F6b785Ab93062e05CfCC937faC96, 0x9B58fDAdc16E30fBA313E044bf9e88689C3F163e)",
+          "block": 94199849,
+          "result": "115792089237316195423570985008687907853269984665640564039457569007913129639935"
+        },
+        {
+          "chainId": "eip155:137",
+          "rpc": "https://polygon.drpc.org",
+          "method": "eth_getTransactionReceipt",
+          "call": "0x2e476745f0f546dbe4583359ea6258dfb4fababea08734f676df2e6006e1fdee",
+          "block": 94199850,
+          "result": "status 0x1"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:137",
+            "target": "0x9B58fDAdc16E30fBA313E044bf9e88689C3F163e",
+            "tokenIn": {
+              "symbol": "WETH",
+              "contractAddress": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
+            },
+            "tokenOut": {
+              "symbol": "USDC",
+              "contractAddress": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x2F785EF4f514F6b785Ab93062e05CfCC937faC96",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457569007913129639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:137",
+          "approvedRecipients": [
+            "0x2F785EF4f514F6b785Ab93062e05CfCC937faC96"
+          ],
+          "perActionCaps": {
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "swap": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x2F785EF4f514F6b785Ab93062e05CfCC937faC96"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap"
+        ],
+        "unverifiedIds": [
+          "target-is-canonical",
+          "token-in-is-canonical",
+          "token-out-is-canonical",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "bdba005618e1f5f7604eb50aadaff6d840588f711a486e916a54da0706696771"
+    },
+    {
+      "id": "pay-real-wbtc-address-poisoning-denies",
+      "description": "Real incident: the 3 May 2024 address poisoning. The call bytes are the victim's signed WBTC transfer of 1155.28802767 WBTC to the lookalike 0xd9a1c378. The policy approves only the address the victim test-paid 0.05 ETH minutes earlier, 0xd9a1b0b1.",
+      "label_source": {
+        "url": "https://www.chainalysis.com/blog/address-poisoning-scam",
+        "kind": "incident",
+        "quote": "The event begins with an initial transfer on 3 May 2024 at 9:14 UTC from the victim (0x1E227) to 0xd9A1b, a seemingly benign address on the Ethereum blockchain. ... the victim made a second transfer, this time unknowingly to an address controlled by the scammer, 0xd9A1c",
+        "retrieved": "2026-10-30"
+      },
+      "chain_evidence": [
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getTransactionByHash",
+          "call": "0x3374abc5a9c766ba709651399b6e6162de97ca986abc23f423a9d893c8f5f570",
+          "block": 19789009,
+          "result": "from 0x1e227979 to WBTC, transfer(0xd9a1c378..., 115528802767), receipt status 0x1"
+        },
+        {
+          "chainId": "eip155:1",
+          "rpc": "https://eth.drpc.org",
+          "method": "eth_getBlockByNumber",
+          "call": "0xb18ab131d251f7429c56a2ae2b1b75ce104fe9e83315a0c71ccf2b20267683ac",
+          "block": 19788628,
+          "result": "from 0x1e227979 to 0xd9a1b0b1e1ae382dbdc898ea68012ffcb2853a91 value 50000000000000000"
+        }
+      ],
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0xd9a1c3788d81257612e2581a6ea0ada244853a91",
+            "asset": {
+              "symbol": "WBTC",
+              "contractAddress": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+            },
+            "amount": "115528802767",
+            "target": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+          },
+          "transaction": {
+            "from": "0x1e227979f0b5bc691a70deaed2e0f39a6f538fd5",
+            "to": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+            "value": "0",
+            "data": "0xa9059cbb000000000000000000000000d9a1c3788d81257612e2581a6ea0ada244853a910000000000000000000000000000000000000000000000000000001ae60da1cf"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0xd9a1b0b1e1ae382dbdc898ea68012ffcb2853a91"
+          ],
+          "perActionCaps": {
+            "pay": "115528802767"
+          },
+          "perActionCapAssets": {
+            "pay": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "recipient-matches-policy"
+        ],
+        "unverifiedIds": [
+          "asset-activity-sufficient",
+          "asset-holders-sufficient",
+          "asset-is-canonical",
+          "asset-liquidity-sufficient",
+          "target-is-canonical"
+        ]
+      },
+      "policySha256": "1557bdc9b092752ab990779e7523d8ce488fd6ae0cb84e2e872616e3d7f3204d"
     }
   ]
 }

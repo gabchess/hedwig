@@ -5,10 +5,28 @@ import { expect } from "chai";
 
 import { consult } from "../src";
 
+interface LabelSource {
+  url: string;
+  kind: string;
+  quote?: string;
+  line_ref?: string;
+  retrieved: string;
+}
+
+interface ChainEvidence {
+  chainId: string;
+  rpc: string;
+  method: string;
+  call: string;
+  block: number;
+  result: string;
+}
+
 interface GoldenCase {
   id: string;
   description: string;
-  label_source: string;
+  label_source: string | LabelSource;
+  chain_evidence?: ChainEvidence[];
   reviewed: boolean;
   policySha256: string;
   input: { request: unknown; policy: unknown; facts?: unknown };
@@ -25,6 +43,7 @@ interface GoldenFile {
   schemaVersion: number;
   policyVersion: string;
   notice: string;
+  labelCutoff: string;
   floorIds: Record<string, string[]>;
   cases: GoldenCase[];
 }
@@ -51,6 +70,30 @@ function policyHash(policy: unknown): string {
     .digest("hex");
 }
 
+const SOURCE_KINDS = ["incident", "onchain", "paper", "repo"];
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function withoutScheme(url: string): string {
+  return url
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+// Every URL the catalog source names is a list the catalog's own tables
+// came from, so a label taken from it would only check the catalog against
+// itself.
+const CATALOG_SOURCE_URLS = [
+  ...new Set(
+    (
+      readFileSync(join(__dirname, "..", "src", "catalog.ts"), "utf8").match(
+        /https?:\/\/[^\s"'`)]+/g
+      ) ?? []
+    ).map((url) => withoutScheme(url.replace(/[.,;]+$/, "")))
+  ),
+];
+
 function idsWithStatus(
   results: readonly { id: string; status: string }[],
   status: string
@@ -62,18 +105,80 @@ function idsWithStatus(
 }
 
 describe("golden cases", () => {
-  it("pins the policy version and marks every label unreviewed", () => {
+  it("pins the policy version and the label cutoff", () => {
     expect(GOLDEN.schemaVersion).to.equal(1);
     expect(GOLDEN.policyVersion).to.equal("golden-policy-1");
-    expect(GOLDEN.notice).to.match(/domain reviewer must confirm/);
+    expect(GOLDEN.notice).to.match(/verifier model/);
+    expect(GOLDEN.labelCutoff).to.match(ISO_DATE);
     expect(GOLDEN.cases.length).to.be.at.least(30);
     expect(new Set(GOLDEN.cases.map((c) => c.id)).size).to.equal(
       GOLDEN.cases.length
     );
+  });
+
+  it("allows reviewed true only on a case with a cited public source", () => {
     GOLDEN.cases.forEach((c) => {
-      expect(c.reviewed, c.id).to.equal(false);
-      expect(c.label_source, c.id).to.be.a("string").and.not.equal("");
       expect(c.description, c.id).to.be.a("string").and.not.equal("");
+      expect(c.reviewed, c.id).to.be.a("boolean");
+      if (typeof c.label_source === "string") {
+        expect(c.label_source, c.id).to.not.equal("");
+        expect(c.reviewed, `${c.id} has no public source`).to.equal(false);
+      } else {
+        expect(c.label_source, c.id).to.be.an("object");
+      }
+    });
+  });
+
+  it("gives every public source a url, a kind, one quote or line ref and a date", () => {
+    GOLDEN.cases.forEach((c) => {
+      if (typeof c.label_source === "string") return;
+      const source = c.label_source;
+      expect(Object.keys(source).sort(), c.id).to.satisfy(
+        (keys: string[]) =>
+          keys.join() === "kind,line_ref,retrieved,url" ||
+          keys.join() === "kind,quote,retrieved,url"
+      );
+      expect(source.url, c.id).to.match(/^https:\/\/\S+$/);
+      expect(SOURCE_KINDS, c.id).to.include(source.kind);
+      expect(source.quote ?? source.line_ref, c.id)
+        .to.be.a("string")
+        .and.not.equal("");
+      expect(source.retrieved, c.id).to.match(ISO_DATE);
+      expect(source.retrieved <= GOLDEN.labelCutoff, c.id).to.equal(true);
+    });
+  });
+
+  it("takes no label from a list the catalog imports", () => {
+    expect(CATALOG_SOURCE_URLS.length).to.be.at.least(1);
+    GOLDEN.cases.forEach((c) => {
+      if (typeof c.label_source === "string") return;
+      const url = withoutScheme(c.label_source.url);
+      CATALOG_SOURCE_URLS.forEach((imported) => {
+        expect(url.startsWith(imported), `${c.id} cites ${imported}`).to.equal(
+          false
+        );
+      });
+    });
+  });
+
+  it("records each chain read with its chain, endpoint, call, block and result", () => {
+    GOLDEN.cases.forEach((c) => {
+      if (c.chain_evidence === undefined) return;
+      expect(c.label_source, c.id).to.be.an("object");
+      expect(c.chain_evidence, c.id).to.be.an("array").that.is.not.empty;
+      c.chain_evidence.forEach((read) => {
+        expect(Object.keys(read).sort().join(), c.id).to.equal(
+          "block,call,chainId,method,result,rpc"
+        );
+        expect(read.chainId, c.id).to.match(/^eip155:[1-9]\d*$/);
+        expect(read.rpc, c.id).to.match(/^https:\/\/\S+$/);
+        expect(read.method, c.id).to.match(/^eth_[A-Za-z]+$/);
+        expect(read.call, c.id).to.be.a("string").and.not.equal("");
+        expect(read.result, c.id).to.be.a("string").and.not.equal("");
+        expect(Number.isSafeInteger(read.block) && read.block > 0, c.id).to.equal(
+          true
+        );
+      });
     });
   });
 
