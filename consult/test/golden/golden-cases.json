@@ -1,0 +1,2349 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "golden-policy-1",
+  "notice": "UNREVIEWED LABELS. Every case has reviewed false. An agent wrote the expected verdicts, score bands and check ids from THREAT-MODEL.md, consult/README.md and the existing test fixtures. A domain reviewer must confirm each label, then set reviewed to true, before this file counts as ground truth. Addresses are the repo's own synthetic or catalog constants. No case describes a real address.",
+  "fields": {
+    "input": "Exactly what consult(request, policy, facts) takes.",
+    "expected.failIds": "Sorted ids of the checks with status FAIL.",
+    "expected.unverifiedIds": "Sorted ids of the checks with status UNVERIFIED.",
+    "expected.band": "green, amber or red, as read from the support score.",
+    "policySha256": "SHA-256 of the key-sorted JSON of input.policy. A policy edit changes the hash, so it forces a deliberate label review.",
+    "policyVersion": "Version tag of the policy set in this file. Bump it when any policy object changes."
+  },
+  "floorIds": {
+    "pay": [
+      "amount-within-cap",
+      "asset-activity-sufficient",
+      "asset-holders-sufficient",
+      "asset-is-canonical",
+      "asset-liquidity-sufficient",
+      "authorization-window-within-ceiling",
+      "chain-matches-intent",
+      "recipient-matches-policy",
+      "recipient-not-poison-derived",
+      "role-requirement-met",
+      "target-is-canonical",
+      "transaction-matches-intent"
+    ],
+    "swap": [
+      "target-is-canonical",
+      "token-in-is-canonical",
+      "token-out-is-canonical",
+      "slippage-within-ceiling",
+      "deadline-set-and-fresh",
+      "output-recipient-is-owner",
+      "approval-scoped-to-this-swap",
+      "amount-within-cap",
+      "chain-matches-intent",
+      "role-requirement-met",
+      "transaction-matches-intent"
+    ]
+  },
+  "cases": [
+    {
+      "id": "pay-clean-direct-transfer-allows",
+      "description": "Direct ERC-20 transfer of canonical USDC to an approved recipient under the cap.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary'; fixture wrong-proceed-corpus.json clean-request-is-an-authorised-allow",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "ALLOW_UNDER_POLICY",
+        "proceed": true,
+        "band": "green",
+        "failIds": [],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-required-role-with-good-fact-allows",
+      "description": "Same clean transfer with a required Solana role backed by a fresh, valid fact.",
+      "label_source": "THREAT-MODEL.md section 'Solana role read'; fixture wrong-proceed-corpus.json pay-role-required-is-an-authorised-allow",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "required",
+            "cluster": "mainnet-beta",
+            "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+            "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+            "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+            "maxAgeSeconds": 60
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000,
+          "solanaRole": {
+            "subject": {
+              "cluster": "mainnet-beta",
+              "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+              "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+              "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+            },
+            "valid": true,
+            "reason": "ok",
+            "provenance": {
+              "source": "test-fixture",
+              "slot": 1,
+              "commitment": "confirmed",
+              "observedAt": 2000000000
+            }
+          }
+        }
+      },
+      "expected": {
+        "verdict": "ALLOW_UNDER_POLICY",
+        "proceed": true,
+        "band": "green",
+        "failIds": [],
+        "unverifiedIds": []
+      },
+      "policySha256": "19f057c6aa305d742fd935f812e2e83bb38b4d3a9de859daa5e030af65b780bc"
+    },
+    {
+      "id": "pay-recipient-not-in-policy-denies",
+      "description": "Recipient is not on the owner's approved list.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary' (the owner controls approved recipients)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000badc0de0",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000badc0de000000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "recipient-matches-policy"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-flagged-lookalike-recipient-denies",
+      "description": "Recipient is the catalog's flagged address written in upper-case hex, and the policy lists that form.",
+      "label_source": "fixture wrong-proceed-corpus.json case-variant-poison-address (address poisoning pattern)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x0000000000000000000000000000000000BAD001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb0000000000000000000000000000000000000000000000000000000000BAD00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x0000000000000000000000000000000000BAD001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "recipient-not-poison-derived"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "709cbae2f46f906edd9b3b359306e6307f94b3bb5e1edfd4a582884a0e421ea0"
+    },
+    {
+      "id": "pay-lookalike-mint-denies",
+      "description": "Asset is labelled USDC but its contract is not the canonical USDC, and the call targets that contract.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary' (a market check cannot establish token identity); lookalike mint pattern",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0x00000000000000000000000000000000000fa4e1"
+            },
+            "amount": "1000000",
+            "target": "0x00000000000000000000000000000000000fa4e1"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0x00000000000000000000000000000000000fa4e1",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "asset-is-canonical",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "amount-within-cap",
+          "asset-activity-sufficient",
+          "asset-holders-sufficient",
+          "asset-liquidity-sufficient"
+        ]
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-wrong-token-contract-in-call-denies",
+      "description": "Action names canonical USDC but the call bytes go to a different contract.",
+      "label_source": "fixture wrong-proceed-corpus.json target-is-a-different-contract",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0x00000000000000000000000000000000000fa4e1",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "transaction-matches-intent"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-action-target-not-the-token-denies",
+      "description": "Action target and call target both point at a contract that is not the asset contract.",
+      "label_source": "fixture wrong-proceed-corpus.json target-is-a-different-contract",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0x00000000000000000000000000000000000fa4e1"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0x00000000000000000000000000000000000fa4e1",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "target-is-canonical",
+          "transaction-matches-intent"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-amount-over-cap-denies",
+      "description": "Amount is one base unit over the per-action cap.",
+      "label_source": "consult/README.md section 'Policy and coverage' (caps count in the cap asset's base units)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000001",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4241"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "amount-within-cap"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-amount-zero-denies",
+      "description": "Amount is zero.",
+      "label_source": "consult/src/catalog.ts amount-within-cap declares code AMOUNT_ZERO as a fail",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "0",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce0010000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "amount-within-cap"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-negative-amount-is-unknown",
+      "description": "Amount is a negative string, so the cap check cannot run and the call cannot be built from it.",
+      "label_source": "fixture wrong-proceed-corpus.json malformed-amount-negative",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "-5",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "amount-within-cap",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-cap-asset-differs-is-unknown",
+      "description": "The policy cap counts a different token than the one being paid, so the cap is unverified.",
+      "label_source": "consult/README.md section 'Policy and coverage' (a missing or different cap asset returns UNVERIFIED)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "amount-within-cap"
+        ]
+      },
+      "policySha256": "73415e7ee57062d0d36a027e35923c5b1fc54aacd9d7a687288e4689a188eef8"
+    },
+    {
+      "id": "pay-chain-differs-from-policy-denies",
+      "description": "Action is on Base while the policy allows only Ethereum. The Ethereum USDC address is not canonical on Base, so the asset and target checks fail too.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary' (the owner names the chain)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:8453",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "asset-is-canonical",
+          "chain-matches-intent",
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "asset-activity-sufficient",
+          "asset-holders-sufficient",
+          "asset-liquidity-sufficient"
+        ]
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-policy-does-not-permit-is-unknown",
+      "description": "Every check passes but the policy has permits false.",
+      "label_source": "consult/README.md (an allow requires every mandatory check to pass and policy.permits to be true)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": false,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": []
+      },
+      "policySha256": "6ba97aed87ed5f92fa30556f962d88eb2c8aa44cbbf54183728d24548762df07"
+    },
+    {
+      "id": "pay-truthy-permits-string-is-unknown",
+      "description": "Policy permits is the string 'true', not boolean true.",
+      "label_source": "fixture wrong-proceed-corpus.json truthy-but-not-strictly-true-permits",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": "true",
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": []
+      },
+      "policySha256": "83f00c00184812e692c30af22be71338dbf3b62123d7707331136acd62ec35c8"
+    },
+    {
+      "id": "pay-calldata-recipient-differs-denies",
+      "description": "Call bytes pay a different recipient than the action states.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary' (supported calls must match their declared intent byte for byte)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000badc0de000000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "transaction-matches-intent"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-calldata-amount-differs-denies",
+      "description": "Call bytes move a larger amount than the action states.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary'",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce0010000000000000000000000000000000000000000000000000000000000895440"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "transaction-matches-intent"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-missing-call-bytes-is-unknown",
+      "description": "Request carries no unsigned transaction.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary' (missing bytes cannot earn proceed true)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-unknown-action-type-is-unknown",
+      "description": "Action type is outside the catalog.",
+      "label_source": "fixture wrong-proceed-corpus.json prototype-key-action-type; THREAT-MODEL.md (the catalog accepts pay and swap)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "refund",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "red",
+        "failIds": [],
+        "unverifiedIds": [
+          "action-type"
+        ]
+      },
+      "policySha256": "54d38a9079710bee0dcc68ea234e9d9a812fd4214d86f7d59f49554005bccf66"
+    },
+    {
+      "id": "pay-required-role-stale-fact-is-unknown",
+      "description": "Required role, but the role fact was observed 120 seconds before now against a 60 second limit.",
+      "label_source": "fixture wrong-proceed-corpus.json pay-role-fact-stale; THREAT-MODEL.md section 'Solana role read'",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "required",
+            "cluster": "mainnet-beta",
+            "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+            "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+            "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+            "maxAgeSeconds": 60
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000,
+          "solanaRole": {
+            "subject": {
+              "cluster": "mainnet-beta",
+              "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+              "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+              "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+            },
+            "valid": true,
+            "reason": "ok",
+            "provenance": {
+              "source": "test-fixture",
+              "slot": 1,
+              "commitment": "confirmed",
+              "observedAt": 1999999880
+            }
+          }
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "role-requirement-met"
+        ]
+      },
+      "policySha256": "19f057c6aa305d742fd935f812e2e83bb38b4d3a9de859daa5e030af65b780bc"
+    },
+    {
+      "id": "pay-required-role-missing-fact-is-unknown",
+      "description": "Required role with no role fact supplied.",
+      "label_source": "THREAT-MODEL.md section 'Solana role read' (Hedwig reads the fact and does not vouch for it)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "required",
+            "cluster": "mainnet-beta",
+            "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+            "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+            "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+            "maxAgeSeconds": 60
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "role-requirement-met"
+        ]
+      },
+      "policySha256": "19f057c6aa305d742fd935f812e2e83bb38b4d3a9de859daa5e030af65b780bc"
+    },
+    {
+      "id": "pay-required-role-disabled-denies",
+      "description": "Required role, and the fact says the role is invalid with reason disabled.",
+      "label_source": "fixture wrong-proceed-corpus.json pay-role-disabled",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "required",
+            "cluster": "mainnet-beta",
+            "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+            "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+            "holder": "HwHderSeedYZabcdefgh9jkHwHderSee",
+            "maxAgeSeconds": 60
+          },
+          "authorizationWindow": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000,
+          "solanaRole": {
+            "subject": {
+              "cluster": "mainnet-beta",
+              "programId": "HwPrgram9RankSeedABCDEFGHHwPrgra",
+              "role": "HwReNameSeedJKMNPQRSTUVWXHwReNam",
+              "holder": "HwHderSeedYZabcdefgh9jkHwHderSee"
+            },
+            "valid": false,
+            "reason": "RoleDisabled",
+            "provenance": {
+              "source": "test-fixture",
+              "slot": 1,
+              "commitment": "confirmed",
+              "observedAt": 2000000000
+            }
+          }
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "role-requirement-met"
+        ],
+        "unverifiedIds": []
+      },
+      "policySha256": "19f057c6aa305d742fd935f812e2e83bb38b4d3a9de859daa5e030af65b780bc"
+    },
+    {
+      "id": "pay-eip3009-window-in-past-denies",
+      "description": "Request carries an EIP-3009 validBefore already in the past and the policy requires a window.",
+      "label_source": "fixture wrong-proceed-corpus.json pay-authorization-window-past; THREAT-MODEL.md (EIP-3009 requirements cannot earn proceed true on a direct transfer)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "validBefore": 1999999999
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          },
+          "authorizationWindow": {
+            "mode": "required",
+            "maxSeconds": 600
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "authorization-window-within-ceiling"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6c722c73b18baf27737d37849cf9eb4ec7a8e4d1cc38c7ab89fe2030fa45cb2c"
+    },
+    {
+      "id": "pay-authorization-window-policy-missing-is-unknown",
+      "description": "Policy omits the authorizationWindow choice.",
+      "label_source": "fixture wrong-proceed-corpus.json pay-authorization-window-policy-missing; consult/README.md section 'Policy and coverage'",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "pay",
+            "chainId": "eip155:1",
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "asset": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amount": "1000000",
+            "target": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "transaction": {
+            "from": "0x00000000000000000000000000000000a11ce001",
+            "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "value": "0",
+            "data": "0xa9059cbb00000000000000000000000000000000000000000000000000000000a11ce00100000000000000000000000000000000000000000000000000000000000f4240"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "authorization-window-within-ceiling"
+        ]
+      },
+      "policySha256": "843743d0a9687273086d2a469c12542d4808e05668456fe28e043ecdf097aa47"
+    },
+    {
+      "id": "swap-clean-request-stays-unknown-without-decoded-call",
+      "description": "Canonical USDC to WETH swap with every intent check passing but no call bytes.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary' (undecoded routes cannot earn proceed true); fixture wrong-proceed-corpus.json swap-clean-request-is-an-authorised-allow",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-unlimited-approval-denies",
+      "description": "Approval amount is the maximum uint256 instead of the swap amount.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-approval-max-uint (unlimited approval pattern)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-approval-one-unit-over-denies",
+      "description": "Approval is one base unit above the swap amount.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-approval-off-by-one",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000001"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "approval-scoped-to-this-swap"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-non-canonical-router-denies",
+      "description": "Swap target is a contract that is not the pinned router for the chain.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-target-is-a-different-contract",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x00000000000000000000000000000000000fa4e1",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "target-is-canonical"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-output-to-non-owner-denies",
+      "description": "Swap output goes to an address that is not an owner address.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-recipient-not-the-owner",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000badc0de0",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "output-recipient-is-owner"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-lookalike-token-out-denies",
+      "description": "Output token is labelled WETH but sits at a non-canonical contract.",
+      "label_source": "lookalike mint pattern on the swap output; THREAT-MODEL.md (a market check cannot establish token identity)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0x00000000000000000000000000000000000fa4e1"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "token-out-is-canonical"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-token-in-equals-token-out-denies",
+      "description": "Input and output token are the same contract.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-token-in-equals-token-out",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "token-in-is-canonical",
+          "token-out-is-canonical"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-slippage-over-ceiling-denies",
+      "description": "Derived slippage is 1000 bps against a 100 bps ceiling.",
+      "label_source": "THREAT-MODEL.md section 'The payment check's boundary' (slippage compares the supplied quote and minimum output with policy); consult/test/swap.test.ts pinned acceptance",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "900000",
+            "slippageBps": 1000,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "slippage-within-ceiling"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-min-out-zero-denies",
+      "description": "Minimum output is zero, which accepts any price.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-min-out-zero (sandwich exposure pattern)",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "0",
+            "slippageBps": 10000,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "slippage-within-ceiling"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-deadline-equal-to-now-denies",
+      "description": "Deadline equals the current time.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-deadline-equal-to-now",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000000,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "deadline-set-and-fresh"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-deadline-beyond-owner-window-denies",
+      "description": "Deadline is 3600 seconds out against a 600 second owner window.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-deadline-beyond-owner-window",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000003600,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "deadline-set-and-fresh"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-clock-fact-missing-is-unknown",
+      "description": "No now fact, so the deadline cannot be dated.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-facts-missing; consult/README.md section 'Facts supplied by the integration'",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000000",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000000"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        }
+      },
+      "expected": {
+        "verdict": "UNKNOWN",
+        "proceed": false,
+        "band": "amber",
+        "failIds": [],
+        "unverifiedIds": [
+          "deadline-set-and-fresh",
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    },
+    {
+      "id": "swap-amount-over-cap-denies",
+      "description": "Swap input amount exceeds the per-action cap.",
+      "label_source": "fixture wrong-proceed-corpus.json swap-amount-over-cap",
+      "reviewed": false,
+      "input": {
+        "request": {
+          "action": {
+            "type": "swap",
+            "chainId": "eip155:1",
+            "target": "0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85",
+            "tokenIn": {
+              "symbol": "USDC",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+            },
+            "tokenOut": {
+              "symbol": "WETH",
+              "contractAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "amountIn": "1000001",
+            "quotedOut": "1000000",
+            "minOut": "995000",
+            "slippageBps": 50,
+            "deadline": 2000000300,
+            "recipient": "0x00000000000000000000000000000000a11ce001",
+            "approvalAmount": "1000001"
+          }
+        },
+        "policy": {
+          "permits": true,
+          "chainId": "eip155:1",
+          "approvedRecipients": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "perActionCaps": {
+            "pay": "1000000",
+            "swap": "1000000"
+          },
+          "perActionCapAssets": {
+            "pay": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "swap": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "maxSlippageBps": 100,
+          "maxDeadlineSeconds": 600,
+          "ownerAddresses": [
+            "0x00000000000000000000000000000000a11ce001"
+          ],
+          "role": {
+            "mode": "not-required"
+          }
+        },
+        "facts": {
+          "now": 2000000000
+        }
+      },
+      "expected": {
+        "verdict": "DENY",
+        "proceed": false,
+        "band": "red",
+        "failIds": [
+          "amount-within-cap"
+        ],
+        "unverifiedIds": [
+          "transaction-matches-intent"
+        ]
+      },
+      "policySha256": "6e0eab4d15392bd11be1a0f51f54da68dbbc63344291ffcb1d9beb54c976fb22"
+    }
+  ]
+}
