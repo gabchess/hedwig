@@ -35,7 +35,7 @@ const skill = fs.readFileSync(
   "utf8"
 );
 const skillRequest = JSON.parse(
-  /```json\n([\s\S]*?)\n```/.exec(skill)[1]
+  /```json\r?\n([\s\S]*?)\r?\n```/.exec(skill)[1]
 ).request;
 const fixture = JSON.parse(
   fs.readFileSync(path.join(root, "mcp/test/fixtures/request.json"), "utf8")
