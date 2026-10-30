@@ -1,0 +1,2 @@
+# esbuild bundle written by scripts/build-plugin.js from mcp/dist/server.js. CI rebuilds it and fails on a diff.
+plugin/server/hedwig-mcp.js linguist-generated=true
