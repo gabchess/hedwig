@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { expect } from "chai";
 
 import { consult } from "../src";
+import { BAND_GREEN_MIN } from "../src/constants";
 
 interface LabelSource {
   url: string;
@@ -306,6 +307,20 @@ describe("golden cases", () => {
       expect(response.verdict, "verdict").to.equal(c.expected.verdict);
       expect(response.proceed, "proceed").to.equal(c.expected.proceed);
       expect(response.band, "band").to.equal(c.expected.band);
+      // The band check alone lets a DENY with a small non-zero support pass,
+      // because any value below BAND_RED_MAX is still red. Pin the support
+      // rules that consult() must keep (see supportOf in src/support.ts).
+      expect(response.support, "support range").to.be.within(0, 1);
+      expect(
+        response.proceed,
+        "proceed iff support >= BAND_GREEN_MIN"
+      ).to.equal(response.support >= BAND_GREEN_MIN);
+      if (response.verdict === "DENY") {
+        expect(response.support, "DENY support").to.equal(0);
+      }
+      if (response.verdict === "UNKNOWN") {
+        expect(response.support, "UNKNOWN support").to.be.below(BAND_GREEN_MIN);
+      }
       expect(idsWithStatus(response.results, "FAIL"), "FAIL ids").to.deep.equal(
         c.expected.failIds
       );
