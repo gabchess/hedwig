@@ -187,8 +187,8 @@
       "action": {
         "amount": "115792089237316195423570985008687907853269984665640564039457584007913129639936"
       },
-      "anyOf": ["DENY", "UNKNOWN"],
-      "basis": "consult/references/pay/amount-within-cap.md and transaction-binding.md: over the cap, and the calldata contradicts the action. The docs do not say which code wins, only that it is not ALLOW."
+      "expected": "DENY",
+      "basis": "consult/references/pay/amount-within-cap.md line 14: 2^256 is a well-formed digit string over the cap, so the check is FAIL. docs/agents.md line 187: DENY when at least one check failed."
     },
     {
       "id": "pol-01",
@@ -315,7 +315,7 @@
       "policy": { "from": "pay", "unset": ["perActionCaps"] },
       "action": {},
       "expected": "UNKNOWN",
-      "basis": "consult README and .coderabbit.yaml path rules for consult: a missing parameter gives an UNVERIFIED row and an UNKNOWN verdict, never PASS."
+      "basis": "consult/references/pay/amount-within-cap.md line 15: no cap is configured for the action type, so the check is UNVERIFIED and the verdict is UNKNOWN."
     },
     {
       "id": "pol-14",
@@ -390,7 +390,7 @@
       "policy": "pay",
       "action": { "amount": "-1" },
       "expected": "UNKNOWN",
-      "basis": "docs/agents.md, Call consult: AMOUNT is digits only."
+      "basis": "consult/references/pay/amount-within-cap.md lines 15 to 16: an amount that is not a well-formed non-negative integer string is UNVERIFIED, so the verdict is UNKNOWN."
     },
     {
       "id": "mal-08",
@@ -399,7 +399,7 @@
       "policy": "pay",
       "action": { "amount": "1.5" },
       "expected": "UNKNOWN",
-      "basis": "docs/agents.md, Call consult: AMOUNT is digits only."
+      "basis": "consult/references/pay/amount-within-cap.md lines 15 to 16: an amount that is not a well-formed non-negative integer string is UNVERIFIED, so the verdict is UNKNOWN."
     },
     {
       "id": "mal-09",
@@ -408,7 +408,7 @@
       "policy": "pay",
       "action": { "amount": "1e6" },
       "expected": "UNKNOWN",
-      "basis": "docs/agents.md, Call consult: AMOUNT is digits only."
+      "basis": "consult/references/pay/amount-within-cap.md lines 15 to 16: an amount that is not a well-formed non-negative integer string is UNVERIFIED, so the verdict is UNKNOWN."
     },
     {
       "id": "mal-10",

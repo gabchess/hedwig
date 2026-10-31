@@ -248,6 +248,10 @@ describe("Hedwig eval suite", function () {
         delete process.env[key];
       }
     }
+    // This blocks fetch only. fetch is the only network client in mcp/src and
+    // consult/src (mcp/src/handler.ts:224 and :232 read globalThis.fetch at
+    // call time). Lower-level sockets (node:net, node:http) are not blocked,
+    // so a new client there would bypass this stub.
     globalThis.fetch = (async () => {
       networkCalls += 1;
       throw new Error("the eval suite allows no network calls");
