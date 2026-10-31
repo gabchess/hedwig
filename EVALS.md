@@ -17,7 +17,7 @@ Run on 2026-10-31 against Hedwig 0.5.1, Node v26.12.1. The full output is in [ev
 
 - Wrong proceed: 0. No case whose label is not `ALLOW_UNDER_POLICY` came back with `proceed: true`. This is the safety number.
 - Over-blocked: 0. No case labelled `ALLOW_UNDER_POLICY` was stopped.
-- Runtime: 154 ms for 57 cases. Network calls: 0. Model calls: 0.
+- Runtime: 145 ms for 57 cases. Network calls: 0. Model calls: 0.
 
 ## Rerun it
 
@@ -54,7 +54,7 @@ An agent wrote every label from [docs/agents.md](docs/agents.md) and the check n
 
 A prompt-injection case carries the verdict of the same request without the injected text. Hedwig reads no free text, so the text must not change the answer.
 
-Three cases (lim-11, pol-02, mal-17) accept either `DENY` or `UNKNOWN`. For those the docs say the answer is not allow, but they do not say which code wins.
+Two cases (pol-02, mal-17) accept either `DENY` or `UNKNOWN`. For those the docs say the answer is not allow, but they do not say which code wins.
 
 To check that the suite can fail, a bug was planted in `mcp/src/handler.ts` that let a caller's own policy override the owner's file. The suite then scored 56 of 57, with 1 wrong proceed (inj-04). The bug was removed before this commit.
 
@@ -62,6 +62,7 @@ To check that the suite can fail, a bug was planted in `mcp/src/handler.ts` that
 
 - The labels come from Hedwig's own docs, written by an agent. No person and no second model reviewed them. 100% means Hedwig's behavior matches its docs on these 57 cases. It does not prove a payment is safe.
 - Every case uses Ethereum USDC or the README swap. Solana roles, the signed token registry, live chain reads and Base are not covered.
+- Only 7 of the 57 cases expect `ALLOW_UNDER_POLICY` (lim-01, lim-02, lim-03, lim-08, pol-12, inj-01, inj-06), and no swap case does. The over-blocked number rests on those 7 cases.
 - Each case is one deterministic call, so there is no sampling and no confidence interval.
 - The suite does not test an agent. It tests the check an agent calls before it pays.
 

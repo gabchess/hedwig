@@ -3,8 +3,8 @@
   "schemaVersion": 1,
   "hedwigVersion": "0.5.1",
   "node": "v26.12.1",
-  "ranAt": "2026-10-31T16:52:21.856Z",
-  "runtimeMs": 154,
+  "ranAt": "2026-10-31T17:05:18.352Z",
+  "runtimeMs": 145,
   "networkCalls": 0,
   "modelCalls": 0,
   "totalCases": 57,
@@ -12,7 +12,7 @@
   "accuracy": 1,
   "wrongProceed": 0,
   "overBlocked": 0,
-  "casesWithAnyOfLabel": 3,
+  "casesWithAnyOfLabel": 2,
   "byCategory": {
     "limits": {
       "total": 11,
@@ -155,8 +155,7 @@
       "id": "lim-11",
       "category": "limits",
       "accepted": [
-        "DENY",
-        "UNKNOWN"
+        "DENY"
       ],
       "verdict": "DENY",
       "proceed": false,
