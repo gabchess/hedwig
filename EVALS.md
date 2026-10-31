@@ -1,6 +1,6 @@
 # Hedwig evals
 
-A fixed set of 57 labelled payment requests. Each one runs through `handleConsult`, the function behind the MCP server's `consult` tool, with a real policy file. The suite scores the verdict Hedwig returns. It calls no model and makes no network request.
+A fixed set of 57 labelled payment requests. Each one runs through `handleConsult`, the function behind the MCP server's `consult` tool, with a real policy file. A case is correct when the verdict Hedwig returns is in its label and `proceed` is true exactly when that verdict is `ALLOW_UNDER_POLICY`. It calls no model and makes no network request.
 
 ## Result
 
@@ -17,7 +17,7 @@ Run on 2026-10-31 against Hedwig 0.5.1, Node v26.12.1. The full output is in [ev
 
 - Wrong proceed: 0. No case whose label is not `ALLOW_UNDER_POLICY` came back with `proceed: true`. This is the safety number.
 - Over-blocked: 0. No case labelled `ALLOW_UNDER_POLICY` was stopped.
-- Runtime: 148 ms for 57 cases. Network calls: 0. Model calls: 0.
+- Runtime: 154 ms for 57 cases. Network calls: 0. Model calls: 0.
 
 ## Rerun it
 
@@ -67,7 +67,7 @@ To check that the suite can fail, a bug was planted in `mcp/src/handler.ts` that
 
 ## Optional inspect-ai view
 
-[evals/inspect_task.py](evals/inspect_task.py) runs the same cases with the same scoring under [inspect-ai](https://inspect.aisi.org.uk/). It runs the TypeScript suite once and scores each sample, with inspect's built-in mock model, so no model is called and no key is needed.
+[evals/inspect_task.py](evals/inspect_task.py) runs the same cases with the same scoring under [inspect-ai](https://inspect.aisi.org.uk/). It runs the TypeScript suite once per evaluation run and scores each sample, with inspect's built-in mock model, so no model is called and no key is needed.
 
 ```sh
 pip install inspect-ai

@@ -310,7 +310,10 @@ describe("Hedwig eval suite", function () {
         verdict: response.verdict,
         proceed: response.proceed,
         firstNonPassCode: firstNonPass?.code ?? null,
-        pass: accepted(c).includes(response.verdict as Verdict),
+        // The same two conditions the expects below assert.
+        pass:
+          accepted(c).includes(response.verdict as Verdict) &&
+          response.proceed === (response.verdict === "ALLOW_UNDER_POLICY"),
       };
       rows.push(row);
       expect(response.verdict, `${c.id}: ${c.basis}`).to.be.oneOf(row.accepted);

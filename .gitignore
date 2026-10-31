@@ -26,3 +26,4 @@ id.json
 
 # inspect-ai logs from evals/inspect_task.py
 logs/
+__pycache__/

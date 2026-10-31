@@ -33,9 +33,6 @@ EVALS_DIR = Path(__file__).resolve().parent
 REPO_DIR = EVALS_DIR.parent
 TS_MOCHA = REPO_DIR / "node_modules" / "ts-mocha" / "bin" / "ts-mocha"
 
-_verdicts: dict[str, dict] = {}
-
-
 def _cases() -> list[dict]:
     with open(EVALS_DIR / "cases.json", encoding="utf-8") as handle:
         return json.load(handle)["cases"]
@@ -46,9 +43,7 @@ def _accepted(case: dict) -> list[str]:
 
 
 def _run_suite() -> dict[str, dict]:
-    """Run the TypeScript suite once and return its rows by case id."""
-    if _verdicts:
-        return _verdicts
+    """Run the TypeScript suite and return its rows by case id."""
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "results.json"
         env = {**os.environ, "HEDWIG_EVALS_RESULTS": str(out)}
@@ -65,15 +60,26 @@ def _run_suite() -> dict[str, dict]:
         if not out.exists():
             raise RuntimeError("the TypeScript eval suite wrote no results")
         report = json.loads(out.read_text(encoding="utf-8"))
-    _verdicts.update({row["id"]: row for row in report["cases"]})
-    return _verdicts
+    return {row["id"]: row for row in report["cases"]}
 
 
 @solver
 def hedwig_consult():
+    # One suite run serves one evaluation run. A sample id seen again in the
+    # same epoch means a new eval() of this Task, so the suite runs again.
+    rows: dict[str, dict] = {}
+    served: set[tuple[str, int]] = set()
+
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        row = _run_suite().get(str(state.sample_id))
+        key = (str(state.sample_id), state.epoch)
+        if not rows or key in served:
+            rows.clear()
+            rows.update(_run_suite())
+            served.clear()
+        served.add(key)
+        row = rows.get(key[0])
         state.output.completion = row["verdict"] if row else "NO_RESULT"
+        state.metadata["pass"] = bool(row and row["pass"])
         state.metadata["proceed"] = bool(row and row["proceed"])
         state.metadata["first_non_pass_code"] = row and row["firstNonPassCode"]
         return state
@@ -85,8 +91,11 @@ def hedwig_consult():
 def verdict_in_label():
     async def score(state: TaskState, target: Target) -> Score:
         verdict = state.output.completion
+        # pass is the TypeScript suite's own rule: the verdict is in the label
+        # and proceed is true exactly when the verdict is ALLOW_UNDER_POLICY.
+        correct = verdict in target.target and state.metadata.get("pass")
         return Score(
-            value=CORRECT if verdict in target.target else INCORRECT,
+            value=CORRECT if correct else INCORRECT,
             answer=verdict,
             explanation=state.metadata.get("basis", ""),
         )
