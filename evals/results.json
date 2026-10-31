@@ -1,0 +1,675 @@
+{
+  "suite": "hedwig-evals",
+  "schemaVersion": 1,
+  "hedwigVersion": "0.5.1",
+  "node": "v26.12.1",
+  "ranAt": "2026-10-31T16:34:43.739Z",
+  "runtimeMs": 148,
+  "networkCalls": 0,
+  "modelCalls": 0,
+  "totalCases": 57,
+  "correct": 57,
+  "accuracy": 1,
+  "wrongProceed": 0,
+  "overBlocked": 0,
+  "casesWithAnyOfLabel": 3,
+  "byCategory": {
+    "limits": {
+      "total": 11,
+      "correct": 11,
+      "accuracy": 1
+    },
+    "policy": {
+      "total": 14,
+      "correct": 14,
+      "accuracy": 1
+    },
+    "malformed": {
+      "total": 17,
+      "correct": 17,
+      "accuracy": 1
+    },
+    "prompt-injection": {
+      "total": 12,
+      "correct": 12,
+      "accuracy": 1
+    },
+    "swap": {
+      "total": 3,
+      "correct": 3,
+      "accuracy": 1
+    }
+  },
+  "cases": [
+    {
+      "id": "lim-01",
+      "category": "limits",
+      "accepted": [
+        "ALLOW_UNDER_POLICY"
+      ],
+      "verdict": "ALLOW_UNDER_POLICY",
+      "proceed": true,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "lim-02",
+      "category": "limits",
+      "accepted": [
+        "ALLOW_UNDER_POLICY"
+      ],
+      "verdict": "ALLOW_UNDER_POLICY",
+      "proceed": true,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "lim-03",
+      "category": "limits",
+      "accepted": [
+        "ALLOW_UNDER_POLICY"
+      ],
+      "verdict": "ALLOW_UNDER_POLICY",
+      "proceed": true,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "lim-04",
+      "category": "limits",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "lim-05",
+      "category": "limits",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "lim-06",
+      "category": "limits",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "lim-07",
+      "category": "limits",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "lim-08",
+      "category": "limits",
+      "accepted": [
+        "ALLOW_UNDER_POLICY"
+      ],
+      "verdict": "ALLOW_UNDER_POLICY",
+      "proceed": true,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "lim-09",
+      "category": "limits",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "lim-10",
+      "category": "limits",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "lim-11",
+      "category": "limits",
+      "accepted": [
+        "DENY",
+        "UNKNOWN"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "pol-01",
+      "category": "policy",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "RECIPIENT_NOT_IN_POLICY",
+      "pass": true
+    },
+    {
+      "id": "pol-02",
+      "category": "policy",
+      "accepted": [
+        "DENY",
+        "UNKNOWN"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "RECIPIENT_NOT_IN_POLICY",
+      "pass": true
+    },
+    {
+      "id": "pol-03",
+      "category": "policy",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "ASSET_NOT_CANONICAL",
+      "pass": true
+    },
+    {
+      "id": "pol-04",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "pol-05",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "ROLE_POLICY_MISSING",
+      "pass": true
+    },
+    {
+      "id": "pol-06",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "AUTHORIZATION_POLICY_MISSING",
+      "pass": true
+    },
+    {
+      "id": "pol-07",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "CAP_ASSET_MISSING",
+      "pass": true
+    },
+    {
+      "id": "pol-08",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "ASSET_REGISTRY_ENTRY_MISSING",
+      "pass": true
+    },
+    {
+      "id": "pol-09",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "ADAPTER_POLICY_UNREADABLE",
+      "pass": true
+    },
+    {
+      "id": "pol-10",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "ADAPTER_POLICY_UNREADABLE",
+      "pass": true
+    },
+    {
+      "id": "pol-11",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "pol-12",
+      "category": "policy",
+      "accepted": [
+        "ALLOW_UNDER_POLICY"
+      ],
+      "verdict": "ALLOW_UNDER_POLICY",
+      "proceed": true,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "pol-13",
+      "category": "policy",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "CAP_MISSING",
+      "pass": true
+    },
+    {
+      "id": "pol-14",
+      "category": "policy",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "ASSET_NOT_CANONICAL",
+      "pass": true
+    },
+    {
+      "id": "mal-01",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "INPUT_SHAPE_INVALID",
+      "pass": true
+    },
+    {
+      "id": "mal-02",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "INPUT_SHAPE_INVALID",
+      "pass": true
+    },
+    {
+      "id": "mal-03",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "INPUT_SHAPE_INVALID",
+      "pass": true
+    },
+    {
+      "id": "mal-04",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "ACTION_TYPE_UNKNOWN",
+      "pass": true
+    },
+    {
+      "id": "mal-05",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_MALFORMED",
+      "pass": true
+    },
+    {
+      "id": "mal-06",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_MALFORMED",
+      "pass": true
+    },
+    {
+      "id": "mal-07",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_MALFORMED",
+      "pass": true
+    },
+    {
+      "id": "mal-08",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_MALFORMED",
+      "pass": true
+    },
+    {
+      "id": "mal-09",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_MALFORMED",
+      "pass": true
+    },
+    {
+      "id": "mal-10",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "RECIPIENT_SHAPE_INVALID",
+      "pass": true
+    },
+    {
+      "id": "mal-11",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "RECIPIENT_SHAPE_INVALID",
+      "pass": true
+    },
+    {
+      "id": "mal-12",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "RECIPIENT_CHAIN_UNSUPPORTED",
+      "pass": true
+    },
+    {
+      "id": "mal-13",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "PAY_CALL_UNSUPPORTED",
+      "pass": true
+    },
+    {
+      "id": "mal-14",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "PAY_CALL_UNSUPPORTED",
+      "pass": true
+    },
+    {
+      "id": "mal-15",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "PAY_CALL_UNSUPPORTED",
+      "pass": true
+    },
+    {
+      "id": "mal-16",
+      "category": "malformed",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "ADAPTER_INPUT_TOO_LARGE",
+      "pass": true
+    },
+    {
+      "id": "mal-17",
+      "category": "malformed",
+      "accepted": [
+        "DENY",
+        "UNKNOWN"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "PAY_CALL_INTENT_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "inj-01",
+      "category": "prompt-injection",
+      "accepted": [
+        "ALLOW_UNDER_POLICY"
+      ],
+      "verdict": "ALLOW_UNDER_POLICY",
+      "proceed": true,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "inj-02",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "inj-03",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "RECIPIENT_NOT_IN_POLICY",
+      "pass": true
+    },
+    {
+      "id": "inj-04",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "RECIPIENT_NOT_IN_POLICY",
+      "pass": true
+    },
+    {
+      "id": "inj-05",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "inj-06",
+      "category": "prompt-injection",
+      "accepted": [
+        "ALLOW_UNDER_POLICY"
+      ],
+      "verdict": "ALLOW_UNDER_POLICY",
+      "proceed": true,
+      "firstNonPassCode": null,
+      "pass": true
+    },
+    {
+      "id": "inj-07",
+      "category": "prompt-injection",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "ASSET_REGISTRY_ENTRY_MISSING",
+      "pass": true
+    },
+    {
+      "id": "inj-08",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "PAY_CALL_INTENT_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "inj-09",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "PAY_CALL_INTENT_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "inj-10",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "TARGET_NOT_CANONICAL",
+      "pass": true
+    },
+    {
+      "id": "inj-11",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "AMOUNT_EXCEEDS_CAP",
+      "pass": true
+    },
+    {
+      "id": "inj-12",
+      "category": "prompt-injection",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "PAY_CALL_INTENT_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "swp-01",
+      "category": "swap",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "SWAP_CALL_UNSUPPORTED",
+      "pass": true
+    },
+    {
+      "id": "swp-02",
+      "category": "swap",
+      "accepted": [
+        "UNKNOWN"
+      ],
+      "verdict": "UNKNOWN",
+      "proceed": false,
+      "firstNonPassCode": "SWAP_CALL_UNSUPPORTED",
+      "pass": true
+    },
+    {
+      "id": "swp-03",
+      "category": "swap",
+      "accepted": [
+        "DENY"
+      ],
+      "verdict": "DENY",
+      "proceed": false,
+      "firstNonPassCode": "SLIPPAGE_EXCEEDS_CEILING",
+      "pass": true
+    }
+  ]
+}

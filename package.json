@@ -8,7 +8,8 @@
     "consult:build": "tsc -p consult/tsconfig.json",
     "mcp:typecheck": "tsc -p mcp/tsconfig.json --noEmit && tsc -p mcp/tsconfig.test.json --noEmit",
     "mcp:test": "ts-mocha -p mcp/tsconfig.test.json \"mcp/test/**/*.test.ts\"",
-    "mcp:build": "tsc -p mcp/tsconfig.json"
+    "mcp:build": "tsc -p mcp/tsconfig.json",
+    "evals": "ts-mocha -p evals/tsconfig.json evals/hedwig.eval.ts"
   },
   "devDependencies": {
     "@types/chai": "^4.3.0",

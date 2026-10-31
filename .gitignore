@@ -23,3 +23,6 @@ id.json
 .idea/
 *.swp
 .vercel
+
+# inspect-ai logs from evals/inspect_task.py
+logs/
