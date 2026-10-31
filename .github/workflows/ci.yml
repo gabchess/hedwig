@@ -54,6 +54,9 @@ jobs:
           yarn mcp:build
           yarn mcp:test
 
+      - name: Run the eval suite
+        run: yarn evals
+
       - name: Check the plugin
         run: |
           cmp plugin/sample/limits.json mcp/test/fixtures/policy.json
