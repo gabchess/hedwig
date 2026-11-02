@@ -104,6 +104,8 @@ reviews:
     - "**/package-lock.json"
     - "**/*.lock"
     - "!plugin/server/**"
+    - '!**/*.md'
+    - '!**/INVENTORY*'
   path_instructions:
     - path: "consult/**"
       instructions: |
@@ -172,6 +174,8 @@ reviews:
         Failure cases: a lock change with no matching package.json change, or the reverse; a resolved URL on any host other than registry.npmjs.org; an integrity hash that changed while the version stayed the same; hasInstallScript set on a new package; a name one edit away from a well-known package; a new transitive package in mcp that handles keys or network I/O.
 
         List each added or upgraded package and say whether the PR description names it.
+    - path: .github/**
+      instructions: Check secrets, env leaks, and permissions.
 chat:
   auto_reply: false
   art: false
@@ -180,7 +184,7 @@ knowledge_base:
   code_guidelines:
     enabled: true
   learnings:
-    scope: local
+    scope: auto
   issues:
     scope: local
   pull_requests:
