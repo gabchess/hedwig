@@ -104,7 +104,6 @@ reviews:
     - "**/package-lock.json"
     - "**/*.lock"
     - "!plugin/server/**"
-    - '!**/*.md'
     - '!**/INVENTORY*'
   path_instructions:
     - path: "consult/**"
