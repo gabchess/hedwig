@@ -106,6 +106,8 @@ reviews:
     - "!plugin/server/**"
     - '!**/*.md'
     - '!**/INVENTORY*'
+    - '**/AGENTS.md'
+    - '**/CLAUDE.md'
   path_instructions:
     - path: "consult/**"
       instructions: |
@@ -184,7 +186,7 @@ knowledge_base:
   code_guidelines:
     enabled: true
   learnings:
-    scope: auto
+    scope: local
   issues:
     scope: local
   pull_requests:
