@@ -106,8 +106,6 @@ reviews:
     - "!plugin/server/**"
     - '!**/*.md'
     - '!**/INVENTORY*'
-    - '**/AGENTS.md'
-    - '**/CLAUDE.md'
   path_instructions:
     - path: "consult/**"
       instructions: |
