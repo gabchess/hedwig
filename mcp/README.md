@@ -1,6 +1,6 @@
 # @hedwig/mcp
 
-Check before your agent pays. This local MCP server lets your agent call `consult` before signing a token transfer or swap. It checks your policy and returns reasons. Your application controls signing and execution.
+This local MCP server exposes the existing `consult` payment-policy checker and an opt-in learning prototype, `ask_hedwig`. The learning prototype retrieves a small reference set before an operator-configured model generates its answer. Your application controls signing and execution.
 
 ## Run
 
@@ -30,6 +30,32 @@ The response contains `question`, `proceed`, `band`, `verdict`, `support`,
 `support` value describes the evidence behind the checks after the verdict
 has been decided. Results list FAIL rows first, followed by UNVERIFIED and
 PASS. See the [payment-check guide](../consult/README.md) for shapes and limits.
+
+## Learning prototype
+
+This branch implements a limited prototype. It recognizes four reviewed questions about ERC-4626 shares and x402 facilitator roles. It is not yet a general DeFi knowledge base. Other wording and unsupported questions return insufficient evidence; current yields, deployment safety and deposit recommendations are outside this source pack.
+
+| HEDWIG_MODE | Exposed tools | Payment policy |
+| --- | --- | --- |
+| unset or consult | consult | Required and pinned at startup |
+| education | ask_hedwig | Not required; consult calls rejected |
+| both | consult and ask_hedwig | Required and pinned at startup |
+
+A learning call has this shape:
+
+```json
+{ "question": "What are ERC-4626 vault shares?" }
+```
+
+The other reviewed questions are “What do ERC-4626 vault shares represent?”, “What is the facilitator role in x402?” and “What can an x402 V2 facilitator do?”. Capitalization, whitespace and a final question mark may vary.
+
+The operator configures `OPENROUTER_API_KEY` and `HEDWIG_OPENROUTER_MODEL` in the server process. Use a scoped key with an approved spending cap. Never put credentials in tool arguments or commit them. No model is selected automatically, and no fallback model is configured. Without both values, supported learning requests return unavailable. Unsupported questions stop before generation.
+
+The adapter uses structured output, a 15-second deadline and a bounded response. It sends data-collection denial and requires zero-retention routing for non-free models. Free models may only receive public or synthetic inputs. The current admitted questions and source notes are public. Operator configuration must be separately qualified before a live call.
+
+An answered result includes answer text and source IDs/URLs. Citation validation proves that an ID was retrieved; it does not prove that every generated claim follows from the source. This prototype has no transaction verdict and cannot approve a deposit.
+
+Model-free tests exercise an injected generator and mocked provider responses. They do not establish real-model answer quality, latency, billing or provider availability. On 2026-11-11, a real SDK client called the built stdio server in education mode using `baidu/ernie-5.5-flash-preview:free`. The vault-shares question returned a cited answer in 1.8 seconds; an unsupported yield question returned insufficient evidence, and a consult call was rejected. Reported key usage did not change. This single public-prompt check does not establish general answer quality, future model availability, or installation in a host app.
 
 ## Policy file
 

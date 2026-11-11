@@ -8,6 +8,17 @@ import { SERVER_PATH, assertServerBuilt, VALID_POLICY } from "./e2e-helpers";
 
 const CLIENT_SCRIPT = join(__dirname, "e2e-client.js");
 
+function isolatedConsultEnvironment(overrides: NodeJS.ProcessEnv = {}) {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    HEDWIG_MODE: "consult",
+    ...overrides,
+  };
+  delete env.OPENROUTER_API_KEY;
+  delete env.HEDWIG_OPENROUTER_MODEL;
+  return env;
+}
+
 describe("the built server, driven over real stdio", function () {
   this.timeout(15000);
 
@@ -82,7 +93,7 @@ describe("the built server, driven over real stdio", function () {
   });
 
   it("refuses to start, exiting non-zero with a message on stderr, when the policy variable is unset", () => {
-    const env = { ...process.env };
+    const env = isolatedConsultEnvironment();
     delete env.HEDWIG_POLICY_FILE;
 
     const result = spawnSync(process.execPath, [SERVER_PATH], {
@@ -96,7 +107,7 @@ describe("the built server, driven over real stdio", function () {
   });
 
   it("refuses to start when the policy variable is only whitespace", () => {
-    const env = { ...process.env, HEDWIG_POLICY_FILE: "   " };
+    const env = isolatedConsultEnvironment({ HEDWIG_POLICY_FILE: "   " });
 
     const result = spawnSync(process.execPath, [SERVER_PATH], {
       encoding: "utf8",

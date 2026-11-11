@@ -6,6 +6,7 @@ const {
   StdioClientTransport,
   getDefaultEnvironment,
 } = require("@modelcontextprotocol/sdk/client/stdio.js");
+const { isolatedServerEnvironment } = require("./isolated-env.js");
 
 const [, , serverPath, policyPath, rpcUrl, feePayer] = process.argv;
 
@@ -28,12 +29,12 @@ async function main() {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
-    env: {
+    env: isolatedServerEnvironment({
       ...getDefaultEnvironment(),
       HEDWIG_POLICY_FILE: policyPath,
       HEDWIG_SOLANA_RPC_URL_DEVNET: rpcUrl,
       HEDWIG_SOLANA_FEE_PAYER_DEVNET: feePayer,
-    },
+    }),
   });
 
   const client = new Client({

@@ -8,6 +8,7 @@ const {
   StdioClientTransport,
   getDefaultEnvironment,
 } = require("@modelcontextprotocol/sdk/client/stdio.js");
+const { isolatedServerEnvironment } = require("./isolated-env.js");
 
 const [, , serverPath, policyPath] = process.argv;
 
@@ -63,7 +64,10 @@ async function main() {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
-    env: { ...getDefaultEnvironment(), HEDWIG_POLICY_FILE: policyPath },
+    env: isolatedServerEnvironment({
+      ...getDefaultEnvironment(),
+      HEDWIG_POLICY_FILE: policyPath,
+    }),
     stderr: "pipe",
   });
   const client = new Client({
