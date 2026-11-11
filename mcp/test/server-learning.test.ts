@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { expect } from "chai";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { pinPolicyFile } from "../dist/policy.js";
-import { createHedwigServer, resolveHedwigMode } from "../dist/server-core.js";
-import type { GenerateAnswer } from "../dist/expert.js";
+import { pinPolicyFile } from "../src/policy";
+import { createHedwigServer, resolveHedwigMode } from "../src/server-core";
+import type { GenerateAnswer } from "../src/expert";
 
 const VALID_POLICY = {
   permits: true,
