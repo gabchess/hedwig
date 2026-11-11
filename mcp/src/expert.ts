@@ -27,6 +27,10 @@ const reviewedLearningIntents: ReadonlyMap<string, readonly string[]> = new Map(
   ]
 );
 
+export const reviewedLearningQuestions = [
+  ...reviewedLearningIntents.keys(),
+].map((question) => `${question}?`);
+
 function normalizeReviewedQuestion(question: string): string {
   return question
     .trim()

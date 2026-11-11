@@ -77,6 +77,13 @@ describe("education MCP mode", () => {
       client.listTools()
     );
     expect(result.tools.map(({ name }) => name)).to.deep.equal(["ask_hedwig"]);
+    for (const question of [
+      "what are erc-4626 vault shares?",
+      "what do erc-4626 vault shares represent?",
+      "what is the facilitator role in x402?",
+      "what can an x402 v2 facilitator do?",
+    ])
+      expect(result.tools[0].description).to.include(question);
     expect(result.tools[0].inputSchema).to.deep.equal({
       type: "object",
       properties: { question: { type: "string", maxLength: 4000 } },

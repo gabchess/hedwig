@@ -91,15 +91,24 @@ describe("OpenRouter answer adapter (fixture transport, no live inference)", () 
       { apiKey: "", model: "test/model" },
       { apiKey: "test", model: "" },
       { apiKey: "test", model: "openrouter/auto" },
+      { apiKey: "test", model: "openrouter/free" },
     ]) {
       expect(() => createOpenRouterGenerator(config)).to.throw();
     }
   });
   it("fails on HTTP failure without retry or fallback", async () => {
     let calls = 0;
+    let cancelled = false;
     const fetcher = (async () => {
       calls++;
-      return new Response("private upstream detail", { status: 429 });
+      return new Response(
+        new ReadableStream({
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        { status: 429 }
+      );
     }) as typeof fetch;
     await rejected(() =>
       createOpenRouterGenerator({
@@ -109,6 +118,7 @@ describe("OpenRouter answer adapter (fixture transport, no live inference)", () 
       })(input)
     );
     expect(calls).to.equal(1);
+    expect(cancelled).to.equal(true);
   });
   it("rejects malformed or extra answer fields", async () => {
     for (const value of [
@@ -150,8 +160,22 @@ describe("OpenRouter answer adapter (fixture transport, no live inference)", () 
     );
   });
   it("bounds the provider response body", async () => {
-    const fetcher = (async () =>
-      new Response("x".repeat(65537))) as typeof fetch;
+    const validEnvelope = JSON.stringify({
+      choices: [
+        {
+          finish_reason: "stop",
+          message: {
+            content: JSON.stringify({
+              answer: "Supported answer.",
+              citationIds: [source.id],
+            }),
+          },
+        },
+      ],
+      metadata: "x".repeat(65537),
+    });
+    expect(() => JSON.parse(validEnvelope)).not.to.throw();
+    const fetcher = (async () => new Response(validEnvelope)) as typeof fetch;
     await rejected(() =>
       createOpenRouterGenerator({
         apiKey: "test",

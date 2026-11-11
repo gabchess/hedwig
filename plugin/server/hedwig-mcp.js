@@ -25053,7 +25053,11 @@ var require_openrouter = __commonJS({
     var ANSWER_FIELD_COUNT = 2;
     var MAX_ANSWER_CHARS = 16e3;
     async function readLimited(response) {
-      if (!response.ok || !response.body)
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => void 0);
+        throw new Error("model unavailable");
+      }
+      if (!response.body)
         throw new Error("model unavailable");
       const reader = response.body.getReader();
       const chunks = [];
@@ -25079,7 +25083,7 @@ var require_openrouter = __commonJS({
     function createOpenRouterGenerator(config) {
       const apiKey = config.apiKey.trim();
       const model = config.model.trim();
-      if (!apiKey || !new RegExp("^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.:/-]+$").test(model) || model === "openrouter/auto") {
+      if (!apiKey || !new RegExp("^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.:/-]+$").test(model) || model.startsWith("openrouter/")) {
         throw new Error("explicit model configuration required");
       }
       const fetcher = config.fetch ?? globalThis.fetch;
@@ -42307,7 +42311,7 @@ var require_expert = __commonJS({
   "mcp/dist/expert.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.MAX_LEARNING_QUESTION_CHARS = void 0;
+    exports2.reviewedLearningQuestions = exports2.MAX_LEARNING_QUESTION_CHARS = void 0;
     exports2.answerLearningQuestion = answerLearningQuestion;
     exports2.MAX_LEARNING_QUESTION_CHARS = 4e3;
     var references = [
@@ -42330,6 +42334,9 @@ var require_expert = __commonJS({
       ["what is the facilitator role in x402", ["x402-roles"]],
       ["what can an x402 v2 facilitator do", ["x402-roles"]]
     ]);
+    exports2.reviewedLearningQuestions = [
+      ...reviewedLearningIntents.keys()
+    ].map((question) => `${question}?`);
     function normalizeReviewedQuestion(question) {
       return question.trim().replace(/\s+/g, " ").replace(/\?+$/, "").trim().toLowerCase();
     }
@@ -46727,7 +46734,7 @@ var require_server_core = __commonJS({
     var CONSULT_TOOL_NAME = "consult";
     var LEARNING_TOOL_NAME = "ask_hedwig";
     var CONSULT_TOOL_DESCRIPTION = "Hedwig is the eval gate your payment agent checks before it transacts. The local checker evaluates payment and swap proposals against the owner's policy and returns a verdict, a 0-to-1 support score for evidence coverage (not safety probability), and each check's result and reason. It does not sign or submit transactions; the caller controls execution and should act only on 'proceed'.";
-    var LEARNING_TOOL_DESCRIPTION = "Ask Hedwig about a small set of reviewed learning topics. Answers use the supplied references. This seed prototype does not provide broad educational coverage or verify current conditions.";
+    var LEARNING_TOOL_DESCRIPTION = "Ask Hedwig about a small set of reviewed learning topics. Answers use the supplied references. This seed prototype does not provide broad educational coverage or verify current conditions. Supported questions: " + expert_1.reviewedLearningQuestions.map((question) => JSON.stringify(question)).join("; ") + ". Case, whitespace and final question marks may vary. Other wording returns insufficient_evidence.";
     function resolveHedwigMode(value) {
       const mode = value === void 0 ? "consult" : value.trim();
       if (mode === "consult" || mode === "education" || mode === "both") {

@@ -9,6 +9,7 @@ import type { ConsultResponse } from "@hedwig/consult";
 
 import {
   answerLearningQuestion,
+  reviewedLearningQuestions,
   MAX_LEARNING_QUESTION_CHARS,
   type GenerateAnswer,
 } from "./expert";
@@ -20,7 +21,11 @@ const LEARNING_TOOL_NAME = "ask_hedwig";
 const CONSULT_TOOL_DESCRIPTION =
   "Hedwig is the eval gate your payment agent checks before it transacts. The local checker evaluates payment and swap proposals against the owner's policy and returns a verdict, a 0-to-1 support score for evidence coverage (not safety probability), and each check's result and reason. It does not sign or submit transactions; the caller controls execution and should act only on 'proceed'.";
 const LEARNING_TOOL_DESCRIPTION =
-  "Ask Hedwig about a small set of reviewed learning topics. Answers use the supplied references. This seed prototype does not provide broad educational coverage or verify current conditions.";
+  "Ask Hedwig about a small set of reviewed learning topics. Answers use the supplied references. This seed prototype does not provide broad educational coverage or verify current conditions. Supported questions: " +
+  reviewedLearningQuestions
+    .map((question) => JSON.stringify(question))
+    .join("; ") +
+  ". Case, whitespace and final question marks may vary. Other wording returns insufficient_evidence.";
 
 export type HedwigMode = "consult" | "education" | "both";
 

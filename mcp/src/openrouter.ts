@@ -7,7 +7,11 @@ const ANSWER_FIELD_COUNT = 2;
 const MAX_ANSWER_CHARS = 16_000;
 
 async function readLimited(response: Response): Promise<unknown> {
-  if (!response.ok || !response.body) throw new Error("model unavailable");
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error("model unavailable");
+  }
+  if (!response.body) throw new Error("model unavailable");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let length = 0;
@@ -40,7 +44,7 @@ export function createOpenRouterGenerator(config: {
   if (
     !apiKey ||
     !new RegExp("^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.:/-]+$").test(model) ||
-    model === "openrouter/auto"
+    model.startsWith("openrouter/")
   ) {
     throw new Error("explicit model configuration required");
   }
