@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-12T19:06:42.202Z",
+  "status": "direct_exclusion_boundary_qualified_locally_external_final_head_checks_separate",
+  "predecessor": {
+    "file": "mcp/validation/expert-review5-2026-11-12.json",
+    "sha256": "0475e426a6692b4e08982e6a1392a71ed5bba559e2c55e26e4002ebf14535071",
+    "historicalRecordPreserved": true
+  },
+  "problem": "An alternative phrased as why not Aave V2 instead was incorrectly interpreted as an explicit version exclusion.",
+  "repair": "Only an unquoted direct not at the start or a punctuation-clause boundary excludes the immediately following version. Interrogative, conditional and reported examples clarify; a bounded lexical quote scan prevents punctuation inside quotes from introducing exclusions. Ordinary start/comma exclusions and apostrophes remain supported.",
+  "conservativeBoundary": "Bare parenthetical not now clarifies, including one earlier exploratory probe that accepted it. This avoids accepting conditional parentheses without adding a prose classifier. None of the original 78 cases or their oracles changed.",
+  "currentBuild": {
+    "manifestSha256": "9f12d33f4058d71881483765dcfccae2256831844de53f41c48868befbd475d2",
+    "inventoryFiles": 43,
+    "unchangedFromPredecessor": 40,
+    "changedFiles": [
+      {
+        "file": "mcp/dist/expert-request.js",
+        "previousSha256": "6136396aaeb96902d1a9f73ec9e6537619687b4e9c56a6c84fe6ed5bfb22e0ce",
+        "sha256": "ad1b28a4623a49f022516276f067a9d4a17ec9d326fcf4febccadf874519fb7a"
+      },
+      {
+        "file": "mcp/src/expert-request.ts",
+        "previousSha256": "80461fb2e0ab37a3305aff21e71529c1a1b398dfb9e1005a7691fa7225e357b3",
+        "sha256": "20cd5d7ad2da1cbf9e00334f0cb78cd7b8fd352e476a6b8ff72e721356c688b7"
+      },
+      {
+        "file": "plugin/server/hedwig-mcp.js",
+        "previousSha256": "02837b6cbc0032cb24d6aae9ac6f80949ce2e3ddf6e34b4c8d5225632b9bf3a9",
+        "sha256": "223e69b13a1519ed162492ddb98f728f236064cfdea9688dbea611a97d77af32"
+      }
+    ],
+    "reconstruction": "Apply these three replacements to the predecessor's transitive 43-file inventory."
+  },
+  "validation": {
+    "windowsMcp": {
+      "passing": 646,
+      "pending": 1,
+      "failing": 4,
+      "failureBlockMatchesPreservedBaseline": true
+    },
+    "localConsultTests": 1197,
+    "mcpSourceAndTestTypechecks": "passed",
+    "format": "passed",
+    "buildAndPackaging": "passed",
+    "parserTestGroups": 16,
+    "independentDirectExclusionProbes": 30,
+    "compiledCases": 78,
+    "identicalSelectedSourcesAndPriorFields": 78,
+    "identicalFinalGuardedRequestsOrGates": 78,
+    "unchangedOmissionDiagnostics": true,
+    "providerRequestsPerSide": 73,
+    "preRetrievalGates": 5,
+    "actualSdkFixturePaths": 4,
+    "disposableRollbackPhases": 3,
+    "networkCalls": 0,
+    "evidence": [
+      {
+        "file": "gpt52-review6-omission-compiled-applicability.json",
+        "sha256": "6c01ef820778ffea24c1152c77fe821f69f5176e5a80fee65f296de965cd5a66"
+      },
+      {
+        "file": "review6-live-artifact-binding.json",
+        "sha256": "3bbb01b40b74de0515f1b4c0a3123447b913987ef92ea7163349f4e0e32d94d7"
+      },
+      {
+        "file": "review6-direct-not-impact-v2.json",
+        "sha256": "2929ad3bfd9e7705207dbe43fa1b05d7b6b3f79bb216b7e2ffe9d041cd9463b9"
+      },
+      {
+        "file": "review6-direct-not-independent-review.json",
+        "sha256": "1f679a65d07898483bd7690494411a286e6fc4f928f5e4dee72035669f5e1316"
+      },
+      {
+        "file": "review6-sdk-selection-check.json",
+        "sha256": "14e525bcce1d6d813c26ffa1763da04459802beadb9bf333b41e753065a741d9"
+      },
+      {
+        "file": "rollback-rehearsal/runs/product-rollback-BEqNXQ/rollback-rehearsal-report.json",
+        "sha256": "dc34eb4aae2987e97a2ca8c73e4588faaae065002f40de0930e5715923b75463"
+      },
+      {
+        "file": "final-review6-mcp-tests.log",
+        "sha256": "6646eb4e6892e3835978a80a2e6d8c604d2a562d236ab2bc5bc13c19dd9bfb1c"
+      },
+      {
+        "file": "final-review6-consult-tests.log",
+        "sha256": "529afff7862fe4a5cb06e3d76393239e6f050b46b22c93a5104660c8532e0596"
+      }
+    ]
+  },
+  "qualification": {
+    "distinctCases": 78,
+    "fullyMetCaseCriteria": 75,
+    "disclosedMisses": 3,
+    "additionalProviderObservations": 0,
+    "interpretation": "Original real observations remain bound to their actual artifacts. Current compiled inputs and answer-validation behavior remain equivalent for the 78 cases; all three misses remain. New phrasings have deterministic regression evidence, not new model-answer qualification or raw-provider replay."
+  },
+  "boundaries": [
+    "This is bounded explicit-exclusion handling, not general natural-language negation recognition.",
+    "Final-head CI and substantive CodeRabbit review remain separately required before merge.",
+    "All predecessor risk, privacy, Windows, recovery and host-installation qualifications remain in force.",
+    "No paid call, budget mutation or new runtime service was performed."
+  ]
+}

@@ -1,5 +1,5 @@
 function isolatedServerEnvironment(env, mode = "consult") {
-  const isolated = { ...env, HEDWIG_MODE: mode };
+  const isolated = { ...env, HEDWIG_MODE: mode, HEDWIG_KNOWLEDGE_MODE: "seed" };
   delete isolated.OPENROUTER_API_KEY;
   delete isolated.HEDWIG_OPENROUTER_MODEL;
   return isolated;

@@ -9,6 +9,21 @@ const root = path.resolve(__dirname, "..");
 const esbuild = require(path.join(root, "mcp/node_modules/esbuild"));
 
 async function main() {
+  // A stale build or an unreviewed asset must not become a packaged source pack.
+  const { assertBuiltinFoundationPack } = require(path.join(
+    root,
+    "mcp/dist/foundation-pack-integrity.js"
+  ));
+  for (const directory of ["src", "dist"]) {
+    assertBuiltinFoundationPack(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(root, "mcp", directory, "knowledge/foundations.json"),
+          "utf8"
+        )
+      )
+    );
+  }
   const result = await esbuild.build({
     entryPoints: [path.join(root, "mcp/dist/server.js")],
     bundle: true,
@@ -46,11 +61,17 @@ async function main() {
       : "(no license file)";
     return `## ${name} ${pkg.version} (${pkg.license})\n\n${text}\n`;
   });
+  const corpusNotices = fs
+    .readFileSync(
+      path.join(root, "mcp/src/knowledge/THIRD-PARTY-NOTICES.md"),
+      "utf8"
+    )
+    .trim();
   fs.writeFileSync(
     path.join(root, "plugin/THIRD-PARTY-NOTICES.md"),
     `# Third-party notices\n\nThe bundled server contains these packages.\n\n${sections.join(
       "\n"
-    )}`
+    )}\n## Reference corpus notices\n\n${corpusNotices}\n`
   );
 }
 

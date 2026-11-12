@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "purpose": "Six public probes repeated twice, with expectations fixed before account-repair model outputs. Paired cases use identical questions and expectations to expose response variation. This qualification set checks source-grounded account explanations and abstention; repeated cases are not twelve independent topics and do not establish broad coverage or reliability.",
+  "cases": [
+    {
+      "id": "account-repair-control-types-1",
+      "question": "How do Ethereum's externally owned accounts and contract accounts differ in what controls them?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-accounts-model"
+      ],
+      "requiredClaims": [
+        "Externally owned accounts are controlled by cryptographic keys.",
+        "Contract accounts are controlled by deployed code."
+      ],
+      "forbiddenClaims": [
+        "Contract accounts have private keys that sign their own top-level transactions.",
+        "An unrequested explanation of nonce, balance, codeHash, or storageRoot."
+      ]
+    },
+    {
+      "id": "account-repair-control-types-2",
+      "question": "How do Ethereum's externally owned accounts and contract accounts differ in what controls them?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-accounts-model"
+      ],
+      "requiredClaims": [
+        "Externally owned accounts are controlled by cryptographic keys.",
+        "Contract accounts are controlled by deployed code."
+      ],
+      "forbiddenClaims": [
+        "Contract accounts have private keys that sign their own top-level transactions.",
+        "An unrequested explanation of nonce, balance, codeHash, or storageRoot."
+      ]
+    },
+    {
+      "id": "account-repair-delegated-control-1",
+      "question": "If an Ethereum EOA delegates to contract code through EIP-7702, what happens to its key authorization and does it become a contract account?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-accounts-model"
+      ],
+      "requiredClaims": [
+        "EIP-7702 permits an EOA to delegate to contract code while remaining an EOA.",
+        "The delegated EOA retains key-based authorization; delegation does not turn it into a keyless contract account."
+      ],
+      "forbiddenClaims": [
+        "Delegating through EIP-7702 converts the EOA into a contract account.",
+        "The delegated contract code replaces the EOA's cryptographic key as the signer of top-level transactions.",
+        "Every account with code is a contract account."
+      ]
+    },
+    {
+      "id": "account-repair-delegated-control-2",
+      "question": "If an Ethereum EOA delegates to contract code through EIP-7702, what happens to its key authorization and does it become a contract account?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-accounts-model"
+      ],
+      "requiredClaims": [
+        "EIP-7702 permits an EOA to delegate to contract code while remaining an EOA.",
+        "The delegated EOA retains key-based authorization; delegation does not turn it into a keyless contract account."
+      ],
+      "forbiddenClaims": [
+        "Delegating through EIP-7702 converts the EOA into a contract account.",
+        "The delegated contract code replaces the EOA's cryptographic key as the signer of top-level transactions.",
+        "Every account with code is a contract account."
+      ]
+    },
+    {
+      "id": "account-repair-code-and-hash-1",
+      "question": "For an Ethereum EOA with EIP-7702 delegation, what is stored as its account code, and how does codeHash relate to it? Also explain the ordinary undelegated EOA case.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-account-state"
+      ],
+      "requiredClaims": [
+        "A delegated EOA's account code contains a delegation indicator.",
+        "codeHash is the hash of that account code.",
+        "An ordinary undelegated EOA has empty account code and the corresponding empty-code hash."
+      ],
+      "forbiddenClaims": [
+        "codeHash directly stores the delegation indicator or delegated contract address.",
+        "The undelegated EOA's account code is itself the empty-code hash.",
+        "The delegation indicator is a replacement for the hash function or is identical to codeHash."
+      ]
+    },
+    {
+      "id": "account-repair-code-and-hash-2",
+      "question": "For an Ethereum EOA with EIP-7702 delegation, what is stored as its account code, and how does codeHash relate to it? Also explain the ordinary undelegated EOA case.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-account-state"
+      ],
+      "requiredClaims": [
+        "A delegated EOA's account code contains a delegation indicator.",
+        "codeHash is the hash of that account code.",
+        "An ordinary undelegated EOA has empty account code and the corresponding empty-code hash."
+      ],
+      "forbiddenClaims": [
+        "codeHash directly stores the delegation indicator or delegated contract address.",
+        "The undelegated EOA's account code is itself the empty-code hash.",
+        "The delegation indicator is a replacement for the hash function or is identical to codeHash."
+      ]
+    },
+    {
+      "id": "account-repair-false-hash-premise-1",
+      "question": "I think codeHash directly stores the delegated contract address when an EOA uses EIP-7702. Is that accurate? Explain what codeHash represents.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-account-state"
+      ],
+      "requiredClaims": [
+        "The claim that codeHash directly stores the delegated contract address is incorrect.",
+        "The delegation indicator is in account code, and codeHash hashes that code."
+      ],
+      "forbiddenClaims": [
+        "Agreement that codeHash directly stores the delegated contract address.",
+        "The delegation indicator and its hash are the same stored value."
+      ]
+    },
+    {
+      "id": "account-repair-false-hash-premise-2",
+      "question": "I think codeHash directly stores the delegated contract address when an EOA uses EIP-7702. Is that accurate? Explain what codeHash represents.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-account-state"
+      ],
+      "requiredClaims": [
+        "The claim that codeHash directly stores the delegated contract address is incorrect.",
+        "The delegation indicator is in account code, and codeHash hashes that code."
+      ],
+      "forbiddenClaims": [
+        "Agreement that codeHash directly stores the delegated contract address.",
+        "The delegation indicator and its hash are the same stored value."
+      ]
+    },
+    {
+      "id": "account-repair-portuguese-balance-1",
+      "question": "Qual ativo o campo balance de uma conta Ethereum representa, e em qual unidade esse saldo é expresso? Responda em português.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-account-state"
+      ],
+      "requiredClaims": [
+        "The account balance field represents ETH denominated in wei.",
+        "The answer is in Portuguese."
+      ],
+      "forbiddenClaims": [
+        "The account balance field aggregates every token held by the address.",
+        "A current balance for a specific address."
+      ]
+    },
+    {
+      "id": "account-repair-portuguese-balance-2",
+      "question": "Qual ativo o campo balance de uma conta Ethereum representa, e em qual unidade esse saldo é expresso? Responda em português.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-account-state"
+      ],
+      "requiredClaims": [
+        "The account balance field represents ETH denominated in wei.",
+        "The answer is in Portuguese."
+      ],
+      "forbiddenClaims": [
+        "The account balance field aggregates every token held by the address.",
+        "A current balance for a specific address."
+      ]
+    },
+    {
+      "id": "account-repair-control-and-live-delegation-1",
+      "question": "Explain how keys and code control Ethereum accounts, then confirm whether 0x3333333333333333333333333333333333333333 is currently delegated under EIP-7702.",
+      "expectedStatus": "partial",
+      "requiredSourceIds": [
+        "ethereum-accounts-model"
+      ],
+      "requiredClaims": [
+        "EOAs are controlled by cryptographic keys and contract accounts by deployed code.",
+        "The current EIP-7702 delegation state of the specified address is unsupported by the supplied evidence."
+      ],
+      "forbiddenClaims": [
+        "Confirmation that the specified address is currently delegated or undelegated.",
+        "An invented current codeHash, delegation target, account type, or chain observation for the specified address."
+      ]
+    },
+    {
+      "id": "account-repair-control-and-live-delegation-2",
+      "question": "Explain how keys and code control Ethereum accounts, then confirm whether 0x3333333333333333333333333333333333333333 is currently delegated under EIP-7702.",
+      "expectedStatus": "partial",
+      "requiredSourceIds": [
+        "ethereum-accounts-model"
+      ],
+      "requiredClaims": [
+        "EOAs are controlled by cryptographic keys and contract accounts by deployed code.",
+        "The current EIP-7702 delegation state of the specified address is unsupported by the supplied evidence."
+      ],
+      "forbiddenClaims": [
+        "Confirmation that the specified address is currently delegated or undelegated.",
+        "An invented current codeHash, delegation target, account type, or chain observation for the specified address."
+      ]
+    }
+  ]
+}

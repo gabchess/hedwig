@@ -6,7 +6,9 @@
   <img src="docs/logo.svg" alt="Hedwig mark" width="240" height="160">
 </p>
 
-Hedwig is an eval gate that makes onchain payments safer. It checks the payment or swap your agent wants to make against curated knowledge bases before it pays.
+Hedwig checks a proposed payment or swap against an operator's payment policy before an agent pays. Its default `consult` tool reports whether those checks pass; your application controls signing and execution.
+
+The separate, opt-in `ask_hedwig` tool explains blockchain, DeFi and onchain payment concepts using pinned reference sources. Its experimental foundations profile also compares documented Aave V3 and Compound III mechanisms. These answers do not authorize transactions or certify current deployment safety. See the [MCP guide](mcp/README.md) for supported scope, configuration and evidence limits.
 
 ## What it is
 

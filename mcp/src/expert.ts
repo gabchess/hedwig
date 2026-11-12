@@ -45,11 +45,13 @@ export type ExpertSource = { id: string; url: string; text: string };
 export type GenerateAnswer = (input: {
   question: string;
   sources: readonly ExpertSource[];
+  signal?: AbortSignal;
 }) => Promise<{ answer: string; citationIds: string[] }>;
 
 export async function answerLearningQuestion(
   question: string,
-  generate: GenerateAnswer
+  generate: GenerateAnswer,
+  signal?: AbortSignal
 ) {
   if (
     typeof question !== "string" ||
@@ -78,7 +80,9 @@ export async function answerLearningQuestion(
     sources.map(({ id, url }) => [id, { id, url }])
   );
   try {
-    const result = await generate({ question, sources });
+    if (signal?.aborted) return { status: "unavailable" } as const;
+    const result = await generate({ question, sources, signal });
+    if (signal?.aborted) return { status: "unavailable" } as const;
     if (
       typeof result.answer !== "string" ||
       !result.answer.trim() ||
