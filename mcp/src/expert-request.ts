@@ -224,6 +224,19 @@ function hasExplicitChainDeclarationConflict(text: string): boolean {
   );
 }
 
+/** An exclusion applies only to the immediately following version mention. */
+function isExplicitVersionExclusion(question: string, index: number): boolean {
+  const prefix = question.slice(0, index);
+  // Only a direct clause can command exclusion; "don't exclude" and quoted
+  // or reported commands remain ambiguous without a general prose classifier.
+  if (/(?:^|[.;,!?\n])\s*(?:please\s+)?exclude\s+(?:the\s+)?$/i.test(prefix))
+    return true;
+  const marker = /\b(?:not|excluding|except|exceto)\s+(?:the\s+)?$/i;
+  const match = marker.exec(prefix);
+  // Doubled/inverted markers such as "not excluding" remain ambiguous.
+  return !!match && !marker.test(prefix.slice(0, match.index));
+}
+
 /** Detect known contradictions, not arbitrary natural-language identities. */
 function hasKnownIdentityConflict(
   question: string,
@@ -254,13 +267,13 @@ function hasKnownIdentityConflict(
   if (chainIds.some((match) => Number(match[1]) !== 1)) return true;
   const aaveVersions = [
     ...question.matchAll(/\baave\s*(?:v(?:ersion)?\s*)?(\d+(?:\.\d+)?)\b/gi),
-  ];
+  ].filter((match) => !isExplicitVersionExclusion(question, match.index!));
   if (aaveVersions.some((match) => match[1] !== AAVE_VERSION)) return true;
   const compoundVersions = [
     ...question.matchAll(
       /\bcompound\s*(?:v(?:ersion)?\s*)?(\d+(?:\.\d+)?|iii|ii|iv)\b/gi
     ),
-  ];
+  ].filter((match) => !isExplicitVersionExclusion(question, match.index!));
   if (
     compoundVersions.some(
       (match) => !["3", "iii"].includes(match[1].toLowerCase())

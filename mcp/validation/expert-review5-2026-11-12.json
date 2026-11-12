@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-12T18:22:06.859Z",
+  "status": "explicit_version_exclusions_qualified_locally_external_final_head_checks_separate",
+  "predecessor": {
+    "file": "mcp/validation/expert-review4-ci-2026-11-12.json",
+    "sha256": "24e5a85551ef6945ab1f5c641753b7f4e0b16c2a7311b39ba95fac301c26c494",
+    "historicalRecordPreserved": true
+  },
+  "problem": "Supported deployment comparisons were rejected when the question explicitly excluded an unsupported version, for example not Aave V2.",
+  "repair": "Ignore only a particular version mention with a bounded adjacent explicit exclusion. Direct imperative exclude is accepted at a clause boundary. Affirmative unsupported versions, later contradictory mentions, and inverted exclusion commands remain conflicts. The original question still reaches retrieval and generation unchanged.",
+  "currentBuild": {
+    "manifestSha256": "c144504ed568c37d5fa6add2ca76b0ec2c58dc098be04caeb3f0c0bc3d624039",
+    "inventoryFiles": 43,
+    "unchangedFromPredecessor": 40,
+    "changedFiles": [
+      {
+        "file": "mcp/dist/expert-request.js",
+        "previousSha256": "279ea2e8c09bc9e066224e59bce49d6b7f7e8f689718522407c55c2c65ce4d10",
+        "sha256": "6136396aaeb96902d1a9f73ec9e6537619687b4e9c56a6c84fe6ed5bfb22e0ce"
+      },
+      {
+        "file": "mcp/src/expert-request.ts",
+        "previousSha256": "3ad51cd7aa4ae223a491975d276548e8b4cdc6b0d23f12cff0500ed6ac6ee017",
+        "sha256": "80461fb2e0ab37a3305aff21e71529c1a1b398dfb9e1005a7691fa7225e357b3"
+      },
+      {
+        "file": "plugin/server/hedwig-mcp.js",
+        "previousSha256": "e0d3256104b4f34f91886568d08badb50e00d27e4b99e0e736ce6df03f27174a",
+        "sha256": "02837b6cbc0032cb24d6aae9ac6f80949ce2e3ddf6e34b4c8d5225632b9bf3a9"
+      }
+    ],
+    "reconstruction": "Apply these three replacements to the predecessor's transitive 43-file inventory."
+  },
+  "validation": {
+    "windowsMcp": {
+      "passing": 645,
+      "pending": 1,
+      "failing": 4,
+      "failureBlockMatchesPreservedBaseline": true
+    },
+    "localConsultTests": 1197,
+    "mcpSourceAndTestTypechecks": "passed",
+    "format": "passed",
+    "buildAndPackaging": "passed",
+    "parserTestGroups": 15,
+    "independentVersionExclusionProbes": 20,
+    "compiledCases": 78,
+    "identicalSelectedSourcesAndPriorFields": 78,
+    "identicalFinalGuardedRequestsOrGates": 78,
+    "unchangedOmissionDiagnostics": true,
+    "providerRequestsPerSide": 73,
+    "preRetrievalGates": 5,
+    "actualSdkFixturePaths": 4,
+    "networkCalls": 0,
+    "evidence": [
+      {
+        "file": "gpt52-review5-omission-compiled-applicability.json",
+        "sha256": "43149651bdd85b293b36d1a66fafe0590e36783b71d9c52af5476ee32da58635"
+      },
+      {
+        "file": "review5-live-artifact-binding.json",
+        "sha256": "fbd84437a309267afdb834b33b5dff75faf002b86d88c3d331549290198bb331"
+      },
+      {
+        "file": "review5-version-exclusion-impact-v2.json",
+        "sha256": "80f156583ced5f7673afb36ab6dedb8075fabe343b6a7bdb33fd6950c14da3b1"
+      },
+      {
+        "file": "version-exclusion-independent-after-v2.json",
+        "sha256": "78122d892d1a0d6829f9c5796cb82c4f4e446294276facc20fae5e496146330d"
+      },
+      {
+        "file": "review5-sdk-selection-check.json",
+        "sha256": "9ef41c2d6ea8a1d5c988d8b110d26ff816b74116d5854e4be8cdc48d19544125"
+      },
+      {
+        "file": "final-review5-mcp-tests.log",
+        "sha256": "f05be9aa852e82d7d612dbbb20304a5a3e25dc64a53dffab8029040dc45826f8"
+      },
+      {
+        "file": "final-review5-consult-tests.log",
+        "sha256": "c828f8602dac03c88b36283e12ccd959343edf43e4dc3d99f69db6044fd5c62b"
+      }
+    ]
+  },
+  "qualification": {
+    "distinctCases": 78,
+    "fullyMetCaseCriteria": 75,
+    "disclosedMisses": 3,
+    "additionalProviderObservations": 0,
+    "interpretation": "Original real observations remain bound to their actual artifacts. Current compiled inputs and answer-validation behavior remain equivalent for the 78 cases; all three misses remain. New version phrasings have deterministic regression evidence, not new model-answer qualification or raw-provider replay."
+  },
+  "boundaries": [
+    "This is bounded explicit-exclusion handling, not general natural-language negation recognition.",
+    "Final-head CI and substantive CodeRabbit review remain separately required before merge.",
+    "All predecessor risk, privacy, Windows, recovery and host-installation qualifications remain in force.",
+    "No paid call, budget mutation or new runtime service was performed."
+  ]
+}

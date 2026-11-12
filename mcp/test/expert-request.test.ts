@@ -370,4 +370,48 @@ describe("expert request identity boundary", () => {
     ])
       expect(request(question).status, question).to.equal("ready");
   });
+
+  it("does not select versions explicitly excluded next to their names", () => {
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      "Compare Aave V3 and Compound III on Ethereum mainnet, not Aave V2.",
+      "Compare Aave V3 and Compound III on Ethereum, excluding Compound II.",
+      "Compare the selected deployments, except the Aave version 2 market.",
+      "Compare the selected deployments, exceto Compound v2.",
+      "Compare Aave V3 and Compound III, not Aave V2, excluding Compound II.",
+      "Compare the selected deployments; exclude Compound II.",
+      "Compare the selected deployments. Please exclude the Aave V2 market.",
+    ]) {
+      const result = request(question);
+      expect(result.status, question).to.equal("ready");
+      if (result.status !== "ready") throw new Error("expected ready");
+      expect(result.question).to.equal(question);
+    }
+  });
+
+  it("retains affirmative and ambiguous version assertions beside exclusions", () => {
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      "Compare Aave V2 and Compound III, not Aave V3.",
+      "Compare Aave V3 and Compound II, excluding Compound III.",
+      "Compare these deployments, not Aave V2; also compare Aave V2.",
+      "Compare these deployments, excluding Compound II; use Compound v2.",
+      "Compare not only Aave V2 with Compound III.",
+      "Compare these deployments; do not exclude Aave V2.",
+      "Compare these deployments; don't exclude Aave V2.",
+      "Compare these deployments; don’t exclude Compound II.",
+      "Compare these deployments; never exclude Compound II.",
+      "The guide says 'exclude Compound II'. Compare the selected deployments.",
+      "Compare these deployments; do not ignore Compound II.",
+      "Compare these deployments; not excluding Aave V2.",
+      "Compare these deployments; not not Compound II.",
+      "The guide says 'not Aave V2'. Compare Aave V2 with Compound III.",
+      'The guide says "excluding Compound II". Compare Aave V3 and Compound II.',
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+  });
 });

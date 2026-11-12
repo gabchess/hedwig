@@ -42754,6 +42754,14 @@ var require_expert_request = __commonJS({
       }
       return names.some((name) => !/^(?:ethereum(?:\s+mainnet)?|mainnet)$/i.test(name));
     }
+    function isExplicitVersionExclusion(question, index) {
+      const prefix = question.slice(0, index);
+      if (/(?:^|[.;,!?\n])\s*(?:please\s+)?exclude\s+(?:the\s+)?$/i.test(prefix))
+        return true;
+      const marker = /\b(?:not|excluding|except|exceto)\s+(?:the\s+)?$/i;
+      const match = marker.exec(prefix);
+      return !!match && !marker.test(prefix.slice(0, match.index));
+    }
     function hasKnownIdentityConflict(question, deployments) {
       const chainNames = "base|arbitrum|optimism|polygon|solana|avalanche|sepolia|testnet|bnb(?:\\s+chain)?";
       const chainContext = normalizeBaseAssetRoles(question.replace(/\b(?:excluding|except|not on|exceto)\s+(?:the\s+)?(?:(?:chain|network|rede)\s+)?[a-z][\w-]*(?:\s+(?:chain|network|mainnet|testnet))?\b/gi, ""));
@@ -42767,12 +42775,12 @@ var require_expert_request = __commonJS({
         return true;
       const aaveVersions = [
         ...question.matchAll(/\baave\s*(?:v(?:ersion)?\s*)?(\d+(?:\.\d+)?)\b/gi)
-      ];
+      ].filter((match) => !isExplicitVersionExclusion(question, match.index));
       if (aaveVersions.some((match) => match[1] !== AAVE_VERSION))
         return true;
       const compoundVersions = [
         ...question.matchAll(/\bcompound\s*(?:v(?:ersion)?\s*)?(\d+(?:\.\d+)?|iii|ii|iv)\b/gi)
-      ];
+      ].filter((match) => !isExplicitVersionExclusion(question, match.index));
       if (compoundVersions.some((match) => !["3", "iii"].includes(match[1].toLowerCase())))
         return true;
       if (/\b(?:compound\s*(?:iii|v3)\s+(?:ethereum\s+)?(?:weth|eth|usdt|usds)\s+(?:comet|market)|(?:weth|eth|usdt|usds)\s+comet)\b/i.test(question))
