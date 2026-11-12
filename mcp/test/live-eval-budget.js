@@ -18,7 +18,7 @@ const REASONING_PROFILES = new Map([
     "deepseek/deepseek-v4-flash-0731",
     {
       maxTokens: 8192,
-      deadlineMs: 45000,
+      deadlineMs: 90000,
       reasoning: { effort: "high", exclude: true },
     },
   ],

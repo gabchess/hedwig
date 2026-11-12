@@ -197,16 +197,16 @@ describe("bounded DeepSeek Flash evaluation policy", () => {
         budget.createBudgetPlan({ ...catalog, id: alias }, alias)
       ).to.throw("invalid_plan");
   });
-  it("retains the complete reservation when the 45 second receipt deadline expires", () => {
+  it("retains the complete reservation when the 90 second receipt deadline expires", () => {
     const child = spawnSync(
       process.execPath,
       [
         "-e",
         [
           "const b=require(process.argv[1]),set=globalThis.setTimeout;let configured;",
-          "globalThis.setTimeout=(callback,delay,...args)=>{if(delay===15000||delay===45000){configured=delay;return set(callback,5,...args);}return set(callback,delay,...args);};",
+          "globalThis.setTimeout=(callback,delay,...args)=>{if(delay===15000||delay===45000||delay===90000){configured=delay;return set(callback,5,...args);}return set(callback,delay,...args);};",
           "const response=new Response(new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('{'));}}),{headers:{'X-Generation-Id':'gen-deepseek-timeout'}});",
-          "b.installBudgetGuard({ledgerPath:process.argv[2],plan:JSON.parse(process.argv[3]),fetch:async()=>response})(process.argv[4],JSON.parse(process.argv[5])).then(()=>process.exit(configured===45000?0:2),()=>process.exit(3));",
+          "b.installBudgetGuard({ledgerPath:process.argv[2],plan:JSON.parse(process.argv[3]),fetch:async()=>response})(process.argv[4],JSON.parse(process.argv[5])).then(()=>process.exit(configured===90000?0:2),()=>process.exit(3));",
         ].join("\n"),
         resolve(__dirname, "live-eval-budget.js"),
         ledgerPath,

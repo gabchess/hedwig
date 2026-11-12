@@ -26,8 +26,10 @@ const EXTENDED_REASONING_MAX_TOKENS = 6144;
 const QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
 const QWEN_INSTRUCT_DEADLINE_MS = 45_000;
 const DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
-const DEEPSEEK_REASONING_DEADLINE_MS = 45_000;
+const DEEPSEEK_REASONING_DEADLINE_MS = 90_000;
 const DEEPSEEK_REASONING_MAX_TOKENS = 8192;
+const STANDARD_TOOL_CALL_TIMEOUT_MS = 60_000;
+const EXTENDED_TOOL_COMPLETION_MARGIN_MS = 30_000;
 
 /** Only the operator-selected model determines the generation policy. */
 export function resolveModelGenerationPolicy(model: string): GenerationPolicy {
@@ -76,4 +78,12 @@ export function resolveModelGenerationPolicy(model: string): GenerationPolicy {
       ? { providerParameters: { sort: "throughput" as const } }
       : {}),
   };
+}
+
+/** Preserve the existing SDK timeout unless generation needs a longer window. */
+export function resolveToolCallTimeoutMs(model: string): number {
+  const { deadlineMs } = resolveModelGenerationPolicy(model);
+  return deadlineMs > STANDARD_TOOL_CALL_TIMEOUT_MS
+    ? deadlineMs + EXTENDED_TOOL_COMPLETION_MARGIN_MS
+    : STANDARD_TOOL_CALL_TIMEOUT_MS;
 }

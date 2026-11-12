@@ -417,6 +417,11 @@ async function main() {
       repoRoot,
       "mcp/dist/expert-workflow.js"
     ));
+    const { resolveToolCallTimeoutMs } = require(path.join(
+      repoRoot,
+      "mcp/dist/model-policy.js"
+    ));
+    const toolCallTimeoutMs = resolveToolCallTimeoutMs(model);
 
     const transport = new StdioClientTransport({
       command: process.execPath,
@@ -516,10 +521,14 @@ async function main() {
         const budgetDiagnosticStart = report.budgetDiagnostics.length;
         let callResult;
         try {
-          callResult = await client.callTool({
-            name: "ask_hedwig",
-            arguments: { question: item.question, ...(item.arguments ?? {}) },
-          });
+          callResult = await client.callTool(
+            {
+              name: "ask_hedwig",
+              arguments: { question: item.question, ...(item.arguments ?? {}) },
+            },
+            undefined,
+            { timeout: toolCallTimeoutMs }
+          );
         } catch {
           // Preserve the ledger delta below even when the MCP response fails.
         }
