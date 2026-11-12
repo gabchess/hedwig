@@ -93,7 +93,27 @@ function addressRole(before: string, after: string) {
   );
   const assertedRole = suffix
     .match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1]
-    .split(/\b(?:in|within|for|of|at|on|and|with|against|versus|vs)\b/i)[0];
+    .split(/\b(?:in|within|at|on|and|with|against|versus|vs)\b/i)[0];
+  const roleIntroduction = suffix.match(/^(?:as|is)\s+/i)?.[0];
+  const afterRole = roleIntroduction
+    ? suffix.slice(roleIntroduction.length + (assertedRole?.length ?? 0)).trim()
+    : "";
+  // Classify the role's head before interpreting protocol names inside it:
+  // "AAVE token" is an asset, while "Pool of Compound" asserts a deployment.
+  // An asset's use "for Compound" does not identify its contract as Comet.
+  const roleHead = assertedRole?.split(/\b(?:of|for)\b/i)[0].trim();
+  const assertedAsset =
+    roleHead && /\b(?:asset|token|collateral|underlying)\s*$/i.test(roleHead);
+  const assertedDeployment =
+    roleHead &&
+    !assertedAsset &&
+    !/^not\b/i.test(roleHead) &&
+    /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(roleHead);
+  const roleOwner = assertedRole
+    ?.slice(roleHead?.length ?? 0)
+    .match(
+      /^\s*(?:of|for)\s+(?:the\s+)?(aave(?:\s+v?\s*\d+)?|compound(?:\s+(?:v?\d+|iii|ii|iv))?|comet)\b/i
+    )?.[1];
   const namedRole = prefix.match(namesDeployment)?.[0];
   const parenthetical = suffix.match(/^\(\s*([^()]+?)\s*\)/)?.[1];
   const parentheticalRole =
@@ -107,7 +127,7 @@ function addressRole(before: string, after: string) {
   const roleLabels = [
     namedRole,
     parentheticalRole,
-    assertedRole && !/^not\b/i.test(assertedRole) ? assertedRole : undefined,
+    assertedDeployment ? `${roleHead} ${roleOwner ?? ""}` : undefined,
   ].filter((label): label is string => !!label);
   const assertedDeploymentIds: string[] = [];
   // "Pool" can be a generic description; only a named protocol or the
@@ -121,17 +141,15 @@ function addressRole(before: string, after: string) {
     parentheticalRole ||
     directTarget.test(prefix) ||
     comparedTarget.test(suffix) ||
-    (assertedRole &&
-      /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(assertedRole))
+    comparedTarget.test(afterRole) ||
+    assertedDeployment
   )
     return { kind: "deployment", assertedDeploymentIds };
   if (
     /\b(?:(?:roles?|function|purpose)\s+of|asset|token|collateral|underlying)\b[^.;,!?\n]*$/i.test(
       prefix
     ) ||
-    /^(?:as|is)\s+(?:(?:an?|the)\s+)?(?:asset|token|collateral|underlying)\b/i.test(
-      suffix
-    )
+    assertedAsset
   )
     return { kind: "reference", assertedDeploymentIds };
   return { kind: "ambiguous", assertedDeploymentIds };
@@ -185,6 +203,15 @@ function hasExplicitChainDeclarationConflict(text: string): boolean {
     /\b(?:[Oo][Nn]|[Ee][Mm]|[Nn][Aa])\s+(?:the\s+)?([A-Z][A-Za-z0-9-]*)\b/g
   )) {
     const prefix = text.slice(0, match.index);
+    const followingRole = text.slice(match.index! + match[0].length);
+    // A following economic role makes the name a topic modifier, as in
+    // "on USDC supply interest". Typed network declarations above still win.
+    if (
+      /^\s+(?:assets?|tokens?|collateral|supply|borrow(?:ing)?|interest|yield|balances?|rates?)\b/i.test(
+        followingRole
+      )
+    )
+      continue;
     if (
       /\b(?:compare|both|deployments?|protocols?|pools?|markets?|comet|aave(?:\s+v\s*\d+)?|compound(?:\s+(?:iii|v\s*\d+))?)(?:\s+(?:(?:are|is)\s+)?(?:running|deployed))?\s*$/i.test(
         prefix

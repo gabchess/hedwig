@@ -24,6 +24,15 @@ type FoundationIndexDocument = FoundationSource & {
   termFrequency: Map<string, number>;
 };
 
+/** Positive ranked candidates after filters, not a claim of corpus coverage. */
+export type FoundationSelection = Readonly<{
+  limit: number;
+  eligibleCandidateIds: readonly string[];
+  selectedIds: readonly string[];
+  omittedIds: readonly string[];
+  omissionReason: "source_limit" | null;
+}>;
+
 /** Trusted workflow selection, never inferred from question text. */
 export type FoundationRetrievalOptions = {
   /** Exact metadata topics, matched as a union; an empty list admits nothing. */
@@ -34,6 +43,8 @@ export type FoundationRetrievalOptions = {
   excludeIds?: readonly string[];
   /** Defaults to five; only integer budgets from one through nine are allowed. */
   limit?: number;
+  /** Receives a detached immutable selection snapshot for each valid query. */
+  onSelection?: (selection: FoundationSelection) => void;
 };
 
 export type FoundationRetriever = (
@@ -354,7 +365,6 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
       return [];
     }
     const queryTerms = new Set(tokenize(question));
-    if (queryTerms.size === 0) return [];
     const allowedTopics =
       options.topics === undefined
         ? undefined
@@ -362,7 +372,7 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
     const excludedIds = new Set(options.excludeIds);
     const excludedTopics = new Set(options.excludeTopics?.map(normalizeTopic));
 
-    const scored = documents
+    const ranked = documents
       .filter(
         (document) =>
           !excludedIds.has(document.id) &&
@@ -393,8 +403,23 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
           : left.document.id > right.document.id
           ? 1
           : 0;
-      })
-      .slice(0, limit);
+      });
+    const scored = ranked.slice(0, limit);
+    if (options.onSelection) {
+      options.onSelection(
+        Object.freeze({
+          limit,
+          eligibleCandidateIds: Object.freeze(
+            ranked.map(({ document }) => document.id)
+          ),
+          selectedIds: Object.freeze(scored.map(({ document }) => document.id)),
+          omittedIds: Object.freeze(
+            ranked.slice(limit).map(({ document }) => document.id)
+          ),
+          omissionReason: ranked.length > limit ? "source_limit" : null,
+        })
+      );
+    }
 
     return scored.map(({ document }) => ({
       id: document.id,

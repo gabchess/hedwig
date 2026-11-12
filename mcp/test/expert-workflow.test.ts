@@ -54,6 +54,15 @@ const partitionedRetriever: FoundationRetriever = (question, options) => {
   ];
 };
 
+function withoutSelection(result: object) {
+  expect(result).to.have.property("evidenceSelection");
+  const { evidenceSelection, ...content } = result as {
+    evidenceSelection: { diagnosticsComplete: boolean };
+  };
+  expect(evidenceSelection.diagnosticsComplete).to.equal(false);
+  return content;
+}
+
 describe("expert comparison workflow", () => {
   it("preserves both trusted identities when only one deployment is requested", async () => {
     const [left, right] = SUPPORTED_DEPLOYMENTS.map(
@@ -187,14 +196,16 @@ describe("expert comparison workflow", () => {
       { ...valid, summary: "Unsupported generated summary." },
     ]) {
       expect(
-        await answerExpertRequest(
-          {
-            question: "Compare mechanisms",
-            mode: "compare",
-            deployments: pair,
-          },
-          partitionedRetriever,
-          async () => raw
+        withoutSelection(
+          await answerExpertRequest(
+            {
+              question: "Compare mechanisms",
+              mode: "compare",
+              deployments: pair,
+            },
+            partitionedRetriever,
+            async () => raw
+          )
         )
       ).to.deep.equal({ status: "insufficient_evidence" });
     }
@@ -235,10 +246,16 @@ describe("expert comparison workflow", () => {
     ]);
     raw.sections[left] = raw.sections[right];
     expect(
-      await answerExpertRequest(
-        { question: "Compare mechanisms", mode: "compare", deployments: pair },
-        partitionedRetriever,
-        async () => raw
+      withoutSelection(
+        await answerExpertRequest(
+          {
+            question: "Compare mechanisms",
+            mode: "compare",
+            deployments: pair,
+          },
+          partitionedRetriever,
+          async () => raw
+        )
       )
     ).to.deep.equal({
       status: "insufficient_evidence",
@@ -265,7 +282,9 @@ describe("expert comparison workflow", () => {
           return raw;
         }
       );
-      expect(result).to.deep.equal({ status: "insufficient_evidence" });
+      expect(withoutSelection(result)).to.deep.equal({
+        status: "insufficient_evidence",
+      });
     }
   });
 

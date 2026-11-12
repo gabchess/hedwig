@@ -23,7 +23,7 @@ function content(result: any) {
   return result.structuredContent;
 }
 describe("foundations MCP profile (fixture generation)", () => {
-  it("publishes comparison sections through the unchanged public answer shape", async () => {
+  it("publishes comparison answers with separate evidence selection metadata", async () => {
     let calls = 0;
     await withClient(
       {
@@ -67,6 +67,7 @@ describe("foundations MCP profile (fixture generation)", () => {
         expect(Object.keys(response).sort()).to.deep.equal([
           "answer",
           "comparison",
+          "evidenceSelection",
           "sources",
           "status",
           "unsupportedParts",

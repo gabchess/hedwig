@@ -297,4 +297,77 @@ describe("expert request identity boundary", () => {
       ).to.deep.equal(pair);
     }
   });
+
+  it("treats named asset mechanisms as comparison topics, preserving typed networks", () => {
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      "Compare Aave V3 and Compound III on USDC supply interest.",
+      "Compare Aave V3 and Compound III on DAI borrowing rates.",
+      "Compare Aave V3 and Compound III on DAI borrow rates.",
+      "Compare these deployments on WETH collateral requirements.",
+      "Compare these protocols on EXAMPLE token supply mechanics.",
+    ]) {
+      const result = request(question);
+      expect(result.status, question).to.equal("ready");
+      if (result.status !== "ready") throw new Error("expected ready");
+      expect(result.question).to.equal(question);
+    }
+    for (const question of [
+      "Compare Aave V3 and Compound III on Gnosis.",
+      "Compare Aave V3 and Compound III on Gnosis network supply interest.",
+      "Compare these protocols on network EXAMPLE token supply mechanics.",
+      "Compare these protocols on USDC network.",
+      "Compare these deployments on Gnosis for supply interest.",
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+  });
+
+  it("classifies asserted token roles before protocol names inside those roles", () => {
+    const token = "0x1111111111111111111111111111111111111111";
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      `Compare these deployments using token ${token} as the AAVE token.`,
+      `Compare these deployments using token ${token} as a Compound token.`,
+      `Explain ${token} as collateral for Compound in this comparison.`,
+      `Compare token ${token} as the AAVE token in the selected deployments.`,
+      `Compare token ${token} as the AAVE token in Aave V3 versus Compound III.`,
+    ])
+      expect(request(question).status, question).to.equal("ready");
+    for (const question of [
+      `Treat token ${token} as the Aave V3 Pool.`,
+      `Treat token ${token} as the Compound III deployment.`,
+      `Compare token ${token} against Aave V3.`,
+      `Compare ${token} as the AAVE token against Aave V3.`,
+      `Compare token ${token} as an AAVE token against Compound III.`,
+      `Compare token ${token} as the AAVE token versus Aave V3.`,
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+  });
+
+  it("keeps protocol ownership of deployment roles distinct from asset use", () => {
+    const [aave, comet] = pair.map(({ address }) => address);
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      `Use ${aave} as the Pool of Compound for this comparison.`,
+      `Use ${aave} as the Pool for Compound in this comparison.`,
+      `Use ${comet} as the market of Aave V3 in this comparison.`,
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+    for (const question of [
+      `Use ${aave} as the Pool of Aave V3 in this comparison.`,
+      `Use ${comet} as the market of Compound III in this comparison.`,
+      `Use ${comet} as the Pool for a comparison of Aave V3 and Compound III.`,
+      `Explain token ${aave} as collateral for Compound in this comparison.`,
+    ])
+      expect(request(question).status, question).to.equal("ready");
+  });
 });

@@ -42703,23 +42703,29 @@ var require_expert_request = __commonJS({
       const namesDeployment = new RegExp(`\\b${deployment}(?:\\s+(?:ethereum|mainnet|usdc|pool|comet|market|deployment|address|at|is))*\\s*[([:=]?\\s*$`, "i");
       const directTarget = /\b(?:compare|against|versus|vs)\s*[([:=]?\s*$/i;
       const comparedTarget = new RegExp(`^(?:against|versus|vs|with)\\s+(?:the\\s+)?(?:${deployment}|0x[a-z0-9]+)\\b`, "i");
-      const assertedRole = suffix.match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1].split(/\b(?:in|within|for|of|at|on|and|with|against|versus|vs)\b/i)[0];
+      const assertedRole = suffix.match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1].split(/\b(?:in|within|at|on|and|with|against|versus|vs)\b/i)[0];
+      const roleIntroduction = suffix.match(/^(?:as|is)\s+/i)?.[0];
+      const afterRole = roleIntroduction ? suffix.slice(roleIntroduction.length + (assertedRole?.length ?? 0)).trim() : "";
+      const roleHead = assertedRole?.split(/\b(?:of|for)\b/i)[0].trim();
+      const assertedAsset = roleHead && /\b(?:asset|token|collateral|underlying)\s*$/i.test(roleHead);
+      const assertedDeployment = roleHead && !assertedAsset && !/^not\b/i.test(roleHead) && /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(roleHead);
+      const roleOwner = assertedRole?.slice(roleHead?.length ?? 0).match(/^\s*(?:of|for)\s+(?:the\s+)?(aave(?:\s+v?\s*\d+)?|compound(?:\s+(?:v?\d+|iii|ii|iv))?|comet)\b/i)?.[1];
       const namedRole = prefix.match(namesDeployment)?.[0];
       const parenthetical = suffix.match(/^\(\s*([^()]+?)\s*\)/)?.[1];
       const parentheticalRole = parenthetical && new RegExp(`^${deployment}(?:\\s+(?:ethereum|mainnet|usdc|pool|comet|market|deployment))*$`, "i").test(parenthetical) ? parenthetical : void 0;
       const roleLabels = [
         namedRole,
         parentheticalRole,
-        assertedRole && !/^not\b/i.test(assertedRole) ? assertedRole : void 0
+        assertedDeployment ? `${roleHead} ${roleOwner ?? ""}` : void 0
       ].filter((label) => !!label);
       const assertedDeploymentIds = [];
       if (roleLabels.some((label) => /\baave\b/i.test(label)))
         assertedDeploymentIds.push("aave-v3-ethereum");
       if (roleLabels.some((label) => /\b(?:compound|comet)\b/i.test(label)))
         assertedDeploymentIds.push("compound-iii-ethereum-usdc");
-      if (namedRole || parentheticalRole || directTarget.test(prefix) || comparedTarget.test(suffix) || assertedRole && /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(assertedRole))
+      if (namedRole || parentheticalRole || directTarget.test(prefix) || comparedTarget.test(suffix) || comparedTarget.test(afterRole) || assertedDeployment)
         return { kind: "deployment", assertedDeploymentIds };
-      if (/\b(?:(?:roles?|function|purpose)\s+of|asset|token|collateral|underlying)\b[^.;,!?\n]*$/i.test(prefix) || /^(?:as|is)\s+(?:(?:an?|the)\s+)?(?:asset|token|collateral|underlying)\b/i.test(suffix))
+      if (/\b(?:(?:roles?|function|purpose)\s+of|asset|token|collateral|underlying)\b[^.;,!?\n]*$/i.test(prefix) || assertedAsset)
         return { kind: "reference", assertedDeploymentIds };
       return { kind: "ambiguous", assertedDeploymentIds };
     }
@@ -42740,6 +42746,9 @@ var require_expert_request = __commonJS({
           names.push(match[1]);
       for (const match of text.matchAll(/\b(?:[Oo][Nn]|[Ee][Mm]|[Nn][Aa])\s+(?:the\s+)?([A-Z][A-Za-z0-9-]*)\b/g)) {
         const prefix = text.slice(0, match.index);
+        const followingRole = text.slice(match.index + match[0].length);
+        if (/^\s+(?:assets?|tokens?|collateral|supply|borrow(?:ing)?|interest|yield|balances?|rates?)\b/i.test(followingRole))
+          continue;
         if (/\b(?:compare|both|deployments?|protocols?|pools?|markets?|comet|aave(?:\s+v\s*\d+)?|compound(?:\s+(?:iii|v\s*\d+))?)(?:\s+(?:(?:are|is)\s+)?(?:running|deployed))?\s*$/i.test(prefix))
           names.push(match[1]);
       }
@@ -43003,30 +43012,82 @@ var require_expert_workflow = __commonJS({
     var MAX_COMPARISON_SOURCES = 16;
     var MECHANISM_SOURCES_PER_DEPLOYMENT = 6;
     var SHARED_CONTEXT_SOURCES = 2;
+    function copySelection(value) {
+      if (!value || ![value.eligibleCandidateIds, value.selectedIds, value.omittedIds].every((ids) => Array.isArray(ids) && ids.every((id) => typeof id === "string" && id.length > 0)))
+        return void 0;
+      return Object.freeze({
+        limit: value.limit,
+        eligibleCandidateIds: Object.freeze([...value.eligibleCandidateIds]),
+        selectedIds: Object.freeze([...value.selectedIds]),
+        omittedIds: Object.freeze([...value.omittedIds]),
+        omissionReason: value.omissionReason
+      });
+    }
+    function matchesSelection(selection, sources, requestedLimit) {
+      if (!selection)
+        return false;
+      const { limit, eligibleCandidateIds, selectedIds, omittedIds, omissionReason } = selection;
+      const accounted = [...selectedIds, ...omittedIds];
+      return Number.isSafeInteger(limit) && limit >= 1 && limit <= 9 && (requestedLimit === void 0 || limit === requestedLimit) && new Set(eligibleCandidateIds).size === eligibleCandidateIds.length && eligibleCandidateIds.length === accounted.length && eligibleCandidateIds.every((id, index) => id === accounted[index]) && selectedIds.length === Math.min(limit, eligibleCandidateIds.length) && sources.length === selectedIds.length && sources.every((source, index) => source.id === selectedIds[index]) && omissionReason === (omittedIds.length > 0 ? "source_limit" : null);
+    }
+    function selectionDiagnostics(retrieve) {
+      const stages = [];
+      return {
+        retrieve(stage, question, options) {
+          let report;
+          let reports = 0;
+          const sources = retrieve(question, {
+            ...options,
+            onSelection: (selection) => {
+              reports++;
+              report = copySelection(selection);
+            }
+          });
+          stages.push(Object.freeze(reports === 1 && matchesSelection(report, sources, options?.limit) ? { ...stage, diagnostics: "reported", selection: report } : { ...stage, diagnostics: "unavailable" }));
+          return sources;
+        },
+        snapshot(contextSourceIds) {
+          return Object.freeze({
+            scope: "per_stage_positive_ranked_candidates",
+            diagnosticsComplete: stages.every((stage) => stage.diagnostics === "reported"),
+            stages: Object.freeze([...stages]),
+            contextSourceIds: Object.freeze([...contextSourceIds])
+          });
+        }
+      };
+    }
     function prepareExpertRequest(input, retrieve) {
       const request = (0, expert_request_1.parseExpertRequest)(input);
       if (request.status !== "ready")
         return request;
+      const selection = selectionDiagnostics(retrieve);
       if (request.mode === "learn") {
+        const sources = selection.retrieve({ stage: "learn" }, request.question, {
+          limit: LEARNING_SOURCES
+        });
         return {
           ...request,
-          sources: retrieve(request.question, { limit: LEARNING_SOURCES }),
-          comparison: void 0
+          sources,
+          comparison: void 0,
+          evidenceSelection: selection.snapshot(sources.map((source) => source.id))
         };
       }
       const deployments = request.deployments;
       const evidence = /* @__PURE__ */ new Map();
       const byDeployment = {};
       for (const deployment of deployments) {
-        const identity = retrieve(deployment.address).find((source) => source.id === IDENTITY_SOURCE_IDS[deployment.id]);
+        const identity = selection.retrieve({ stage: "identity", deploymentId: deployment.id }, deployment.address).find((source) => source.id === IDENTITY_SOURCE_IDS[deployment.id]);
         if (!identity || identity.sourceFileUrl !== deployment.sourceFileUrl) {
-          return { status: "insufficient_evidence" };
+          return {
+            status: "insufficient_evidence",
+            evidenceSelection: selection.snapshot([])
+          };
         }
         evidence.set(identity.id, identity);
         byDeployment[deployment.id] = [identity.id];
       }
       const identitySourceIds = new Set(evidence.keys());
-      const candidates = deployments.map((deployment) => retrieve(request.question, {
+      const candidates = deployments.map((deployment) => selection.retrieve({ stage: "mechanisms", deploymentId: deployment.id }, request.question, {
         topics: [DEPLOYMENT_TOPICS[deployment.id]],
         excludeIds: [...evidence.keys()],
         limit: MECHANISM_SOURCES_PER_DEPLOYMENT
@@ -43041,7 +43102,7 @@ var require_expert_workflow = __commonJS({
         }
       }
       const sharedSourceIds = [];
-      for (const source of retrieve(request.question, {
+      for (const source of selection.retrieve({ stage: "shared" }, request.question, {
         excludeTopics: deployments.map((deployment) => DEPLOYMENT_TOPICS[deployment.id]),
         excludeIds: [...evidence.keys()],
         limit: SHARED_CONTEXT_SOURCES
@@ -43060,7 +43121,8 @@ var require_expert_workflow = __commonJS({
         ...request,
         sources: [...evidence.values()],
         comparison,
-        comparisonEvidence: { byDeployment, sharedSourceIds }
+        comparisonEvidence: { byDeployment, sharedSourceIds },
+        evidenceSelection: selection.snapshot([...evidence.keys()])
       };
     }
     async function answerExpertRequest(input, retrieve, generate, signal) {
@@ -43075,16 +43137,22 @@ var require_expert_workflow = __commonJS({
         return {
           ...result,
           availableSources: request.sources.map(({ text: _text, ...reference }) => reference),
-          ...comparison ? { comparison } : {}
+          ...comparison ? { comparison } : {},
+          evidenceSelection: request.evidenceSelection
         };
       }
       if (comparison && (result.status === "answered" || result.status === "partial")) {
         const identityIds = new Set(comparison.deployments.map((deployment) => IDENTITY_SOURCE_IDS[deployment.id]));
         const identities = request.sources.filter((source) => identityIds.has(source.id)).map(({ text: _text, ...reference }) => reference);
         const sources = new Map([...identities, ...result.sources].map((source) => [source.id, source]));
-        return { ...result, sources: [...sources.values()], comparison };
+        return {
+          ...result,
+          sources: [...sources.values()],
+          comparison,
+          evidenceSelection: request.evidenceSelection
+        };
       }
-      return result;
+      return { ...result, evidenceSelection: request.evidenceSelection };
     }
   }
 });
@@ -50379,12 +50447,10 @@ var require_knowledge = __commonJS({
           return [];
         }
         const queryTerms = new Set(tokenize(question));
-        if (queryTerms.size === 0)
-          return [];
         const allowedTopics = options.topics === void 0 ? void 0 : new Set(options.topics.map(normalizeTopic));
         const excludedIds = new Set(options.excludeIds);
         const excludedTopics = new Set(options.excludeTopics?.map(normalizeTopic));
-        const scored = documents.filter((document) => !excludedIds.has(document.id) && !document.topics.some((topic) => excludedTopics.has(normalizeTopic(topic))) && (allowedTopics === void 0 || document.topics.some((topic) => allowedTopics.has(normalizeTopic(topic))))).map((document) => ({
+        const ranked = documents.filter((document) => !excludedIds.has(document.id) && !document.topics.some((topic) => excludedTopics.has(normalizeTopic(topic))) && (allowedTopics === void 0 || document.topics.some((topic) => allowedTopics.has(normalizeTopic(topic))))).map((document) => ({
           document,
           score: scoreDocument(queryTerms, document, documentFrequency, averageDocumentLength, documents.length)
         })).filter(({ score }) => score > 0).sort((left, right) => {
@@ -50392,7 +50458,17 @@ var require_knowledge = __commonJS({
           if (Math.abs(difference) > SCORE_EPSILON)
             return difference;
           return left.document.id < right.document.id ? -1 : left.document.id > right.document.id ? 1 : 0;
-        }).slice(0, limit);
+        });
+        const scored = ranked.slice(0, limit);
+        if (options.onSelection) {
+          options.onSelection(Object.freeze({
+            limit,
+            eligibleCandidateIds: Object.freeze(ranked.map(({ document }) => document.id)),
+            selectedIds: Object.freeze(scored.map(({ document }) => document.id)),
+            omittedIds: Object.freeze(ranked.slice(limit).map(({ document }) => document.id)),
+            omissionReason: ranked.length > limit ? "source_limit" : null
+          }));
+        }
         return scored.map(({ document }) => ({
           id: document.id,
           url: document.url,
