@@ -24,6 +24,11 @@ type FoundationIndexDocument = FoundationSource & {
   termFrequency: Map<string, number>;
 };
 
+type RankedFoundationDocument = {
+  document: FoundationIndexDocument;
+  score: number;
+};
+
 /** Positive ranked candidates after filters, not a claim of corpus coverage. */
 export type FoundationSelection = Readonly<{
   limit: number;
@@ -201,7 +206,10 @@ function requiredStringArray(
 }
 
 function tokenize(value: string): string[] {
-  const expandedCase = value.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  // Preserve the receipt-token term before camel-case splitting would reduce
+  // aToken to the stopword "a" plus the unrelated generic term "token".
+  const receiptTerms = value.replace(/\batokens?\b/gi, "atoken");
+  const expandedCase = receiptTerms.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
   const canonical = expandedCase.replace(/\berc[\s-]*4626\b/gi, "erc4626");
   const rawTokens = canonical.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
   const tokens: string[] = [];
@@ -338,7 +346,50 @@ function scoreDocument(
   return score;
 }
 
-/** Build a deterministic BM25 candidate retriever from a validated source pack. */
+/**
+ * Within a trusted scope, reserve evidence for complete curated topic phrases
+ * named in the query before filling the same budget with BM25 candidates.
+ * This is lexical candidate coverage, not a claim of semantic completeness.
+ */
+function coverExplicitTopics(
+  ranked: RankedFoundationDocument[],
+  queryTokens: readonly string[],
+  scopeTopics: ReadonlySet<string> | undefined,
+  limit: number
+): RankedFoundationDocument[] {
+  if (!scopeTopics || ranked.length <= limit) return ranked;
+  const selectedIds = new Set<string>();
+  const coveredTopics = new Set<string>();
+  for (const { document } of ranked) {
+    const matches = document.topics.filter((topic) => {
+      if (scopeTopics.has(normalizeTopic(topic))) return false;
+      const terms = tokenize(topic);
+      return (
+        terms.length > 0 &&
+        queryTokens.some((_, start) =>
+          terms.every((term, offset) => queryTokens[start + offset] === term)
+        )
+      );
+    });
+    if (matches.some((topic) => !coveredTopics.has(normalizeTopic(topic)))) {
+      selectedIds.add(document.id);
+      for (const topic of matches) coveredTopics.add(normalizeTopic(topic));
+      if (selectedIds.size === limit) break;
+    }
+  }
+  for (const { document } of ranked) {
+    if (selectedIds.size >= limit) break;
+    selectedIds.add(document.id);
+  }
+  // Keep BM25 order within both groups. Already-covered packets are unchanged,
+  // and diagnostics describe the same final selection that enters generation.
+  return [
+    ...ranked.filter(({ document }) => selectedIds.has(document.id)),
+    ...ranked.filter(({ document }) => !selectedIds.has(document.id)),
+  ];
+}
+
+/** Build a deterministic BM25 retriever with bounded scoped topic coverage. */
 export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
   const documents = buildDocuments(pack);
   const documentFrequency = new Map<string, number>();
@@ -364,7 +415,8 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
     ) {
       return [];
     }
-    const queryTerms = new Set(tokenize(question));
+    const queryTokens = tokenize(question);
+    const queryTerms = new Set(queryTokens);
     const allowedTopics =
       options.topics === undefined
         ? undefined
@@ -372,7 +424,7 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
     const excludedIds = new Set(options.excludeIds);
     const excludedTopics = new Set(options.excludeTopics?.map(normalizeTopic));
 
-    const ranked = documents
+    const bm25Ranked = documents
       .filter(
         (document) =>
           !excludedIds.has(document.id) &&
@@ -404,6 +456,12 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
           ? 1
           : 0;
       });
+    const ranked = coverExplicitTopics(
+      bm25Ranked,
+      queryTokens,
+      allowedTopics,
+      limit
+    );
     const scored = ranked.slice(0, limit);
     if (options.onSelection) {
       options.onSelection(
