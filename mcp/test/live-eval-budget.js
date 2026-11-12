@@ -343,8 +343,10 @@ function accountedCost(entry) {
 function digest(value) {
   return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 }
-function validRecovery(entry) {
+function validRecovery(entry, plan) {
   const recovery = entry.recovery;
+  if (recovery?.kind === "completed_uncertain")
+    return validCompletedRecovery(entry, plan);
   const keys = [
     "disposition",
     "recoveryId",
@@ -450,7 +452,7 @@ function readLedger(filename, plan) {
     }
     if (
       entry.recovery !== undefined &&
-      (entry.status !== "uncertain" || !validRecovery(entry))
+      (entry.status !== "uncertain" || !validRecovery(entry, entryPlan))
     )
       fail("invalid_ledger");
     for (const key of [
@@ -1721,6 +1723,231 @@ function reconcileBudgetEntry(filename, suppliedPlan, request) {
   }
 }
 
+function completedQuarantineEvidence(
+  entry,
+  evidenceJson,
+  evidenceSha256,
+  recoveredAt
+) {
+  if (
+    typeof evidenceJson !== "string" ||
+    evidenceJson.length > 32000 ||
+    !digest(evidenceSha256) ||
+    rawHash(evidenceJson) !== evidenceSha256 ||
+    !timestamp(entry.requestedAt) ||
+    !timestamp(entry.completedAt) ||
+    !validGenerationId(entry.generationId) ||
+    !timestamp(recoveredAt)
+  )
+    return false;
+  let evidence;
+  try {
+    evidence = JSON.parse(evidenceJson);
+  } catch {
+    return false;
+  }
+  return (
+    reconciliationKeys(evidence, [
+      "schemaVersion",
+      "kind",
+      "entryId",
+      "generationId",
+      "completedAt",
+      "reviewedAt",
+      "chargeStatus",
+      "operatorReference",
+    ]) &&
+    evidence.schemaVersion === 1 &&
+    evidence.kind === "operator_quarantine_review" &&
+    evidence.entryId === entry.id &&
+    evidence.generationId === entry.generationId &&
+    evidence.completedAt === entry.completedAt &&
+    evidence.chargeStatus === "unverified" &&
+    typeof evidence.operatorReference === "string" &&
+    evidence.operatorReference.trim().length > 0 &&
+    evidence.operatorReference.length <= 2000 &&
+    timestamp(evidence.reviewedAt) &&
+    Date.parse(entry.requestedAt) <= Date.parse(entry.completedAt) &&
+    (entry.responseReceivedAt === undefined ||
+      (timestamp(entry.responseReceivedAt) &&
+        Date.parse(entry.requestedAt) <= Date.parse(entry.responseReceivedAt) &&
+        Date.parse(entry.responseReceivedAt) <=
+          Date.parse(entry.completedAt))) &&
+    Date.parse(entry.completedAt) <= Date.parse(evidence.reviewedAt) &&
+    Date.parse(evidence.reviewedAt) <= Date.parse(recoveredAt)
+  );
+}
+function validCompletedRecovery(entry, plan) {
+  const { recovery, ...original } = entry;
+  return (
+    reconciliationKeys(recovery, [
+      "kind",
+      "disposition",
+      "recoveryId",
+      "entryId",
+      "previousStatus",
+      "previousLedgerIntegrity",
+      "originalEntrySha256",
+      "reservedNanoUsd",
+      "recoveredAt",
+      "operatorEvidenceJson",
+      "operatorEvidenceSha256",
+    ]) &&
+    recovery.kind === "completed_uncertain" &&
+    recovery.disposition === "full_reservation_accounted" &&
+    reconciliationUuid(recovery.recoveryId) &&
+    recovery.entryId === entry.id &&
+    recovery.previousStatus === "uncertain" &&
+    digest(recovery.previousLedgerIntegrity) &&
+    recovery.originalEntrySha256 === hash(original) &&
+    recovery.reservedNanoUsd === entry.reservedNanoUsd &&
+    reconciliationOriginal(original, plan) &&
+    completedQuarantineEvidence(
+      original,
+      recovery.operatorEvidenceJson,
+      recovery.operatorEvidenceSha256,
+      recovery.recoveredAt
+    )
+  );
+}
+
+/** Operator-only acknowledgement of an unknown completed charge. No money is released. */
+function quarantineCompletedReservation(filename, suppliedPlan, request) {
+  const plan = validatePlan(suppliedPlan);
+  if (
+    !reconciliationKeys(request, [
+      "quarantineId",
+      "expectedLedgerIntegrity",
+      "expectedEntryId",
+      "expectedGenerationId",
+      "expectedReservationNanoUsd",
+      "evidenceJson",
+      "expectedEvidenceSha256",
+    ]) ||
+    !reconciliationUuid(request.quarantineId) ||
+    !digest(request.expectedLedgerIntegrity) ||
+    typeof request.expectedEntryId !== "string" ||
+    !request.expectedEntryId ||
+    request.expectedEntryId.length > 200 ||
+    !validGenerationId(request.expectedGenerationId) ||
+    !integer(request.expectedReservationNanoUsd) ||
+    !request.expectedReservationNanoUsd ||
+    typeof request.evidenceJson !== "string" ||
+    !digest(request.expectedEvidenceSha256)
+  )
+    fail("invalid_quarantine_request");
+  const location = ledgerLocation(filename),
+    unlock = lockLedger(location);
+  let commitAttempted = false,
+    completed = false;
+  try {
+    const ledger = readLedger(location, plan);
+    if (hash(ledger) !== request.expectedLedgerIntegrity)
+      fail("quarantine_state_changed");
+    const entry = ledger.entries.at(-1),
+      index = ledger.entries.length - 1;
+    const entryPlan = ledger.planHistory?.find(
+      (item) => item.planHash === entry?.planHash
+    );
+    if (
+      !entry ||
+      entry.id !== request.expectedEntryId ||
+      entry.generationId !== request.expectedGenerationId ||
+      entry.reservedNanoUsd !== request.expectedReservationNanoUsd
+    )
+      fail("quarantine_state_changed");
+    if (
+      !entryPlan ||
+      index < immutableHistoryPrefixCount(ledger) ||
+      !reconciliationOriginal(entry, entryPlan) ||
+      ledger.entries.some(
+        (item) => item !== entry && item.status !== "settled" && !item.recovery
+      )
+    )
+      fail("ineligible_quarantine");
+    const recovery = {
+      kind: "completed_uncertain",
+      disposition: "full_reservation_accounted",
+      recoveryId: request.quarantineId,
+      entryId: entry.id,
+      previousStatus: "uncertain",
+      previousLedgerIntegrity: request.expectedLedgerIntegrity,
+      originalEntrySha256: hash(entry),
+      reservedNanoUsd: entry.reservedNanoUsd,
+      recoveredAt: new Date().toISOString(),
+      operatorEvidenceJson: request.evidenceJson,
+      operatorEvidenceSha256: request.expectedEvidenceSha256,
+    };
+    const quarantined = { ...entry, recovery };
+    if (!validCompletedRecovery(quarantined, entryPlan))
+      fail("invalid_quarantine_evidence");
+    const proposed = {
+      ...ledger,
+      entries: [...ledger.entries.slice(0, -1), quarantined],
+    };
+    if (ledger.schemaVersion >= 3) validateCapHistory(proposed);
+    const before = fs.readFileSync(location);
+    const auditDirectory = path.join(
+      path.dirname(location),
+      `hedwig-budget-quarantine-${request.quarantineId}`
+    );
+    fs.mkdirSync(auditDirectory, { mode: 0o700 });
+    syncParentDirectory(auditDirectory);
+    durableExclusiveWrite(
+      path.join(auditDirectory, "ledger.before.json"),
+      before
+    );
+    durableExclusiveWrite(
+      path.join(auditDirectory, "operator-evidence.json"),
+      request.evidenceJson
+    );
+    durableExclusiveWrite(
+      path.join(auditDirectory, "quarantine.intent.json"),
+      JSON.stringify(
+        {
+          recovery,
+          previousLedgerIntegrity: request.expectedLedgerIntegrity,
+          proposedLedgerIntegrity: hash(proposed),
+          summary: summary(proposed),
+        },
+        null,
+        2
+      ) + "\n"
+    );
+    if (
+      !fs.readFileSync(location).equals(before) ||
+      hash(readLedger(location, plan)) !== request.expectedLedgerIntegrity
+    )
+      fail("quarantine_state_changed");
+    commitAttempted = true;
+    writeLedger(location, proposed);
+    const applied = readLedger(location, plan);
+    if (hash(applied) !== hash(proposed)) fail("quarantine_state_changed");
+    const result = summary(applied);
+    durableExclusiveWrite(
+      path.join(auditDirectory, "quarantine.applied.json"),
+      JSON.stringify(
+        {
+          quarantineId: request.quarantineId,
+          ledgerIntegrity: hash(applied),
+          entryId: entry.id,
+          summary: result,
+        },
+        null,
+        2
+      ) + "\n"
+    );
+    completed = true;
+    return {
+      auditDirectory,
+      quarantineId: request.quarantineId,
+      summary: result,
+    };
+  } finally {
+    unlock({ preserveLock: commitAttempted && !completed });
+  }
+}
+
 function boundedRequest(init, plan, reasoningProfile) {
   if (init?.method !== "POST" || typeof init.body !== "string")
     fail("request_rejected");
@@ -2010,6 +2237,7 @@ module.exports = {
   qualifyExistingBudgetPlan,
   readBudgetSummary,
   recoverInterruptedReservation,
+  quarantineCompletedReservation,
   installBudgetGuard,
 };
 
