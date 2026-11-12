@@ -42754,13 +42754,46 @@ var require_expert_request = __commonJS({
       }
       return names.some((name) => !/^(?:ethereum(?:\s+mainnet)?|mainnet)$/i.test(name));
     }
+    function hasOpenQuote(text) {
+      const quoteEnds = {
+        '"': '"',
+        "'": "'",
+        "`": "`",
+        "\u201C": "\u201D",
+        "\u2018": "\u2019"
+      };
+      let closing;
+      for (let index = 0; index < text.length; index++) {
+        const character = text[index];
+        if (character === "\\") {
+          index++;
+          continue;
+        }
+        if ((character === "'" || character === "\u2019") && /[\p{L}\p{N}]/u.test(text[index - 1] ?? "") && /[\p{L}\p{N}]/u.test(text[index + 1] ?? ""))
+          continue;
+        if (closing) {
+          if (character === closing)
+            closing = void 0;
+        } else {
+          closing = quoteEnds[character];
+        }
+      }
+      return closing !== void 0;
+    }
     function isExplicitVersionExclusion(question, index) {
       const prefix = question.slice(0, index);
+      if (hasOpenQuote(prefix))
+        return false;
       if (/(?:^|[.;,!?\n])\s*(?:please\s+)?exclude\s+(?:the\s+)?$/i.test(prefix))
         return true;
       const marker = /\b(?:not|excluding|except|exceto)\s+(?:the\s+)?$/i;
       const match = marker.exec(prefix);
-      return !!match && !marker.test(prefix.slice(0, match.index));
+      if (!match)
+        return false;
+      const beforeMarker = prefix.slice(0, match.index);
+      if (marker.test(beforeMarker))
+        return false;
+      return !/^not\b/i.test(match[0]) || /(?:^|[.;,!?\n])\s*$/.test(beforeMarker);
     }
     function hasKnownIdentityConflict(question, deployments) {
       const chainNames = "base|arbitrum|optimism|polygon|solana|avalanche|sepolia|testnet|bnb(?:\\s+chain)?";

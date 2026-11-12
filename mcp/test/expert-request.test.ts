@@ -382,6 +382,9 @@ describe("expert request identity boundary", () => {
       "Compare Aave V3 and Compound III, not Aave V2, excluding Compound II.",
       "Compare the selected deployments; exclude Compound II.",
       "Compare the selected deployments. Please exclude the Aave V2 market.",
+      "Not Aave V2; compare Aave V3 with Compound III.",
+      'Compare "supply mechanisms", not Aave V2, in the selected deployments.',
+      "Compare Gabe's selected deployments, not Aave V2.",
     ]) {
       const result = request(question);
       expect(result.status, question).to.equal("ready");
@@ -409,6 +412,30 @@ describe("expert request identity boundary", () => {
       "Compare these deployments; not not Compound II.",
       "The guide says 'not Aave V2'. Compare Aave V2 with Compound III.",
       'The guide says "excluding Compound II". Compare Aave V3 and Compound II.',
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+  });
+
+  it("does not treat interrogative, conditional or reported not as a direct version exclusion", () => {
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      "Compare Aave V3 Ethereum Pool and Compound III Ethereum USDC Comet; why not Aave V2 instead?",
+      "Compare the selected deployments; why not Compound II instead?",
+      "Compare the selected deployments; if not Aave V2, what would change?",
+      "Compare the selected deployments; if (not Aave V2), what would change?",
+      "Compare the selected deployments; why (not Compound II) instead?",
+      "Compare Aave V3 (not Aave V2) with Compound III.",
+      "The guide says: not Aave V2. Compare the selected deployments.",
+      "The guide says not Compound II. Compare the selected deployments.",
+      'The guide says "keep Ethereum; not Aave V2". Compare the selected deployments.',
+      "The guide says 'keep Ethereum; not Compound II'. Compare the selected deployments.",
+      "The guide says 'Gabe's note; not Aave V2'. Compare the selected deployments.",
+      "The guide says “keep Ethereum; not Aave V2”. Compare the selected deployments.",
+      "Compare the selected deployments; do not exclude Aave V2.",
+      "Compare the selected deployments, not Aave V2; also compare Aave V2.",
     ])
       expect(request(question).status, question).to.equal(
         "needs_clarification"

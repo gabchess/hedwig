@@ -224,9 +224,41 @@ function hasExplicitChainDeclarationConflict(text: string): boolean {
   );
 }
 
-/** An exclusion applies only to the immediately following version mention. */
+/** Lexical quote boundary only; apostrophes inside words are not quotations. */
+function hasOpenQuote(text: string): boolean {
+  const quoteEnds: Readonly<Record<string, string>> = {
+    '"': '"',
+    "'": "'",
+    "`": "`",
+    "“": "”",
+    "‘": "’",
+  };
+  let closing: string | undefined;
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index];
+    if (character === "\\") {
+      index++;
+      continue;
+    }
+    if (
+      (character === "'" || character === "’") &&
+      /[\p{L}\p{N}]/u.test(text[index - 1] ?? "") &&
+      /[\p{L}\p{N}]/u.test(text[index + 1] ?? "")
+    )
+      continue;
+    if (closing) {
+      if (character === closing) closing = undefined;
+    } else {
+      closing = quoteEnds[character];
+    }
+  }
+  return closing !== undefined;
+}
+
+/** An exclusion applies only to the immediately following unquoted version. */
 function isExplicitVersionExclusion(question: string, index: number): boolean {
   const prefix = question.slice(0, index);
+  if (hasOpenQuote(prefix)) return false;
   // Only a direct clause can command exclusion; "don't exclude" and quoted
   // or reported commands remain ambiguous without a general prose classifier.
   if (/(?:^|[.;,!?\n])\s*(?:please\s+)?exclude\s+(?:the\s+)?$/i.test(prefix))
@@ -234,7 +266,12 @@ function isExplicitVersionExclusion(question: string, index: number): boolean {
   const marker = /\b(?:not|excluding|except|exceto)\s+(?:the\s+)?$/i;
   const match = marker.exec(prefix);
   // Doubled/inverted markers such as "not excluding" remain ambiguous.
-  return !!match && !marker.test(prefix.slice(0, match.index));
+  if (!match) return false;
+  const beforeMarker = prefix.slice(0, match.index);
+  if (marker.test(beforeMarker)) return false;
+  // "Why not" and "if not" request or qualify a version. Only direct clauses
+  // omit it; parenthetical not remains ambiguous without a prose classifier.
+  return !/^not\b/i.test(match[0]) || /(?:^|[.;,!?\n])\s*$/.test(beforeMarker);
 }
 
 /** Detect known contradictions, not arbitrary natural-language identities. */
