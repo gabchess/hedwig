@@ -23,6 +23,7 @@ const LEARNING_SOURCES = 9;
 const MAX_COMPARISON_SOURCES = 16;
 const MECHANISM_SOURCES_PER_DEPLOYMENT = 6;
 const SHARED_CONTEXT_SOURCES = 2;
+const MAX_REPORTED_SOURCE_LIMIT = 9;
 
 type SelectionStage = Readonly<
   | { stage: "learn" | "shared" }
@@ -80,7 +81,7 @@ function matchesSelection(
   return (
     Number.isSafeInteger(limit) &&
     limit >= 1 &&
-    limit <= 9 &&
+    limit <= MAX_REPORTED_SOURCE_LIMIT &&
     (requestedLimit === undefined || limit === requestedLimit) &&
     new Set(eligibleCandidateIds).size === eligibleCandidateIds.length &&
     eligibleCandidateIds.length === accounted.length &&

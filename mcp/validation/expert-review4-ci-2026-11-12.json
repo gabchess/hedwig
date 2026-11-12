@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-12T18:14:33.529Z",
+  "status": "named_limit_ci_correction_final_external_checks_separate",
+  "predecessor": {
+    "file": "mcp/validation/expert-review4-2026-11-12.json",
+    "sha256": "25b0e5cbe1eebd907f3a6b354197ad828909582f53f199150b554fa15633d039",
+    "historicalRecordPreserved": true
+  },
+  "problem": "The repository consult source-boundary scan rejects an unnamed numeric threshold in workflow metadata validation. The prior final-head CI stopped with 1196 consult passes and one boundary failure; later steps were skipped.",
+  "repair": "Name the unchanged value as MAX_REPORTED_SOURCE_LIMIT = 9 and refer to that local constant. No runtime import, eager corpus load, source selection, provider request, result behavior or test oracle changes.",
+  "currentBuild": {
+    "manifestSha256": "c0ddf0670f9d7c5f4fb8670f79082167ba33a807f1ad0697f60c49c890f5703d",
+    "inventoryFiles": 43,
+    "unchangedFromPredecessor": 40,
+    "changedFiles": [
+      {
+        "file": "mcp/dist/expert-workflow.js",
+        "previousSha256": "d6a7855453689671e5b4d55309a3d9ddd28ba4e27f7a939f6cba9105af37a747",
+        "sha256": "725812d56823c10a7fb8d73027c6ffc578d7624fb56943813dbaa54b58b65da7"
+      },
+      {
+        "file": "mcp/src/expert-workflow.ts",
+        "previousSha256": "504a80b2b8f193a70b8103a879e08817f6256c13fe673f00fdca48341ef2d754",
+        "sha256": "47388e79a8c32ac1cb146e2d0d280a4588a818f7ffa2a0327c22d6b53224d232"
+      },
+      {
+        "file": "plugin/server/hedwig-mcp.js",
+        "previousSha256": "894b84441da1e68b89d2fc0bd6250e3a12e8976cf41664205e9f97c95242bc90",
+        "sha256": "e0d3256104b4f34f91886568d08badb50e00d27e4b99e0e736ce6df03f27174a"
+      }
+    ],
+    "reconstruction": "The predecessor records all 43 files. Exactly these three hash replacements describe the current build."
+  },
+  "validation": {
+    "localConsultTests": 1197,
+    "mcpSourceAndTestTypechecks": "passed",
+    "format": "passed",
+    "buildAndPackaging": "passed",
+    "independentCodeDelta": "Reversing only the constant declaration and comparison substitution reproduces the full prior workflow source and compiled files; the bundle has only those same substitutions.",
+    "compiledCases": 78,
+    "identicalSelectedSourcesAndPriorFields": 78,
+    "identicalFinalGuardedRequestsOrGates": 78,
+    "providerRequestsPerSide": 73,
+    "preRetrievalGates": 5,
+    "actualSdkFixturePaths": 4,
+    "networkCalls": 0,
+    "evidence": [
+      {
+        "file": "gpt52-review4-ci-omission-compiled-applicability.json",
+        "sha256": "1290c9bc8cc3533f79d05b0cbca82efa95a5b1ba1ae745ee7e4ce8c261ed56c4"
+      },
+      {
+        "file": "review4-ci-constant-independent-review.json",
+        "sha256": "749bf4bcf59830a9df7c39314d9c1c42eade94da5621de3a82c5c0476a196674"
+      },
+      {
+        "file": "review4-ci-sdk-selection-check.json",
+        "sha256": "42ad189d35ef4475f2fde7ea5db02181f227edbff08d90924c11f943275af5c3"
+      }
+    ]
+  },
+  "qualification": {
+    "distinctCases": 78,
+    "fullyMetCaseCriteria": 75,
+    "disclosedMisses": 3,
+    "additionalProviderObservations": 0,
+    "interpretation": "No new semantic observation. Existing real answers and full Windows tests retain their original artifact bindings; exact code-delta review and fresh compiled/SDK checks establish applicability of this named-constant correction."
+  },
+  "boundaries": [
+    "Final commit CI and substantive CodeRabbit review remain separately required before merge.",
+    "The original three misses and all predecessor scope, privacy, recovery and Windows qualifications remain in force.",
+    "No paid call, budget mutation, host installation or new runtime service was performed."
+  ]
+}

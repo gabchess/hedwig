@@ -43012,6 +43012,7 @@ var require_expert_workflow = __commonJS({
     var MAX_COMPARISON_SOURCES = 16;
     var MECHANISM_SOURCES_PER_DEPLOYMENT = 6;
     var SHARED_CONTEXT_SOURCES = 2;
+    var MAX_REPORTED_SOURCE_LIMIT = 9;
     function copySelection(value) {
       if (!value || ![value.eligibleCandidateIds, value.selectedIds, value.omittedIds].every((ids) => Array.isArray(ids) && ids.every((id) => typeof id === "string" && id.length > 0)))
         return void 0;
@@ -43028,7 +43029,7 @@ var require_expert_workflow = __commonJS({
         return false;
       const { limit, eligibleCandidateIds, selectedIds, omittedIds, omissionReason } = selection;
       const accounted = [...selectedIds, ...omittedIds];
-      return Number.isSafeInteger(limit) && limit >= 1 && limit <= 9 && (requestedLimit === void 0 || limit === requestedLimit) && new Set(eligibleCandidateIds).size === eligibleCandidateIds.length && eligibleCandidateIds.length === accounted.length && eligibleCandidateIds.every((id, index) => id === accounted[index]) && selectedIds.length === Math.min(limit, eligibleCandidateIds.length) && sources.length === selectedIds.length && sources.every((source, index) => source.id === selectedIds[index]) && omissionReason === (omittedIds.length > 0 ? "source_limit" : null);
+      return Number.isSafeInteger(limit) && limit >= 1 && limit <= MAX_REPORTED_SOURCE_LIMIT && (requestedLimit === void 0 || limit === requestedLimit) && new Set(eligibleCandidateIds).size === eligibleCandidateIds.length && eligibleCandidateIds.length === accounted.length && eligibleCandidateIds.every((id, index) => id === accounted[index]) && selectedIds.length === Math.min(limit, eligibleCandidateIds.length) && sources.length === selectedIds.length && sources.every((source, index) => source.id === selectedIds[index]) && omissionReason === (omittedIds.length > 0 ? "source_limit" : null);
     }
     function selectionDiagnostics(retrieve) {
       const stages = [];
