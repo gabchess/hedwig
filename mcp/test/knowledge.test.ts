@@ -217,6 +217,35 @@ describe("foundation BM25 retrieval", () => {
     );
   });
 
+  it("requires the repository and revision in the source and license URL path", () => {
+    const commit = "0123456789abcdef0123456789abcdef01234567";
+    for (const field of ["sourceFileUrl", "licenseUrl"] as const) {
+      for (const invalid of [
+        `https://github.com/example/source/blob/main/source.md?ref=/${commit}/`,
+        `https://github.com/example/source/blob/main/source.md#/${commit}/`,
+        `https://github.com/example/source/blob/main/${commit}/source.md`,
+        `https://github.com/other/repo/blob/${commit}/source.md`,
+        `https://github.com.invalid/example/source/blob/${commit}/source.md`,
+        `https://raw.githubusercontent.com/example/source/main/source.md?ref=/${commit}/`,
+      ]) {
+        const pack = fixturePack([{ id: "valid", text: "alpha evidence" }]);
+        pack.sources[0][field] = invalid;
+        expect(
+          () => buildFoundationRetriever(pack),
+          `${field}: ${invalid}`
+        ).to.throw(/pinned/i);
+      }
+      for (const valid of [
+        `https://github.com/example/source/blob/${commit}/source.md#section`,
+        `https://raw.githubusercontent.com/example/source/${commit}/source.md`,
+      ]) {
+        const pack = fixturePack([{ id: "valid", text: "alpha evidence" }]);
+        pack.sources[0][field] = valid;
+        expect(() => buildFoundationRetriever(pack)).not.to.throw();
+      }
+    }
+  });
+
   it("rejects duplicate source ids", () => {
     const pack = fixturePack([{ id: "first", text: "alpha evidence" }]);
     pack.sources.push({

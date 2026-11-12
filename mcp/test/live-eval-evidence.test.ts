@@ -9,6 +9,7 @@ const helpers = require("./live-eval-evidence") as {
   parseProviderDiagnostic: (
     line: string
   ) => { code: string; httpStatus?: number } | undefined;
+  parseBudgetDiagnostic: (line: string) => { code: string } | undefined;
   captureEvidenceBinding: (root: string, fixture: string) => EvidenceBinding;
   evidenceBindingsMatch: (
     before: EvidenceBinding,
@@ -17,6 +18,30 @@ const helpers = require("./live-eval-evidence") as {
 };
 
 describe("live evaluation evidence binding", () => {
+  it("separately admits fixed budget diagnostics without copying arbitrary stderr", () => {
+    expect(helpers.parseBudgetDiagnostic).to.be.a("function");
+    for (const code of [
+      "cap_exhausted",
+      "request_too_large",
+      "request_uncertain",
+      "cost_unverified",
+      "ledger_failure",
+    ])
+      expect(
+        helpers.parseBudgetDiagnostic(`hedwig-budget: code=${code}\r`)
+      ).to.deep.equal({ code });
+    for (const line of [
+      "hedwig-budget: code=PRIVATE",
+      "hedwig-budget: code=cap_exhausted secret=PRIVATE",
+      "prefix hedwig-budget: code=cap_exhausted",
+      "hedwig-model: code=transport_error",
+      "hedwig-budget: code=cap_exhausted\nPRIVATE",
+    ])
+      expect(helpers.parseBudgetDiagnostic(line)).to.equal(undefined);
+    expect(
+      helpers.parseProviderDiagnostic("hedwig-budget: code=cap_exhausted")
+    ).to.equal(undefined);
+  });
   it("records only fixed diagnostic codes, never raw stderr content", () => {
     expect(helpers.parseProviderDiagnostic).to.be.a("function");
     expect(
@@ -49,7 +74,27 @@ describe("live evaluation evidence binding", () => {
     expect(helpers.captureEvidenceBinding).to.be.a("function");
     const root = mkdtempSync(join(tmpdir(), "hedwig-evidence-"));
     try {
-      for (const file of helpers.EVIDENCE_FILES) {
+      const requiredEvidenceFiles = [
+        "mcp/dist/server.js",
+        "mcp/dist/server-core.js",
+        "mcp/dist/expert.js",
+        "mcp/dist/expert-request.js",
+        "mcp/dist/expert-workflow.js",
+        "mcp/dist/foundation-answer.js",
+        "mcp/dist/foundation-content.js",
+        "mcp/src/foundation-pack-integrity.ts",
+        "mcp/dist/foundation-pack-integrity.js",
+        "mcp/dist/comparison-answer.js",
+        "mcp/dist/knowledge.js",
+        "mcp/dist/knowledge/foundations.json",
+        "mcp/dist/openrouter.js",
+        "mcp/dist/model-policy.js",
+        "mcp/test/foundations-live-eval.js",
+        "mcp/test/live-eval-evidence.js",
+        "mcp/test/live-eval-budget.js",
+        "mcp/test/live-eval-report.js",
+      ];
+      for (const file of requiredEvidenceFiles) {
         const target = join(root, file);
         mkdirSync(join(target, ".."), { recursive: true });
         writeFileSync(target, file);
@@ -58,6 +103,10 @@ describe("live evaluation evidence binding", () => {
       mkdirSync(join(root, "mcp/test/fixtures"), { recursive: true });
       writeFileSync(join(root, "mcp/test/fixtures", fixture), "fixture-v1");
       const before = helpers.captureEvidenceBinding(root, fixture);
+      expect(Object.keys(before.files)).to.have.members([
+        ...requiredEvidenceFiles,
+        "mcp/test/fixtures/" + fixture,
+      ]);
       expect(before.algorithm).to.equal("sha256");
       expect(before.files["mcp/test/fixtures/" + fixture]).to.match(
         /^[a-f0-9]{64}$/

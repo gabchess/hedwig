@@ -12,6 +12,8 @@ const EVIDENCE_FILES = Object.freeze([
   "mcp/dist/expert-workflow.js",
   "mcp/dist/foundation-answer.js",
   "mcp/dist/foundation-content.js",
+  "mcp/src/foundation-pack-integrity.ts",
+  "mcp/dist/foundation-pack-integrity.js",
   "mcp/dist/comparison-answer.js",
   "mcp/dist/knowledge.js",
   "mcp/dist/knowledge/foundations.json",
@@ -36,6 +38,34 @@ const DIAGNOSTIC_CODES = new Set([
   "provider_refusal",
   "transport_error",
 ]);
+
+const BUDGET_DIAGNOSTIC_CODES = new Set([
+  "cap_exhausted",
+  "cost_unverified",
+  "generation_id_conflict",
+  "initialization_failed",
+  "invalid_configuration",
+  "invalid_ledger",
+  "invalid_ledger_path",
+  "invalid_plan",
+  "invalid_reconciliation_evidence",
+  "invalid_reconciliation_record",
+  "ledger_busy",
+  "ledger_failure",
+  "ledger_inside_repository",
+  "lock_identity_changed",
+  "request_rejected",
+  "request_too_large",
+  "request_uncertain",
+  "unsettled_request",
+]);
+
+function parseBudgetDiagnostic(line) {
+  const match = /^hedwig-budget: code=([a-z_]+)\r?$/.exec(line);
+  return match && BUDGET_DIAGNOSTIC_CODES.has(match[1])
+    ? { code: match[1] }
+    : undefined;
+}
 
 function parseProviderDiagnostic(line) {
   const match =
@@ -76,6 +106,7 @@ function evidenceBindingsMatch(before, after) {
 module.exports = {
   EVIDENCE_FILES,
   parseProviderDiagnostic,
+  parseBudgetDiagnostic,
   captureEvidenceBinding,
   evidenceBindingsMatch,
 };

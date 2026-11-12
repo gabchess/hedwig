@@ -375,6 +375,8 @@ describe("foundations live eval helpers", () => {
       );
       expect(child.status, child.stderr).to.equal(2);
       const report = JSON.parse(child.stdout);
+      expect(report.stopReason).to.equal("price_qualification_failed");
+      expect(report.fixture).to.equal("foundations-eval.json");
       expect(report.complete).to.equal(false);
       expect(report.cases).to.deep.equal([]);
       expect(existsSync(ledgerPath)).to.equal(false);
@@ -402,10 +404,134 @@ describe("foundations live eval helpers", () => {
       isIsolatedProviderRefusal("answered", [{ code: "provider_refusal" }])
     ).to.equal(false);
   });
+
+  it("reports a real guard cap refusal as budget_guard_refused with zero provider requests", () => {
+    const directory = mkdtempSync(
+      join(tmpdir(), "hedwig-runner-budget-refusal-")
+    );
+    try {
+      const budget = require("./live-eval-budget");
+      const catalog = {
+        id: "openai/gpt-4.1-mini",
+        context_length: 1047576,
+        top_provider: { max_completion_tokens: 32768 },
+        pricing: { prompt: "0.0000004", completion: "0.0000016" },
+      };
+      const plan = budget.createBudgetPlan(catalog, catalog.id, 0.4);
+      const planPath = join(directory, "plan.json");
+      const ledgerPath = join(directory, "ledger.json");
+      const callsPath = join(directory, "calls.txt");
+      const unexpectedPath = join(directory, "unexpected.txt");
+      const preloadPath = join(directory, "preload.js");
+      const receiptPath = join(directory, "receipt.jsonl");
+      writeFileSync(planPath, JSON.stringify(plan));
+      budget.initializeBudgetLedger(ledgerPath, plan);
+      const before = readFileSync(ledgerPath);
+      writeFileSync(
+        preloadPath,
+        `
+        const fs=require('node:fs'), path=require('node:path'), Module=require('node:module');
+        const {PassThrough}=require('node:stream');
+        require(path.resolve('node_modules/ts-node')).register({project:'mcp/tsconfig.test.json',transpileOnly:true});
+        const {createOpenRouterFoundationGenerator}=require(path.resolve('mcp/src/openrouter.ts'));
+        const budget=require(path.resolve('mcp/test/live-eval-budget.js'));
+        const read=fs.readFileSync;
+        fs.readFileSync=function(filename,...args){
+          if(String(filename).replaceAll('\\\\','/').endsWith('/fixtures/foundations-eval.json'))
+            return JSON.stringify({cases:[1,2].map(i=>({id:'case-'+i,question:'Public fixture question',expectedStatus:'answered',requiredSourceIds:[]}))});
+          return read.call(this,filename,...args);
+        };
+        let transport;
+        class Transport { constructor(){this.stderr=new PassThrough();transport=this;} }
+        class Client {
+          async connect() {}
+          async close() { transport.stderr.end(); }
+          async callTool() {
+            fs.appendFileSync(${JSON.stringify(callsPath)},'call\\n');
+            const guarded=budget.installBudgetGuard({ledgerPath:${JSON.stringify(
+              ledgerPath
+            )},plan:${JSON.stringify(plan)},
+              fetch:async()=>{fs.writeFileSync(${JSON.stringify(
+                unexpectedPath
+              )},'unexpected provider request');throw new Error('forbidden');},
+              onDiagnostic:code=>transport.stderr.write('hedwig-budget: code='+code+'\\n')});
+            const generate=createOpenRouterFoundationGenerator({apiKey:'fixture',model:${JSON.stringify(
+              catalog.id
+            )},fetch:guarded,
+              onDiagnostic:({code})=>transport.stderr.write('hedwig-model: code='+code+'\\n')});
+            transport.stderr.write('PRIVATE_RAW_STDERR\\n');
+            try { await generate({question:'Fixture question',sources:[]}); } catch {}
+            return {structuredContent:{status:'unavailable'}};
+          }
+        }
+        const load=Module._load;
+        Module._load=function(id,...args){
+          if(id==='@modelcontextprotocol/sdk/client/index.js')return {Client};
+          if(id==='@modelcontextprotocol/sdk/client/stdio.js')return {StdioClientTransport:Transport,getDefaultEnvironment:()=>({})};
+          if(String(id).replaceAll('\\\\','/').endsWith('/mcp/dist/knowledge.js'))return {retrieveFoundationSources:()=>[]};
+          if(String(id).replaceAll('\\\\','/').endsWith('/mcp/dist/expert-workflow.js'))return {prepareExpertRequest:()=>({status:'ready',sources:[]})};
+          return load.call(this,id,...args);
+        };
+        globalThis.fetch=async url=>{
+          if(url==='https://openrouter.ai/api/v1/models')return new Response(${JSON.stringify(
+            JSON.stringify({ data: [catalog] })
+          )});
+          if(url==='https://openrouter.ai/api/v1/key')return new Response('{"data":{"usage":0}}');
+          fs.writeFileSync(${JSON.stringify(
+            unexpectedPath
+          )},'unexpected network request');throw new Error('forbidden');
+        };
+      `
+      );
+      const child = spawnSync(
+        process.execPath,
+        ["--require", preloadPath, join(__dirname, "foundations-live-eval.js")],
+        {
+          encoding: "utf8",
+          timeout: 5000,
+          env: {
+            ...process.env,
+            OPENROUTER_API_KEY: "fixture",
+            HEDWIG_OPENROUTER_MODEL: catalog.id,
+            HEDWIG_EVAL_BUDGET_PLAN: planPath,
+            HEDWIG_EVAL_BUDGET_LEDGER: ledgerPath,
+            HEDWIG_EVAL_REPORT_PATH: receiptPath,
+            HEDWIG_EVAL_BUDGET_PRELOAD: "0",
+          },
+        }
+      );
+      expect(child.status, child.stderr).to.equal(2);
+      const report = JSON.parse(child.stdout);
+      expect(report.stopReason).to.equal("budget_guard_refused");
+      expect(report.complete).to.equal(false);
+      expect(report.cases).to.have.length(1);
+      expect(report.cases[0]).to.include({
+        providerRequestsStarted: 0,
+        providerRequestsBefore: 0,
+        providerRefusal: false,
+      });
+      expect(report.budget).to.include({ blocked: false, requestCount: 0 });
+      expect(
+        report.budgetDiagnostics.map((item: any) => item.code)
+      ).to.deep.equal(["cap_exhausted"]);
+      expect(
+        report.providerDiagnostics.map((item: any) => item.code)
+      ).to.deep.equal(["transport_error"]);
+      expect(child.stdout).not.to.contain("PRIVATE_RAW_STDERR");
+      expect(readFileSync(ledgerPath)).to.deep.equal(before);
+      expect(readFileSync(callsPath, "utf8")).to.equal("call\n");
+      expect(existsSync(unexpectedPath)).to.equal(false);
+      expect(
+        require("./live-eval-report").readLatestReport(receiptPath)
+      ).to.deep.equal(report);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
   it("selects only repository public suites and rejects arbitrary file paths", () => {
     expect(fixtureFileForArgs([])).to.equal("foundations-eval.json");
     expect(fixtureFileForArgs(["--suite=transfer"])).to.equal(
-      "foundations-transfer-eval.json"
+      "expert-transfer-eval.json"
     );
     expect(fixtureFileForArgs(["--suite=account-repair"])).to.equal(
       "foundations-account-repair-eval.json"
@@ -427,6 +553,29 @@ describe("foundations live eval helpers", () => {
     ]) {
       expect(() => fixtureFileForArgs(args)).to.throw();
     }
+  });
+  it("keeps the expanded transfer suite active without reopening the historical oracle", () => {
+    const selected = fixtureFileForArgs(["--suite=transfer"]);
+    expect(selected).to.equal(fixtureFileForArgs(["--suite=expert-transfer"]));
+    const current = JSON.parse(
+      readFileSync(join(__dirname, "fixtures", selected), "utf8")
+    );
+    expect(current.cases).to.have.length(16);
+    const historical = JSON.parse(
+      readFileSync(
+        join(__dirname, "fixtures", "foundations-transfer-eval.json"),
+        "utf8"
+      )
+    );
+    expect(historical.cases).to.have.length(6);
+    expect(
+      historical.cases.find(
+        (item: { id: string }) => item.id === "transfer-outside-corpus-amm"
+      ).expectedStatus
+    ).to.equal("insufficient_evidence");
+    expect(() =>
+      fixtureFileForArgs(["--suite=foundations-transfer"])
+    ).to.throw();
   });
   it("accepts the observed free catalog shape without a request price", () => {
     const model = "baidu/ernie-5.5-flash-preview:free";

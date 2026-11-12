@@ -39,6 +39,7 @@ const FOUNDATION_SYSTEM_PROMPT = [
 const COMPARISON_SYSTEM_PROMPT = [
   FOUNDATION_SYSTEM_PROMPT,
   "For this comparison, apply the answer, citation and unsupportedParts rules independently to each deployment's section. Return exactly the two sections keyed by the supplied deployment IDs, with no overall answer or summary.",
+  "Each section must include a requested boolean. Set requested=false only when the question requests neither a factual answer nor a concrete action concerning that deployment. For requested=false, answer must be exactly an empty string and citationIds and unsupportedParts must both be empty arrays. For requested=true, answer supported parts and preserve genuine evidence gaps under the normal content rules. An evidence gap does not make a requested deployment unrequested. A request for transaction approval or execution requires requested=true with its unsupported action recorded as a gap. A question shared by both deployments requires requested=true in both sections.",
   "Preserve which deployment each requested factual part concerns. Apply a shared question to both deployments, but a question naming only one deployment applies only to that deployment. Do not turn an unasked behavior on the other side into an unsupported part. A supported explanation for one deployment does not answer a requested part for the other. Preserve only genuinely requested unsupported parts in that deployment's unsupportedParts; if none of its requested parts is supported, use an empty answer and empty citationIds in that section.",
   "When the question asks how an operation or mechanism works or begins, explain the supported actors, actions and resulting state or value changes, with their material conditions. A trigger or threshold alone does not explain the operation. Keep every requested mechanism distinct; do not replace its actions with neighboring accounting formulas. When only a definition or trigger is asked, do not add an unrequested operation tutorial.",
   "Each section may cite only that deployment's evidence.byDeployment source IDs and evidence.sharedSourceIds. Describe only that deployment in its section; the application supplies the labels. Do not merge claims about different protocols into one section.",
@@ -71,6 +72,15 @@ function foundationSchema(citationIds: readonly string[]) {
   };
 }
 
+function comparisonSectionSchema(citationIds: readonly string[]) {
+  const content = foundationSchema(citationIds);
+  return {
+    ...content,
+    properties: { requested: { type: "boolean" }, ...content.properties },
+    required: ["requested", ...content.required],
+  };
+}
+
 function comparisonSchema(comparison: ComparisonContext) {
   const ids = comparison.deployments.map((deployment) => deployment.id);
   return {
@@ -81,7 +91,7 @@ function comparisonSchema(comparison: ComparisonContext) {
         properties: Object.fromEntries(
           ids.map((id) => [
             id,
-            foundationSchema([
+            comparisonSectionSchema([
               ...comparison.evidence.byDeployment[id],
               ...comparison.evidence.sharedSourceIds,
             ]),

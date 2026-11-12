@@ -539,6 +539,83 @@ describe("live evaluation durable spending boundary", () => {
     });
   });
 
+  it("bounds the final generator body after adding price caps before reserving or fetching", async () => {
+    const plan = budget.createBudgetPlan(catalog);
+    budget.initializeBudgetLedger(ledgerPath, plan);
+    const content = {
+      answer: "",
+      citationIds: [],
+      unsupportedParts: ["No live data."],
+    };
+    const response = () =>
+      new Response(
+        JSON.stringify({
+          usage: { cost: 0 },
+          choices: [
+            {
+              finish_reason: "stop",
+              message: { content: JSON.stringify(content) },
+            },
+          ],
+        })
+      );
+    let baseline = 0;
+    await createOpenRouterFoundationGenerator({
+      apiKey: "fixture",
+      model: catalog.id,
+      fetch: async (_url, init) => {
+        baseline = Buffer.byteLength(init!.body as string, "utf8");
+        return response();
+      },
+    })({ question: "x", sources: [] });
+    const priceBytes = Buffer.byteLength(
+      ',"max_price":' + JSON.stringify(plan.maxPrice),
+      "utf8"
+    );
+    let calls = 0;
+    const diagnostics: string[] = [];
+    const guarded = budget.installBudgetGuard({
+      ledgerPath,
+      plan,
+      onDiagnostic: (code: string) => diagnostics.push(code),
+      fetch: async (_url: unknown, init: RequestInit) => {
+        calls++;
+        expect(Buffer.byteLength(init.body as string, "utf8")).to.equal(65536);
+        return response();
+      },
+    });
+    const generate = createOpenRouterFoundationGenerator({
+      apiKey: "fixture",
+      model: catalog.id,
+      fetch: guarded,
+    });
+    const exactQuestion = "x".repeat(65536 - baseline - priceBytes + 1);
+    for (const question of [
+      exactQuestion + "x",
+      exactQuestion + "x".repeat(priceBytes),
+      exactQuestion.slice(1) + "é",
+    ]) {
+      const before = readFileSync(ledgerPath);
+      await rejects(
+        () =>
+          generate({
+            question,
+            sources: [],
+          }),
+        "transport_error"
+      );
+      expect(readFileSync(ledgerPath)).to.deep.equal(before);
+      expect(diagnostics.at(-1)).to.equal("request_too_large");
+      expect(calls).to.equal(0);
+    }
+    await generate({
+      question: exactQuestion,
+      sources: [],
+    });
+    expect(calls).to.equal(1);
+    expect(budget.readBudgetSummary(ledgerPath, plan).requestCount).to.equal(1);
+  });
+
   it("refuses an insufficient cap before making any network request", async () => {
     const plan = budget.createBudgetPlan(catalog, catalog.id, 0.4);
     budget.initializeBudgetLedger(ledgerPath, plan);

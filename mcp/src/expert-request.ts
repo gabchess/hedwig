@@ -75,6 +75,45 @@ function clarify(): ParsedExpertRequest {
   };
 }
 
+/** Recognize explicit local roles; a reference label establishes no asset facts. */
+function addressRole(before: string, after: string) {
+  // Do not let a role in an earlier clause apply to an unrelated address.
+  const prefix = before.split(/[.;,!?\n]/).at(-1) ?? "";
+  const suffix = after.replace(/^[\s)\]]+/, "");
+  const deployment =
+    "(?:pool|comet|market|deployment|aave(?:\\s+v?\\s*\\d+)?|compound(?:\\s+(?:v?\\d+|iii|ii|iv))?)";
+  const namesDeployment = new RegExp(
+    `\\b${deployment}(?:\\s+(?:ethereum|mainnet|usdc|pool|comet|market|deployment|address|at|is))*\\s*[([:=]?\\s*$`,
+    "i"
+  );
+  const directTarget = /\b(?:compare|against|versus|vs)\s*[([:=]?\s*$/i;
+  const comparedTarget = new RegExp(
+    `^(?:against|versus|vs|with)\\s+(?:the\\s+)?(?:${deployment}|0x[a-z0-9]+)\\b`,
+    "i"
+  );
+  const assertedRole = suffix
+    .match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1]
+    .split(/\b(?:in|within|for|of|at|on)\b/i)[0];
+  if (
+    namesDeployment.test(prefix) ||
+    directTarget.test(prefix) ||
+    comparedTarget.test(suffix) ||
+    (assertedRole &&
+      /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(assertedRole))
+  )
+    return "deployment";
+  if (
+    /\b(?:(?:roles?|function|purpose)\s+of|asset|token|collateral|underlying)\b[^.;,!?\n]*$/i.test(
+      prefix
+    ) ||
+    /^(?:as|is)\s+(?:(?:an?|the)\s+)?(?:asset|token|collateral|underlying)\b/i.test(
+      suffix
+    )
+  )
+    return "reference";
+  return "ambiguous";
+}
+
 /** Detect known contradictions, not arbitrary natural-language identities. */
 function hasKnownIdentityConflict(
   question: string,
@@ -125,13 +164,24 @@ function hasKnownIdentityConflict(
     )
   )
     return true;
-  const addresses = question.match(/\b0x[a-z0-9]+\b/gi) ?? [];
-  return addresses.some(
-    (address) =>
-      !deployments.some(
+  const addresses = [...question.matchAll(/\b0x[a-z0-9]+\b/gi)];
+  return addresses.some((mention, index) => {
+    const address = mention[0];
+    if (
+      deployments.some(
         (entry) => entry.address.toLowerCase() === address.toLowerCase()
       )
-  );
+    )
+      return false;
+    if (!/^0x[a-f0-9]{40}$/i.test(address)) return true;
+    const previous = addresses[index - 1];
+    const before = question.slice(
+      previous ? previous.index! + previous[0].length : 0,
+      mention.index
+    );
+    const after = question.slice(mention.index! + address.length);
+    return addressRole(before, after) !== "reference";
+  });
 }
 
 /** Caller fields select an educational task, never a corpus, provider or policy. */

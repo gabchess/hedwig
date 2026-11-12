@@ -162,6 +162,29 @@ describe("foundation answer contract (fixture generation)", () => {
     expect(result.status).to.equal("answered");
     expect(result.sources![0].url).to.equal(source.url);
   });
+  it("checks every bracketed reference, including punctuation and whitespace", async () => {
+    for (const reference of [
+      "[unknown/source]",
+      "[source with spaces]",
+      "[未知]",
+      "[]",
+      "[[vault-shares]]",
+      "[unknown\nsource]",
+    ]) {
+      const result = await answerFromFoundationSources(
+        "Explain shares",
+        [source],
+        async () => ({ ...good, answer: `See ${reference}.` })
+      );
+      expect(result.status, reference).to.equal("insufficient_evidence");
+    }
+    const valid = await answerFromFoundationSources(
+      "Explain shares",
+      [source],
+      async () => ({ ...good, answer: `See [${source.id}].` })
+    );
+    expect(valid.status).to.equal("answered");
+  });
   it("reports provider failure without leaking its error", async () => {
     const result = await answerFromFoundationSources(
       "Explain shares",

@@ -169,6 +169,166 @@ describe("operator-only bounded cost reconciliation", () => {
     });
   }
 
+  function canonicalOperation(cost = 0.01413825) {
+    const op = operation(cost);
+    const receipt = JSON.parse(op.receiptJson);
+    receipt.data.model = "openai/gpt-5.2-20251211";
+    receipt.data.cancelled = true;
+    receipt.data.finish_reason = null;
+    receipt.modelIdentity = {
+      schemaVersion: 1,
+      provider: "openrouter",
+      endpoint: "https://openrouter.ai/api/v1/models",
+      httpStatus: 200,
+      retrievedAt: "2026-11-12T16:30:23.655Z",
+      providerResponseSha256:
+        "43199a7f1e2e3aaac2e82c1e4d928671454ee8e620d5e53a9e3e1d9dd0886e1d",
+      data: { id: catalog.id, canonical_slug: "openai/gpt-5.2-20251211" },
+    };
+    op.receiptJson = JSON.stringify(receipt);
+    return rehash(op);
+  }
+
+  it("retains an explicitly catalog-bound canonical provider model through settlement and a fresh read", async () => {
+    await uncertain();
+    const before = read(ledgerPath);
+    const op = canonicalOperation();
+    const result = budget.reconcileBudgetEntry(ledgerPath, plan, op);
+    const after = read(ledgerPath);
+    expect(after.entries.slice(0, 333)).to.deep.equal(
+      before.entries.slice(0, 333)
+    );
+    for (const key of [
+      "schemaVersion",
+      "planHash",
+      "capNanoUsd",
+      "planHistory",
+      "capAuthorizations",
+    ])
+      expect(after[key]).to.deep.equal(before[key]);
+    expect(after.entries.at(-1).costNanoUsd).to.equal(14138250);
+    expect(after.entries.at(-1).reconciliation.receiptJson).to.equal(
+      op.receiptJson
+    );
+    const retained = JSON.parse(
+      after.entries.at(-1).reconciliation.receiptJson
+    );
+    expect(retained.data.model).to.equal("openai/gpt-5.2-20251211");
+    expect(retained.modelIdentity.data.id).to.equal(plan.model);
+    expect(
+      JSON.parse(after.entries.at(-1).reconciliation.attributionJson).model
+    ).to.equal(plan.model);
+    expect(
+      readFileSync(join(result.auditDirectory, "provider-receipt.json"), "utf8")
+    ).to.equal(op.receiptJson);
+    const child = spawnSync(
+      process.execPath,
+      [
+        "-e",
+        "const b=require(process.argv[1]);console.log(JSON.stringify(b.readBudgetSummary(process.argv[2],JSON.parse(process.argv[3]))))",
+        helper,
+        ledgerPath,
+        JSON.stringify(plan),
+      ],
+      { encoding: "utf8", timeout: 5000 }
+    );
+    expect(child.status, child.stderr).to.equal(0);
+    expect(JSON.parse(child.stdout)).to.include({
+      spentUsd: 0.01447025,
+      reservedUsd: 0.786016,
+      recoveredReservedUsd: 0.786016,
+      blocked: false,
+    });
+  });
+
+  it("rejects missing, wrong or unreviewed canonical identity evidence without changing the ledger", async () => {
+    await uncertain();
+    const before = readFileSync(ledgerPath);
+    const changes: Array<(receipt: any, attribution: any) => void> = [
+      (r) => {
+        delete r.modelIdentity;
+      },
+      (r) => {
+        r.data.model = "openai/gpt-5.2-20261211";
+      },
+      (r) => {
+        r.data.model = "openai/gpt-5.1-20251211";
+      },
+      (r) => {
+        r.modelIdentity.data.canonical_slug = "openai/gpt-5.2-20261211";
+        r.data.model = r.modelIdentity.data.canonical_slug;
+      },
+      (r) => {
+        r.modelIdentity.data.id = "openai/gpt-5.1";
+      },
+      (r) => {
+        r.modelIdentity.providerResponseSha256 = "a".repeat(64);
+      },
+      (r) => {
+        r.modelIdentity.retrievedAt = "not-a-date";
+      },
+      (r) => {
+        r.modelIdentity.retrievedAt = "2099-01-01T00:00:00.000Z";
+      },
+      (r) => {
+        r.modelIdentity.endpoint = "https://example.invalid/models";
+      },
+      (r) => {
+        r.modelIdentity.httpStatus = 201;
+      },
+      (r) => {
+        r.modelIdentity.provider = "other";
+      },
+      (r) => {
+        r.modelIdentity.schemaVersion = 2;
+      },
+      (r) => {
+        r.modelIdentity.extra = "PRIVATE";
+      },
+      (r) => {
+        r.modelIdentity.data.extra = "PRIVATE";
+      },
+      (r) => {
+        r.data.model = catalog.id;
+      },
+      (_r, a) => {
+        a.reviewedAt = "2026-11-12T16:30:23.654Z";
+      },
+      (_r, a) => {
+        a.model = "openai/gpt-5.2-20251211";
+      },
+    ];
+    for (const change of changes) {
+      const op = canonicalOperation();
+      const receipt = JSON.parse(op.receiptJson),
+        attribution = JSON.parse(op.attributionJson);
+      change(receipt, attribution);
+      op.receiptJson = JSON.stringify(receipt);
+      op.attributionJson = JSON.stringify(attribution);
+      rehash(op);
+      expect(() => budget.reconcileBudgetEntry(ledgerPath, plan, op)).to.throw(
+        "invalid_reconciliation_evidence"
+      );
+      expect(readFileSync(ledgerPath)).to.deep.equal(before);
+    }
+  });
+
+  it("revalidates the persisted canonical identity proof instead of trusting settled status", async () => {
+    await uncertain();
+    budget.reconcileBudgetEntry(ledgerPath, plan, canonicalOperation());
+    const ledger = read(ledgerPath),
+      record = ledger.entries.at(-1).reconciliation;
+    const receipt = JSON.parse(record.receiptJson);
+    receipt.modelIdentity.data.canonical_slug = "openai/gpt-5.2-20990101";
+    receipt.data.model = receipt.modelIdentity.data.canonical_slug;
+    record.receiptJson = JSON.stringify(receipt);
+    record.receiptSha256 = rawHash(record.receiptJson);
+    save(ledgerPath, ledger);
+    expect(() => budget.readBudgetSummary(ledgerPath, plan)).to.throw(
+      "invalid_reconciliation_evidence"
+    );
+  });
+
   it("settles only the matched latest entry and preserves all333 prior entries, cap and both histories", async () => {
     await uncertain("gen-matched");
     const before = read(ledgerPath),
@@ -237,6 +397,73 @@ describe("operator-only bounded cost reconciliation", () => {
       generationId: "gen-matched",
       status: "settled",
     });
+  });
+
+  it("reconciles a reviewed pre-header transport failure without inventing a response timestamp", async () => {
+    let calls = 0;
+    try {
+      await budget.installBudgetGuard({
+        ledgerPath,
+        plan,
+        fetch: async () => {
+          calls++;
+          throw new Error("disposable transport failure");
+        },
+      })(endpoint, requestBody);
+      throw new Error("expected transport failure");
+    } catch (error) {
+      expect((error as Error).message).to.contain("request_uncertain");
+    }
+    const before = read(ledgerPath);
+    expect(before.entries.at(-1)).not.to.have.property("responseReceivedAt");
+    expect(existsSync(`${ledgerPath}.lock`)).to.equal(false);
+    budget.reconcileBudgetEntry(ledgerPath, plan, operation());
+    const target = read(ledgerPath).entries.at(-1);
+    expect(target).not.to.have.property("responseReceivedAt");
+    expect(target.reconciliation.originalEntry).to.deep.equal(
+      before.entries.at(-1)
+    );
+    expect(read(ledgerPath).entries.slice(0, 333)).to.deep.equal(
+      before.entries.slice(0, 333)
+    );
+    expect(budget.readBudgetSummary(ledgerPath, plan)).to.include({
+      blocked: false,
+      spentUsd: 0.020332,
+      recoveredReservedUsd: 0.786016,
+    });
+    expect(calls).to.equal(1);
+  });
+
+  it("requires ordered request and completion times and validates any present response time", async () => {
+    await uncertain();
+    const original = read(ledgerPath);
+    for (const mutate of [
+      (entry: any) => {
+        delete entry.requestedAt;
+      },
+      (entry: any) => {
+        delete entry.completedAt;
+      },
+      (entry: any) => {
+        delete entry.responseReceivedAt;
+        entry.completedAt = "2001-01-01T00:00:00.000Z";
+      },
+      (entry: any) => {
+        entry.responseReceivedAt = "2001-01-01T00:00:00.000Z";
+      },
+      (entry: any) => {
+        entry.responseReceivedAt = "2099-01-01T00:00:00.000Z";
+      },
+    ]) {
+      const changed = structuredClone(original);
+      mutate(changed.entries.at(-1));
+      save(ledgerPath, changed);
+      const before = readFileSync(ledgerPath);
+      expect(() =>
+        budget.reconcileBudgetEntry(ledgerPath, plan, operation())
+      ).to.throw();
+      expect(readFileSync(ledgerPath)).to.deep.equal(before);
+    }
   });
 
   it("rejects duplicate-key or non-normalized JSON before preserving any audit text", async () => {

@@ -34,9 +34,19 @@ const ALLOWED_MODELS = new Set([
   ...REASONING_PROFILES.keys(),
 ]);
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+// Explicitly reviewed public catalog identity, not a model-name heuristic.
+// Retain this historical binding when adding a separately reviewed identity.
+const RECONCILIATION_MODEL_IDENTITY = Object.freeze({
+  requestedModel: "openai/gpt-5.2",
+  canonicalModel: "openai/gpt-5.2-20251211",
+  catalogRetrievedAt: "2026-11-12T16:30:23.655Z",
+  catalogResponseSha256:
+    "43199a7f1e2e3aaac2e82c1e4d928671454ee8e620d5e53a9e3e1d9dd0886e1d",
+});
 const NANO_USD = 1e9;
 const MILLION = 1e6;
 const CAP_USD = 5;
+const REQUEST_LIMIT = 64 * 1024;
 const RESPONSE_LIMIT = 64 * 1024;
 const RESPONSE_DEADLINE_MS = 15000;
 const REPO = path.resolve(__dirname, "../..");
@@ -198,6 +208,17 @@ function ledgerLocation(filename) {
     fail("invalid_ledger_path");
   return resolved;
 }
+function syncParentDirectory(filename) {
+  // Node cannot portably fsync directory handles on Windows. File fsync still
+  // applies there, but directory persistence across power loss is not guaranteed.
+  if (process.platform === "win32") return;
+  const fd = fs.openSync(path.dirname(filename), "r");
+  try {
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
 function exclusiveLock(filename) {
   let fd;
   const identity = JSON.stringify({ pid: process.pid, nonce: randomUUID() });
@@ -205,6 +226,7 @@ function exclusiveLock(filename) {
     fd = fs.openSync(filename, "wx", 0o600);
     fs.writeFileSync(fd, identity);
     fs.fsyncSync(fd);
+    syncParentDirectory(filename);
   } catch {
     if (fd !== undefined) fs.closeSync(fd);
     fail("ledger_busy");
@@ -220,6 +242,7 @@ function exclusiveLock(filename) {
       if (fs.readFileSync(filename, "utf8") !== identity)
         fail("lock_identity_changed");
       fs.unlinkSync(filename);
+      syncParentDirectory(filename);
     },
   };
 }
@@ -405,6 +428,7 @@ function writeLedger(filename, content, createOnly = false) {
     fs.closeSync(fd);
   }
   if (!createOnly) fs.renameSync(target, filename);
+  syncParentDirectory(filename);
 }
 function summary(ledger) {
   let spent = 0;
@@ -513,6 +537,7 @@ function durableExclusiveWrite(filename, bytes) {
   } finally {
     fs.closeSync(fd);
   }
+  syncParentDirectory(filename);
 }
 
 /** Operator-only quarantine: actual cost remains unknown and its full reservation is never released. */
@@ -560,6 +585,7 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
       `hedwig-budget-recovery-${recoveryId}`
     );
     fs.mkdirSync(auditDirectory, { mode: 0o700 });
+    syncParentDirectory(auditDirectory);
     durableExclusiveWrite(
       path.join(auditDirectory, "ledger.before.json"),
       before
@@ -596,6 +622,8 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
       fail("recovery_state_changed");
     requireDeadOwner(expected.expectedOwnerPid);
     fs.renameSync(lockPath, path.join(auditDirectory, "ledger.lock.retired"));
+    syncParentDirectory(lockPath);
+    syncParentDirectory(path.join(auditDirectory, "ledger.lock.retired"));
     unlock = lockLedger(location, gate.identity);
     if (hash(readLedger(location, plan)) !== expected.expectedLedgerIntegrity)
       fail("recovery_state_changed");
@@ -810,6 +838,7 @@ function extendBudgetCap(filename, suppliedPlan, request) {
       `hedwig-budget-extension-${request.authorizationId}`
     );
     fs.mkdirSync(auditDirectory, { mode: 0o700 });
+    syncParentDirectory(auditDirectory);
     durableExclusiveWrite(
       path.join(auditDirectory, "ledger.before.json"),
       before
@@ -899,6 +928,33 @@ function reconciliationJson(text, expectedHash, limit) {
     fail("invalid_reconciliation_evidence");
   }
 }
+function reconciliationModelMatches(requestedModel, reportedModel, proof) {
+  if (reportedModel === requestedModel) return proof === undefined;
+  return (
+    reconciliationKeys(proof, [
+      "schemaVersion",
+      "provider",
+      "endpoint",
+      "httpStatus",
+      "retrievedAt",
+      "providerResponseSha256",
+      "data",
+    ]) &&
+    proof.schemaVersion === 1 &&
+    proof.provider === "openrouter" &&
+    proof.endpoint === "https://openrouter.ai/api/v1/models" &&
+    proof.httpStatus === 200 &&
+    timestamp(proof.retrievedAt) &&
+    proof.retrievedAt === RECONCILIATION_MODEL_IDENTITY.catalogRetrievedAt &&
+    proof.providerResponseSha256 ===
+      RECONCILIATION_MODEL_IDENTITY.catalogResponseSha256 &&
+    reconciliationKeys(proof.data, ["id", "canonical_slug"]) &&
+    proof.data.id === requestedModel &&
+    proof.data.canonical_slug === reportedModel &&
+    requestedModel === RECONCILIATION_MODEL_IDENTITY.requestedModel &&
+    reportedModel === RECONCILIATION_MODEL_IDENTITY.canonicalModel
+  );
+}
 function reconciliationEvidence(request, originalEntry, entryPlan) {
   const receipt = reconciliationJson(
     request.receiptJson,
@@ -912,14 +968,18 @@ function reconciliationEvidence(request, originalEntry, entryPlan) {
   );
   const data = receipt?.data;
   if (
-    !reconciliationKeys(receipt, [
-      "schemaVersion",
-      "provider",
-      "endpoint",
-      "httpStatus",
-      "retrievedAt",
-      "data",
-    ]) ||
+    !reconciliationKeys(
+      receipt,
+      [
+        "schemaVersion",
+        "provider",
+        "endpoint",
+        "httpStatus",
+        "retrievedAt",
+        "data",
+      ],
+      ["modelIdentity"]
+    ) ||
     receipt.schemaVersion !== 1 ||
     receipt.provider !== "openrouter" ||
     receipt.endpoint !== "https://openrouter.ai/api/v1/generation" ||
@@ -939,7 +999,11 @@ function reconciliationEvidence(request, originalEntry, entryPlan) {
       ["usage", "request_id"]
     ) ||
     !validGenerationId(data.id) ||
-    data.model !== entryPlan.model ||
+    !reconciliationModelMatches(
+      entryPlan.model,
+      data.model,
+      receipt.modelIdentity
+    ) ||
     data.api_type !== "completions" ||
     typeof data.cancelled !== "boolean" ||
     !(
@@ -1007,11 +1071,9 @@ function reconciliationEvidence(request, originalEntry, entryPlan) {
   )
     fail("invalid_reconciliation_evidence");
   if (
-    ![
-      originalEntry.requestedAt,
-      originalEntry.responseReceivedAt,
-      originalEntry.completedAt,
-    ].every(timestamp)
+    ![originalEntry.requestedAt, originalEntry.completedAt].every(timestamp) ||
+    (originalEntry.responseReceivedAt !== undefined &&
+      !timestamp(originalEntry.responseReceivedAt))
   )
     fail("invalid_reconciliation_evidence");
   const created = Date.parse(data.created_at),
@@ -1021,12 +1083,16 @@ function reconciliationEvidence(request, originalEntry, entryPlan) {
     completed = Date.parse(originalEntry.completedAt);
   // Five seconds permits small provider/client clock skew, not loose date-based matching.
   if (
-    response < started ||
-    completed < response ||
+    completed < started ||
+    (originalEntry.responseReceivedAt !== undefined &&
+      (response < started || completed < response)) ||
     created < started - 5000 ||
     created > completed + 5000 ||
     retrieved < Math.max(created, completed) ||
     Date.parse(attribution.reviewedAt) < retrieved ||
+    (receipt.modelIdentity !== undefined &&
+      Date.parse(receipt.modelIdentity.retrievedAt) >
+        Date.parse(attribution.reviewedAt)) ||
     (originalEntry.providerCreatedAt !== undefined &&
       Math.abs(Date.parse(originalEntry.providerCreatedAt) - created) > 1000)
   )
@@ -1049,10 +1115,9 @@ function reconciliationOriginal(entry, plan) {
         "reservedNanoUsd",
         "status",
         "requestedAt",
-        "responseReceivedAt",
         "completedAt",
       ],
-      ["generationId", "providerCreatedAt"]
+      ["responseReceivedAt", "generationId", "providerCreatedAt"]
     ) &&
     entry.status === "uncertain" &&
     typeof entry.id === "string" &&
@@ -1271,6 +1336,7 @@ function reconcileBudgetEntry(filename, suppliedPlan, request) {
       `hedwig-budget-reconciliation-${request.reconciliationId}`
     );
     fs.mkdirSync(auditDirectory, { mode: 0o700 });
+    syncParentDirectory(auditDirectory);
     durableExclusiveWrite(
       path.join(auditDirectory, "ledger.before.json"),
       before
@@ -1490,7 +1556,14 @@ function installBudgetGuard({
       return fetcher(input, init);
     }
     const body = boundedRequest(init, plan, reasoningProfile);
+    // Price caps change the adapter's already-measured body. Bound exactly the
+    // final serialization before creating a reservation or starting a request.
+    const serializedBody = JSON.stringify(body);
+    if (Buffer.byteLength(serializedBody, "utf8") > REQUEST_LIMIT)
+      fail("request_too_large");
     const unlock = lockLedger(filename);
+    let dispatched = false;
+    let outcomeRecorded = false;
     try {
       const ledger = readLedger(filename, plan);
       if (summary(ledger).blocked) fail("unsettled_request");
@@ -1513,15 +1586,17 @@ function installBudgetGuard({
       writeLedger(filename, ledger);
       let response;
       try {
+        dispatched = true;
         response = await fetcher(ENDPOINT, {
           ...init,
           redirect: "error",
-          body: JSON.stringify(body),
+          body: serializedBody,
         });
       } catch {
         entry.status = "uncertain";
         entry.completedAt = new Date().toISOString();
         writeLedger(filename, ledger);
+        outcomeRecorded = true;
         fail("request_uncertain");
       }
       entry.responseReceivedAt = new Date().toISOString();
@@ -1541,6 +1616,7 @@ function installBudgetGuard({
         entry.status = "uncertain";
         entry.receiptIssue = "generation_id_conflict";
         writeLedger(filename, ledger);
+        outcomeRecorded = true;
         fail("generation_id_conflict");
       }
       if (receipt?.generationId) entry.generationId = receipt.generationId;
@@ -1559,9 +1635,12 @@ function installBudgetGuard({
         diagnostic("cost_unverified");
       }
       writeLedger(filename, ledger);
+      outcomeRecorded = true;
       return response;
     } finally {
-      unlock();
+      // A post-dispatch storage failure may leave only the durable reservation.
+      // Keep its owner lock so reviewed interruption recovery remains possible.
+      unlock({ preserveLock: dispatched && !outcomeRecorded });
     }
   };
   return async (input, init) => {

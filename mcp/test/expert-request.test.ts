@@ -146,4 +146,48 @@ describe("expert request identity boundary", () => {
         "needs_clarification"
       );
   });
+
+  it("separates subordinate address references from deployment selections", () => {
+    const usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+    const other = "0x1111111111111111111111111111111111111111";
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      `Compare the role of USDC (${usdc}) in Aave V3 and Compound III on Ethereum`,
+      `Compare how token USDC at ${usdc} is used in these deployments.`,
+      `Compare collateral token EXAMPLE (${other}) in these deployments.`,
+      `Compare the roles of ${usdc} as a token in these deployments.`,
+      `Compare the role of USDC (${usdc}) as a token. The Pool and Comet are the selected deployments.`,
+    ]) {
+      const result = request(question);
+      expect(result.status, question).to.equal("ready");
+      if (result.status !== "ready" || result.mode !== "compare")
+        throw new Error("expected comparison");
+      // Reference labels are caller data, never new deployment facts or targets.
+      expect(result.question).to.equal(question);
+      expect(
+        result.deployments.map(({ chainId, address }) => ({ chainId, address }))
+      ).to.deep.equal(pair);
+    }
+    for (const question of [
+      `Compare ${usdc} against Aave V3.`,
+      `Compare the Aave V3 Pool at ${usdc} with Compound III.`,
+      `Compare Aave V3 (${usdc}) with Compound III.`,
+      `Treat USDC (${usdc}) as the Pool for this comparison.`,
+      `Treat token USDC at ${usdc} as the Compound III deployment.`,
+      `Token USDC (${usdc}) is the Comet deployment to compare.`,
+      `Compare these deployments; address ${other}.`,
+      `Compare the role of USDC (${usdc}) in these deployments on Base.`,
+      `Compare the role of token USDC (${usdc}00) in these deployments.`,
+      `Compare the role of USDC (${usdc}), but use ${other} as the Pool.`,
+      `Compare token USDC (${usdc}) and address ${other}.`,
+      `Compare token USDC. Address ${other} appears in this comparison.`,
+      `Compare token USDC (${usdc}), then use ${usdc} as the Pool.`,
+      `Compare token ${other} against Aave V3.`,
+      `Compare asset EXAMPLE (${other}) with Compound III.`,
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+  });
 });

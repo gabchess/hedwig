@@ -48,7 +48,7 @@ export function validateFoundationContent(
     )
   )
     return undefined;
-  const inlineIds = [...answer.matchAll(/\[([A-Za-z0-9_.:-]+)\]/g)].map(
+  const inlineIds = [...answer.matchAll(/\[([^\]]*)\]/g)].map(
     (match) => match[1]
   );
   if (inlineIds.some((id) => !eligible.has(id) || !citationIds.includes(id)))

@@ -35,6 +35,7 @@ function comparisonContent() {
       SUPPORTED_DEPLOYMENTS.map((deployment, index) => [
         deployment.id,
         {
+          requested: true,
           answer: `Documented mechanism ${index + 1}.`,
           citationIds: [identityIds[index]],
           unsupportedParts: [],
@@ -54,6 +55,43 @@ const partitionedRetriever: FoundationRetriever = (question, options) => {
 };
 
 describe("expert comparison workflow", () => {
+  it("preserves both trusted identities when only one deployment is requested", async () => {
+    const [left, right] = SUPPORTED_DEPLOYMENTS.map(
+      (deployment) => deployment.id
+    );
+    const raw = comparisonContent();
+    raw.sections[left] = {
+      requested: false,
+      answer: "",
+      citationIds: [],
+      unsupportedParts: [],
+    };
+    raw.sections[right].citationIds = ["opaque-a"];
+    const result = await answerExpertRequest(
+      {
+        question: "Explain only Compound III.",
+        mode: "compare",
+        deployments: pair,
+      },
+      partitionedRetriever,
+      async () => raw
+    );
+    expect(result.status).to.equal("answered");
+    if (result.status !== "answered" || !("comparison" in result))
+      throw new Error("expected comparison answer");
+    expect(result.answer).to.equal(
+      `${SUPPORTED_DEPLOYMENTS[1].name}:\nDocumented mechanism 2.`
+    );
+    expect(result.unsupportedParts).to.deep.equal([]);
+    expect(result.sources.map((source) => source.id)).to.deep.equal([
+      ...identityIds,
+      "opaque-a",
+    ]);
+    expect(result.comparison.deployments).to.deep.equal(SUPPORTED_DEPLOYMENTS);
+    expect(result.comparison.liveStateVerified).to.equal(false);
+    expect(result).not.to.have.property("requested");
+  });
+
   it("returns trusted identity provenance even when prose cites only mechanisms", async () => {
     const raw = comparisonContent();
     const mechanisms = ["opaque-z", "opaque-a"];
@@ -138,7 +176,12 @@ describe("expert comparison workflow", () => {
       {
         sections: {
           ...valid.sections,
-          [right]: { answer: "", citationIds: [], unsupportedParts: [] },
+          [right]: {
+            requested: true,
+            answer: "",
+            citationIds: [],
+            unsupportedParts: [],
+          },
         },
       },
       { ...valid, summary: "Unsupported generated summary." },
@@ -166,6 +209,7 @@ describe("expert comparison workflow", () => {
       sections: {
         [left]: { ...valid.sections[left], citationIds: ["common-context"] },
         [right]: {
+          requested: true,
           answer: "",
           citationIds: [],
           unsupportedParts: ["Current observation unavailable."],

@@ -4,6 +4,7 @@ import {
   type ComparisonContext,
 } from "../src/comparison-answer";
 import { SUPPORTED_DEPLOYMENTS } from "../src/expert-request";
+import { validateFoundationContent } from "../src/foundation-content";
 
 const sources = ["first", "second", "shared"].map((id) => ({
   id,
@@ -28,12 +29,123 @@ const section = (
   answer = "Evidence-supported content.",
   unsupportedParts: string[] = []
 ) => ({
+  requested: true,
   answer,
   citationIds: [citation],
   unsupportedParts,
 });
+const unrequested = () => ({
+  requested: false,
+  answer: "",
+  citationIds: [],
+  unsupportedParts: [],
+});
 
 describe("comparison answer boundary (fixture generation)", () => {
+  it("answers a requested side without inventing a gap for the unasked side", async () => {
+    for (const [asked, unasked, sourceId] of [
+      [left, right, "first"],
+      [right, left, "second"],
+    ]) {
+      const result = await answerComparisonFromSources(
+        `Explain only ${asked}.`,
+        sources,
+        comparison,
+        async () => ({
+          sections: {
+            [asked]: section(sourceId, "The requested supported fact."),
+            [unasked]: unrequested(),
+          },
+        })
+      );
+      expect(result.status).to.equal("answered");
+      if (result.status !== "answered") throw new Error("expected answer");
+      expect(result.unsupportedParts).to.deep.equal([]);
+      expect(result.sources.map((source) => source.id)).to.deep.equal([
+        sourceId,
+      ]);
+      expect(result.answer).to.equal(
+        `${
+          SUPPORTED_DEPLOYMENTS.find((deployment) => deployment.id === asked)!
+            .name
+        }:\nThe requested supported fact.`
+      );
+    }
+  });
+
+  it("keeps requested evidence gaps distinct from an unasked section", async () => {
+    const gap = {
+      requested: true,
+      answer: "",
+      citationIds: [],
+      unsupportedParts: ["Current observation unavailable."],
+    };
+    const partial = await answerComparisonFromSources(
+      "Explain both deployments and their current state.",
+      sources,
+      comparison,
+      async () => ({ sections: { [left]: section("first"), [right]: gap } })
+    );
+    expect(partial.status).to.equal("partial");
+    if (partial.status !== "partial") throw new Error("expected partial");
+    expect(partial.unsupportedParts).to.deep.equal([
+      `${SUPPORTED_DEPLOYMENTS[1].name}: Current observation unavailable.`,
+    ]);
+    for (const sections of [
+      { [left]: unrequested(), [right]: unrequested() },
+      { [left]: unrequested(), [right]: gap },
+    ]) {
+      const result = await answerComparisonFromSources(
+        "Explain only the requested current observation.",
+        sources,
+        comparison,
+        async () => ({ sections })
+      );
+      expect(result.status).to.equal("insufficient_evidence");
+      expect(result).not.to.have.property("answer");
+      expect(result).not.to.have.property("sources");
+    }
+  });
+
+  it("rejects malformed scope markers and content attached to an unasked section", async () => {
+    const { requested: _requested, ...missingMarker } = unrequested();
+    for (const invalid of [
+      missingMarker,
+      { ...unrequested(), requested: "false" },
+      { ...unrequested(), requested: null },
+      { ...unrequested(), requested: 0 },
+      { ...unrequested(), answer: "Unasked fact." },
+      { ...unrequested(), answer: " " },
+      { ...unrequested(), citationIds: ["second"] },
+      { ...unrequested(), unsupportedParts: ["Unasked gap."] },
+      { ...unrequested(), citationIds: null },
+      { ...unrequested(), unsupportedParts: null },
+      { ...unrequested(), extra: true },
+      { ...unrequested(), requested: true },
+    ]) {
+      expect(
+        await answerComparisonFromSources(
+          "Explain only the first deployment.",
+          sources,
+          comparison,
+          async () => ({
+            sections: { [left]: section("first"), [right]: invalid },
+          })
+        )
+      ).to.deep.equal({ status: "insufficient_evidence" });
+    }
+  });
+
+  it("does not admit the comparison scope marker or an empty answer in generic learning", () => {
+    expect(validateFoundationContent(unrequested(), sources)).to.equal(
+      undefined
+    );
+    const { requested: _requested, ...emptyContent } = unrequested();
+    expect(validateFoundationContent(emptyContent, sources)).to.equal(
+      undefined
+    );
+  });
+
   it("skips generation for invalid questions, incomplete identity groups and cancellation", async () => {
     let calls = 0;
     const generate = async () => {

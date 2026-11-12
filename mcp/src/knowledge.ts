@@ -1,6 +1,7 @@
 import foundationPack from "./knowledge/foundations.json";
 
 import { MAX_LEARNING_QUESTION_CHARS } from "./expert";
+import { assertBuiltinFoundationPack } from "./foundation-pack-integrity";
 
 export type FoundationSource = {
   id: string;
@@ -142,6 +143,31 @@ function revisionCommit(revision: string, context: string): string {
   return match[1].toLowerCase();
 }
 
+/** The current source pack pins GitHub file routes, not arbitrary URL text. */
+function isPinnedFileUrl(
+  value: string,
+  revision: string,
+  commit: string
+): boolean {
+  const url = new URL(value);
+  const repository = revision.slice(0, revision.lastIndexOf("@")).toLowerCase();
+  if (!/^[a-z0-9_.-]+\/[a-z0-9_.-]+$/.test(repository)) return false;
+  const route =
+    url.hostname === "github.com"
+      ? `/${repository}/blob/${commit}/`
+      : url.hostname === "raw.githubusercontent.com"
+      ? `/${repository}/${commit}/`
+      : undefined;
+  return Boolean(
+    route &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      url.pathname.toLowerCase().startsWith(route) &&
+      url.pathname.length > route.length
+  );
+}
+
 function requireSha(value: string, field: string, context: string): void {
   if (!/^[a-f0-9]{40}$/i.test(value)) {
     throw new Error(`foundation ${context} ${field} must be a SHA-1 blob id`);
@@ -223,12 +249,12 @@ function buildDocuments(pack: unknown): FoundationIndexDocument[] {
     requireHttpsUrl(licenseUrl, `${context} pinned license`);
     requireSha(blobSha, "blobSha", context);
     requireSha(licenseBlobSha, "licenseBlobSha", context);
-    if (!sourceFileUrl.toLowerCase().includes(`/${commit}/`)) {
+    if (!isPinnedFileUrl(sourceFileUrl, revision, commit)) {
       throw new Error(
         `foundation ${context} source URL is not pinned to revision`
       );
     }
-    if (!licenseUrl.toLowerCase().includes(`/${commit}/`)) {
+    if (!isPinnedFileUrl(licenseUrl, revision, commit)) {
       throw new Error(
         `foundation ${context} license URL is not pinned to revision`
       );
@@ -381,6 +407,7 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
   };
 }
 
+assertBuiltinFoundationPack(foundationPack);
 const retrieveFromFoundationPack = buildFoundationRetriever(foundationPack);
 
 /**

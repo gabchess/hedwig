@@ -11,6 +11,7 @@ import {
   MAX_UNSUPPORTED_PART_CHARS,
   validateFoundationContent,
   type FoundationProvenance,
+  type ValidatedFoundationContent,
 } from "./foundation-content";
 
 export type ComparisonEvidence = {
@@ -27,6 +28,16 @@ export type ComparisonContext = {
 
 const COMPARISON_DEPLOYMENT_COUNT = 2;
 const OUTPUT_FIELDS = ["sections"];
+const SECTION_FIELDS = [
+  "requested",
+  "answer",
+  "citationIds",
+  "unsupportedParts",
+];
+
+type ComparisonSection =
+  | { requested: false }
+  | { requested: true; content: ValidatedFoundationContent };
 
 function exactObject(
   value: unknown,
@@ -55,6 +66,27 @@ function copyContext(context: ComparisonContext): ComparisonContext {
       sharedSourceIds: [...context.evidence.sharedSourceIds],
     },
   };
+}
+
+/** Scope is model-declared; this validates its shape, not requested-part coverage. */
+function validateComparisonSection(
+  raw: unknown,
+  sources: readonly FoundationEvidence[]
+): ComparisonSection | undefined {
+  if (!exactObject(raw, SECTION_FIELDS) || typeof raw.requested !== "boolean")
+    return undefined;
+  const { requested, ...content } = raw;
+  if (!requested) {
+    return content.answer === "" &&
+      Array.isArray(content.citationIds) &&
+      content.citationIds.length === 0 &&
+      Array.isArray(content.unsupportedParts) &&
+      content.unsupportedParts.length === 0
+      ? { requested: false }
+      : undefined;
+  }
+  const validated = validateFoundationContent(content, sources);
+  return validated ? { requested: true, content: validated } : undefined;
 }
 
 /** One generation, two independently scoped sections; formatting grants no semantic authority. */
@@ -105,11 +137,13 @@ export async function answerComparisonFromSources(
         ...trusted.evidence.byDeployment[deployment.id],
         ...trusted.evidence.sharedSourceIds,
       ]);
-      const content = validateFoundationContent(
+      const section = validateComparisonSection(
         raw.sections[deployment.id],
         trustedSources.filter((source) => allowed.has(source.id))
       );
-      if (!content) return { status: "insufficient_evidence" };
+      if (!section) return { status: "insufficient_evidence" };
+      if (!section.requested) continue;
+      const content = section.content;
       if (content.answer)
         sections.push(`${deployment.name}:\n${content.answer}`);
       for (const source of content.sources) cited.set(source.id, source);

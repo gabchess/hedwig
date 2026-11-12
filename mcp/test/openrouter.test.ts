@@ -304,11 +304,13 @@ describe("OpenRouter foundation answer adapter (fixture transport, no live infer
     const generated = {
       sections: {
         [left]: {
+          requested: true,
           answer: "Left fact.",
           citationIds: ["opaque-left"],
           unsupportedParts: [],
         },
         [right]: {
+          requested: true,
           answer: "Right fact.",
           citationIds: ["opaque-right"],
           unsupportedParts: [],
@@ -359,11 +361,13 @@ describe("OpenRouter foundation answer adapter (fixture transport, no live infer
     ]) {
       const section = schema.properties.sections.properties[id];
       expect(section.required).to.deep.equal([
+        "requested",
         "answer",
         "citationIds",
         "unsupportedParts",
       ]);
       expect(section.additionalProperties).to.equal(false);
+      expect(section.properties.requested).to.deep.equal({ type: "boolean" });
       expect(section.properties.citationIds.items.enum).to.deep.equal([
         sourceId,
         "shared",
@@ -372,6 +376,15 @@ describe("OpenRouter foundation answer adapter (fixture transport, no live infer
     expect(JSON.parse(sent.messages[1].content)).to.deep.equal(requestInput);
     expect(sent.messages[0].content).to.contain(
       "Preserve which deployment each requested factual part concerns."
+    );
+    expect(sent.messages[0].content).to.contain(
+      "Set requested=false only when the question requests neither a factual answer nor a concrete action concerning that deployment."
+    );
+    expect(sent.messages[0].content).to.contain(
+      "An evidence gap does not make a requested deployment unrequested."
+    );
+    expect(sent.messages[0].content).to.contain(
+      "A request for transaction approval or execution requires requested=true with its unsupported action recorded as a gap."
     );
     expect(sent.messages[0].content).to.contain(
       "Do not present reviewed paraphrases as verbatim quotations"

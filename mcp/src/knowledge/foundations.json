@@ -681,7 +681,7 @@
               "lineEnd": 336
             }
           ],
-          "text": "The Aave V3 Pool interface accepts a specified reserve asset for supply and issues the corresponding aTokens. Withdrawal burns aTokens for underlying assets. Borrowing specifies a reserve asset and creates variable debt represented by variable debt tokens (VariableDebtToken); the interface requires sufficient collateral or a credit delegation allowance. Repayment burns the corresponding variable debt tokens as it reduces the reserve-specific debt. Suppliers can enable or disable eligible supplied assets as collateral. This is a multi-reserve interface, not a rule that every token is supported or every deposit is available for instant withdrawal. The interface alone does not establish a particular reserve's current liquidity, caps or an account's borrowing capacity."
+          "text": "The Aave V3 Pool interface accepts a specified reserve asset for supply and issues the corresponding aTokens. Withdrawal burns aTokens for underlying assets. Borrowing specifies a reserve asset and creates variable debt represented by variable debt tokens (VariableDebtToken); the interface distinguishes borrowing against the caller's own collateral from borrowing on a credit delegator's behalf using sufficient delegation allowance. The onBehalfOf address receives the debt and identifies the caller in the own-collateral route or the delegator in the delegated route. Repayment burns the corresponding variable debt tokens as it reduces the reserve-specific debt. Suppliers can enable or disable eligible supplied assets as collateral. This is a multi-reserve interface, not a rule that every token is supported or every deposit is available for instant withdrawal. The interface alone does not establish a particular reserve's current liquidity, caps or an account's borrowing capacity."
         },
         {
           "id": "aave-v3-health-liquidation",
@@ -2219,7 +2219,7 @@
     },
     {
       "sourceId": "aave-validation-logic",
-      "title": "Aave V3 reference withdrawal and collateral-health preconditions",
+      "title": "Aave V3 reference borrowing, withdrawal and collateral-health preconditions",
       "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
       "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
       "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
@@ -2274,11 +2274,141 @@
             }
           ],
           "text": "Aave's pinned withdrawal validation requires a nonzero scaled amount no larger than the user's scaled balance, an active reserve and an unpaused reserve. Its collateral-health validation requires health factor to remain at least 1. For withdrawals from multi-collateral positions containing zero-LTV collateral, the inspected rule additionally requires selecting zero-LTV collateral first. These are documented reference-code preconditions rather than a promise that every otherwise valid withdrawal succeeds; current liquidity, the active implementation and other transaction conditions must also be checked."
+        },
+        {
+          "id": "aave-v3-borrow-capacity-checks",
+          "topics": [
+            "Aave V3",
+            "borrowing requirements",
+            "collateral capacity"
+          ],
+          "keywords": [
+            "Aave",
+            "borrow",
+            "collateral",
+            "capacity",
+            "debt",
+            "health factor",
+            "LTV",
+            "borrowing requirements",
+            "unsecured",
+            "garantia",
+            "empréstimo"
+          ],
+          "sections": [
+            {
+              "heading": "Health-factor threshold",
+              "lineStart": 27,
+              "lineEnd": 32
+            },
+            {
+              "heading": "Account health-factor and LTV capacity validation",
+              "lineStart": 346,
+              "lineEnd": 384
+            }
+          ],
+          "text": "The pinned Aave validateHFAndLtv routine computes collateral value, debt value, current LTV and health factor for its supplied user account. It requires a nonzero current LTV, health factor at least the liquidation threshold of 1, and collateral value sufficient to cover the debt at that LTV, using ceiling division. These are account capacity checks; authorization to act for an account does not itself establish that they pass. The BorrowLogic call site determines which account is checked during borrowing. This reference does not supply current prices, account balances, parameters or an assurance that every other transaction condition is satisfied."
         }
       ],
       "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
       "contentSha256": "0bfb51e54f0a8589fbf24bbc03046b12ee6f189641b7a2a6f1b2874acbb2bb45",
       "sourceByteLength": 20419
+    },
+    {
+      "sourceId": "aave-borrow-logic",
+      "title": "Aave V3 reference delegated borrowing and debt-owner validation",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/BorrowLogic.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/BorrowLogic.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "083dd14b578ae027b56589a87eb5cbfeedca5835",
+      "license": "BUSL-1.1",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+      "licenseBlobSha": "6691d235832fecd6779806608d7796d589c54e6d",
+      "licenseEvidence": "The source declares BUSL-1.1 on line 1 and the root license was fetched at the same revision. The pack contains independently worded factual mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-delegated-borrow-sequence",
+          "topics": [
+            "Aave V3",
+            "credit delegation",
+            "borrowing requirements"
+          ],
+          "keywords": [
+            "Aave",
+            "borrow",
+            "credit delegation",
+            "onBehalfOf",
+            "debt owner",
+            "collateral",
+            "health factor",
+            "LTV",
+            "permission",
+            "delegação",
+            "empréstimo"
+          ],
+          "sections": [
+            {
+              "heading": "Borrow validation, debt creation and mandatory debt-owner capacity validation",
+              "lineStart": 57,
+              "lineEnd": 103
+            }
+          ],
+          "text": "In the pinned Aave BorrowLogic implementation, executeBorrow validates reserve borrowing conditions and mints variable debt using both the initiating user and the onBehalfOf debt owner. After that debt increase it calls validateHFAndLtv for onBehalfOf. That capacity-validation call is unconditional: selecting a different initiating user for a delegated borrow does not skip the debt owner's health-factor and LTV checks. The call site therefore connects delegated borrowing to debt-owner capacity validation; it does not claim that an allowance alone creates unsecured credit. The allowance check itself is implemented through the variable-debt token mint path. These reference-code steps do not establish any account's present capacity or authorize a transaction."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current account borrowing capacity.",
+      "contentSha256": "daf57b87b1f9b669b7103c156ac6ae192b31ec74a60d57dc69e63730345d30bc",
+      "sourceByteLength": 8125
+    },
+    {
+      "sourceId": "aave-variable-debt",
+      "title": "Aave V3 reference credit-delegation allowance during debt minting",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/tokenization/VariableDebtToken.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/tokenization/VariableDebtToken.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "dc9e80ab555653c50d65052f11b6412565dbe351",
+      "license": "BUSL-1.1",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+      "licenseBlobSha": "6691d235832fecd6779806608d7796d589c54e6d",
+      "licenseEvidence": "The source declares BUSL-1.1 on line 1 and the root license was fetched at the same revision. The pack contains independently worded factual mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-credit-delegation-allowance",
+          "topics": [
+            "Aave V3",
+            "credit delegation",
+            "borrowing requirements"
+          ],
+          "keywords": [
+            "Aave",
+            "credit delegation",
+            "allowance",
+            "borrow",
+            "mint",
+            "VariableDebtToken",
+            "onBehalfOf",
+            "delegator",
+            "debt owner",
+            "authorization",
+            "delegação"
+          ],
+          "sections": [
+            {
+              "heading": "Delegated debt mint and allowance consumption",
+              "lineStart": 76,
+              "lineEnd": 120
+            }
+          ],
+          "text": "The pinned VariableDebtToken mint path distinguishes the initiating user from onBehalfOf, the account receiving the debt. When those addresses differ, it invokes the borrow-allowance reduction for the debt owner and initiating user. The source explains that this requires allowance at least as large as the requested borrow amount; allowance consumption accounts for the debt increase and its rounding, capped at the current allowance. This is credit-delegation permission for a caller to incur debt on another account, not unlimited borrowing authority or a replacement for the separate borrow-time collateral-capacity checks. The mint permission is restricted to the Pool. No live allowance or account balance is established by this reference."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current account borrowing capacity.",
+      "contentSha256": "244dea7e12ca08807e0718accece159867d9be8435808d5b495667e34ee50233",
+      "sourceByteLength": 7674
     },
     {
       "sourceId": "x402-payment-identifier",

@@ -10,6 +10,7 @@ const {
   captureEvidenceBinding,
   evidenceBindingsMatch,
   parseProviderDiagnostic,
+  parseBudgetDiagnostic,
 } = require("./live-eval-evidence");
 
 const CATALOG_URL = "https://openrouter.ai/api/v1/models";
@@ -139,13 +140,15 @@ async function readUsage(apiKey) {
 function fixtureFileForArgs(args) {
   const suites = new Map([
     ["--suite=foundations", "foundations-eval.json"],
-    ["--suite=transfer", "foundations-transfer-eval.json"],
+    ["--suite=transfer", "expert-transfer-eval.json"],
     ["--suite=account-repair", "foundations-account-repair-eval.json"],
     ["--suite=acceptance", "expert-acceptance-eval.json"],
     ["--suite=expert-transfer", "expert-transfer-eval.json"],
     ["--suite=final-holdout", "expert-final-holdout-eval.json"],
     ["--suite=repair-delta", "expert-repair-delta-eval.json"],
     ["--suite=repair3-delta", "expert-repair3-delta-eval.json"],
+    ["--suite=review-v2", "expert-review-v2-eval.json"],
+    ["--suite=review-v2-delta", "expert-review-v2-delta-eval.json"],
   ]);
   if (args.length === 0) return "foundations-eval.json";
   if (args.length !== 1 || !suites.has(args[0]))
@@ -287,6 +290,7 @@ async function main() {
     usageDelta: null,
     usageDeltaAttribution: "shared account counter; not per-request cost",
     providerDiagnostics: [],
+    budgetDiagnostics: [],
     evidenceBinding: null,
     evidenceStable: null,
     spendingMode: "verified_zero_price",
@@ -436,7 +440,7 @@ async function main() {
       },
       stderr: "pipe",
     });
-    // Only fixed, provider-owned diagnostic codes are retained. Raw stderr
+    // Only fixed provider and budget diagnostic codes are retained separately. Raw stderr
     // can contain other application output and must never enter the report.
     const diagnosticReader = transport.stderr
       ? createInterface({ input: transport.stderr })
@@ -449,6 +453,16 @@ async function main() {
       ) {
         report.providerDiagnostics.push({
           ...diagnostic,
+          observedAt: new Date().toISOString(),
+        });
+      }
+      const budgetDiagnostic = parseBudgetDiagnostic(line);
+      if (
+        budgetDiagnostic &&
+        report.budgetDiagnostics.length < fixtureCases.length * 2
+      ) {
+        report.budgetDiagnostics.push({
+          ...budgetDiagnostic,
           observedAt: new Date().toISOString(),
         });
       }
@@ -499,6 +513,7 @@ async function main() {
         };
         saveCheckpoint();
         const diagnosticStart = report.providerDiagnostics.length;
+        const budgetDiagnosticStart = report.budgetDiagnostics.length;
         let callResult;
         try {
           callResult = await client.callTool({
@@ -519,6 +534,11 @@ async function main() {
           ? report.budget.requestCount - providerRequestsBefore
           : undefined;
         if (!answer) {
+          await waitForCaseDiagnostics(
+            diagnosticReader,
+            report.providerDiagnostics,
+            diagnosticStart
+          );
           report.cases.push({
             testcaseId: item.id,
             expectedStatus: item.expectedStatus,
@@ -535,7 +555,13 @@ async function main() {
             ),
             statusMatched: false,
           });
-          failStop(report, "server_or_protocol_unavailable");
+          failStop(
+            report,
+            report.budgetDiagnostics.length > budgetDiagnosticStart ||
+              report.budget?.blocked
+              ? "budget_guard_refused"
+              : "server_or_protocol_unavailable"
+          );
           report.activeCase = null;
           saveCheckpoint();
           stopAfterUnavailable = true;
@@ -556,10 +582,11 @@ async function main() {
                 diagnosticStart
               )
             : report.providerDiagnostics.slice(diagnosticStart);
-        const providerRefusal = isIsolatedProviderRefusal(
-          status,
-          caseDiagnostics
-        );
+        const budgetRefused =
+          report.budgetDiagnostics.length > budgetDiagnosticStart ||
+          Boolean(report.budget?.blocked);
+        const providerRefusal =
+          !budgetRefused && isIsolatedProviderRefusal(status, caseDiagnostics);
         const result = {
           status,
           ...(typeof answer.answer === "string"
@@ -607,12 +634,15 @@ async function main() {
         );
 
         if (
+          budgetRefused ||
           (status === "unavailable" && !providerRefusal) ||
           status === "invalid_result"
         ) {
           failStop(
             report,
-            status === "unavailable"
+            budgetRefused
+              ? "budget_guard_refused"
+              : status === "unavailable"
               ? "model_unavailable_no_retry"
               : "server_or_protocol_unavailable"
           );

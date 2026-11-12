@@ -25124,6 +25124,7 @@ var require_openrouter = __commonJS({
     var COMPARISON_SYSTEM_PROMPT = [
       FOUNDATION_SYSTEM_PROMPT,
       "For this comparison, apply the answer, citation and unsupportedParts rules independently to each deployment's section. Return exactly the two sections keyed by the supplied deployment IDs, with no overall answer or summary.",
+      "Each section must include a requested boolean. Set requested=false only when the question requests neither a factual answer nor a concrete action concerning that deployment. For requested=false, answer must be exactly an empty string and citationIds and unsupportedParts must both be empty arrays. For requested=true, answer supported parts and preserve genuine evidence gaps under the normal content rules. An evidence gap does not make a requested deployment unrequested. A request for transaction approval or execution requires requested=true with its unsupported action recorded as a gap. A question shared by both deployments requires requested=true in both sections.",
       "Preserve which deployment each requested factual part concerns. Apply a shared question to both deployments, but a question naming only one deployment applies only to that deployment. Do not turn an unasked behavior on the other side into an unsupported part. A supported explanation for one deployment does not answer a requested part for the other. Preserve only genuinely requested unsupported parts in that deployment's unsupportedParts; if none of its requested parts is supported, use an empty answer and empty citationIds in that section.",
       "When the question asks how an operation or mechanism works or begins, explain the supported actors, actions and resulting state or value changes, with their material conditions. A trigger or threshold alone does not explain the operation. Keep every requested mechanism distinct; do not replace its actions with neighboring accounting formulas. When only a definition or trigger is asked, do not add an unrequested operation tutorial.",
       "Each section may cite only that deployment's evidence.byDeployment source IDs and evidence.sharedSourceIds. Describe only that deployment in its section; the application supplies the labels. Do not merge claims about different protocols into one section.",
@@ -25153,6 +25154,14 @@ var require_openrouter = __commonJS({
         additionalProperties: false
       };
     }
+    function comparisonSectionSchema(citationIds) {
+      const content = foundationSchema(citationIds);
+      return {
+        ...content,
+        properties: { requested: { type: "boolean" }, ...content.properties },
+        required: ["requested", ...content.required]
+      };
+    }
     function comparisonSchema(comparison) {
       const ids = comparison.deployments.map((deployment) => deployment.id);
       return {
@@ -25162,7 +25171,7 @@ var require_openrouter = __commonJS({
             type: "object",
             properties: Object.fromEntries(ids.map((id) => [
               id,
-              foundationSchema([
+              comparisonSectionSchema([
                 ...comparison.evidence.byDeployment[id],
                 ...comparison.evidence.sharedSourceIds
               ])
@@ -42587,7 +42596,7 @@ var require_foundation_content = __commonJS({
       const { answer, citationIds, unsupportedParts } = result;
       if (typeof answer !== "string" || answer.length > exports2.MAX_ANSWER_CHARS || !Array.isArray(citationIds) || citationIds.length > sources.length || [...citationIds].some((id) => typeof id !== "string" || !eligible.has(id)) || !Array.isArray(unsupportedParts) || unsupportedParts.length > exports2.MAX_UNSUPPORTED_PARTS || [...unsupportedParts].some((part) => typeof part !== "string" || !part.trim() || part.length > exports2.MAX_UNSUPPORTED_PART_CHARS))
         return void 0;
-      const inlineIds = [...answer.matchAll(/\[([A-Za-z0-9_.:-]+)\]/g)].map((match) => match[1]);
+      const inlineIds = [...answer.matchAll(/\[([^\]]*)\]/g)].map((match) => match[1]);
       if (inlineIds.some((id) => !eligible.has(id) || !citationIds.includes(id)))
         return void 0;
       const abstention = !answer.trim() && citationIds.length === 0 && unsupportedParts.length > 0;
@@ -42687,6 +42696,20 @@ var require_expert_request = __commonJS({
         supportedDeployments: exports2.SUPPORTED_DEPLOYMENTS.map((entry) => ({ ...entry }))
       };
     }
+    function addressRole(before, after) {
+      const prefix = before.split(/[.;,!?\n]/).at(-1) ?? "";
+      const suffix = after.replace(/^[\s)\]]+/, "");
+      const deployment = "(?:pool|comet|market|deployment|aave(?:\\s+v?\\s*\\d+)?|compound(?:\\s+(?:v?\\d+|iii|ii|iv))?)";
+      const namesDeployment = new RegExp(`\\b${deployment}(?:\\s+(?:ethereum|mainnet|usdc|pool|comet|market|deployment|address|at|is))*\\s*[([:=]?\\s*$`, "i");
+      const directTarget = /\b(?:compare|against|versus|vs)\s*[([:=]?\s*$/i;
+      const comparedTarget = new RegExp(`^(?:against|versus|vs|with)\\s+(?:the\\s+)?(?:${deployment}|0x[a-z0-9]+)\\b`, "i");
+      const assertedRole = suffix.match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1].split(/\b(?:in|within|for|of|at|on)\b/i)[0];
+      if (namesDeployment.test(prefix) || directTarget.test(prefix) || comparedTarget.test(suffix) || assertedRole && /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(assertedRole))
+        return "deployment";
+      if (/\b(?:(?:roles?|function|purpose)\s+of|asset|token|collateral|underlying)\b[^.;,!?\n]*$/i.test(prefix) || /^(?:as|is)\s+(?:(?:an?|the)\s+)?(?:asset|token|collateral|underlying)\b/i.test(suffix))
+        return "reference";
+      return "ambiguous";
+    }
     function hasKnownIdentityConflict(question, deployments) {
       const chainNames = "base|arbitrum|optimism|polygon|solana|avalanche|sepolia|testnet|bnb(?:\\s+chain)?";
       const chainContext = question.replace(new RegExp(`\\b(?:excluding|except|not on|exceto)\\s+(?:the\\s+)?(?:${chainNames})\\b`, "gi"), "").replace(/\bas\s+(?:the\s+)?base\s+assets?\b/gi, "");
@@ -42710,8 +42733,18 @@ var require_expert_request = __commonJS({
         return true;
       if (/\b(?:compound\s*(?:iii|v3)\s+(?:ethereum\s+)?(?:weth|eth|usdt|usds)\s+(?:comet|market)|(?:weth|eth|usdt|usds)\s+comet)\b/i.test(question))
         return true;
-      const addresses = question.match(/\b0x[a-z0-9]+\b/gi) ?? [];
-      return addresses.some((address) => !deployments.some((entry) => entry.address.toLowerCase() === address.toLowerCase()));
+      const addresses = [...question.matchAll(/\b0x[a-z0-9]+\b/gi)];
+      return addresses.some((mention, index) => {
+        const address = mention[0];
+        if (deployments.some((entry) => entry.address.toLowerCase() === address.toLowerCase()))
+          return false;
+        if (!/^0x[a-f0-9]{40}$/i.test(address))
+          return true;
+        const previous = addresses[index - 1];
+        const before = question.slice(previous ? previous.index + previous[0].length : 0, mention.index);
+        const after = question.slice(mention.index + address.length);
+        return addressRole(before, after) !== "reference";
+      });
     }
     function parseExpertRequest(value) {
       const input = object(value);
@@ -42760,6 +42793,12 @@ var require_comparison_answer = __commonJS({
     var foundation_content_1 = require_foundation_content();
     var COMPARISON_DEPLOYMENT_COUNT = 2;
     var OUTPUT_FIELDS = ["sections"];
+    var SECTION_FIELDS = [
+      "requested",
+      "answer",
+      "citationIds",
+      "unsupportedParts"
+    ];
     function exactObject(value, keys) {
       return value !== null && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key) => Object.prototype.hasOwnProperty.call(value, key));
     }
@@ -42775,6 +42814,16 @@ var require_comparison_answer = __commonJS({
           sharedSourceIds: [...context.evidence.sharedSourceIds]
         }
       };
+    }
+    function validateComparisonSection(raw, sources) {
+      if (!exactObject(raw, SECTION_FIELDS) || typeof raw.requested !== "boolean")
+        return void 0;
+      const { requested, ...content } = raw;
+      if (!requested) {
+        return content.answer === "" && Array.isArray(content.citationIds) && content.citationIds.length === 0 && Array.isArray(content.unsupportedParts) && content.unsupportedParts.length === 0 ? { requested: false } : void 0;
+      }
+      const validated = (0, foundation_content_1.validateFoundationContent)(content, sources);
+      return validated ? { requested: true, content: validated } : void 0;
     }
     async function answerComparisonFromSources(question, sources, comparison, generate, signal) {
       if (typeof question !== "string" || !question.trim() || question.length > expert_1.MAX_LEARNING_QUESTION_CHARS)
@@ -42809,9 +42858,12 @@ var require_comparison_answer = __commonJS({
             ...trusted.evidence.byDeployment[deployment.id],
             ...trusted.evidence.sharedSourceIds
           ]);
-          const content = (0, foundation_content_1.validateFoundationContent)(raw.sections[deployment.id], trustedSources.filter((source) => allowed.has(source.id)));
-          if (!content)
+          const section = validateComparisonSection(raw.sections[deployment.id], trustedSources.filter((source) => allowed.has(source.id)));
+          if (!section)
             return { status: "insufficient_evidence" };
+          if (!section.requested)
+            continue;
+          const content = section.content;
           if (content.answer)
             sections.push(`${deployment.name}:
 ${content.answer}`);
@@ -47981,7 +48033,7 @@ var require_foundations = __commonJS({
                   lineEnd: 336
                 }
               ],
-              text: "The Aave V3 Pool interface accepts a specified reserve asset for supply and issues the corresponding aTokens. Withdrawal burns aTokens for underlying assets. Borrowing specifies a reserve asset and creates variable debt represented by variable debt tokens (VariableDebtToken); the interface requires sufficient collateral or a credit delegation allowance. Repayment burns the corresponding variable debt tokens as it reduces the reserve-specific debt. Suppliers can enable or disable eligible supplied assets as collateral. This is a multi-reserve interface, not a rule that every token is supported or every deposit is available for instant withdrawal. The interface alone does not establish a particular reserve's current liquidity, caps or an account's borrowing capacity."
+              text: "The Aave V3 Pool interface accepts a specified reserve asset for supply and issues the corresponding aTokens. Withdrawal burns aTokens for underlying assets. Borrowing specifies a reserve asset and creates variable debt represented by variable debt tokens (VariableDebtToken); the interface distinguishes borrowing against the caller's own collateral from borrowing on a credit delegator's behalf using sufficient delegation allowance. The onBehalfOf address receives the debt and identifies the caller in the own-collateral route or the delegator in the delegated route. Repayment burns the corresponding variable debt tokens as it reduces the reserve-specific debt. Suppliers can enable or disable eligible supplied assets as collateral. This is a multi-reserve interface, not a rule that every token is supported or every deposit is available for instant withdrawal. The interface alone does not establish a particular reserve's current liquidity, caps or an account's borrowing capacity."
             },
             {
               id: "aave-v3-health-liquidation",
@@ -49519,7 +49571,7 @@ var require_foundations = __commonJS({
         },
         {
           sourceId: "aave-validation-logic",
-          title: "Aave V3 reference withdrawal and collateral-health preconditions",
+          title: "Aave V3 reference borrowing, withdrawal and collateral-health preconditions",
           url: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
           sourceFileUrl: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
           revision: "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
@@ -49574,11 +49626,141 @@ var require_foundations = __commonJS({
                 }
               ],
               text: "Aave's pinned withdrawal validation requires a nonzero scaled amount no larger than the user's scaled balance, an active reserve and an unpaused reserve. Its collateral-health validation requires health factor to remain at least 1. For withdrawals from multi-collateral positions containing zero-LTV collateral, the inspected rule additionally requires selecting zero-LTV collateral first. These are documented reference-code preconditions rather than a promise that every otherwise valid withdrawal succeeds; current liquidity, the active implementation and other transaction conditions must also be checked."
+            },
+            {
+              id: "aave-v3-borrow-capacity-checks",
+              topics: [
+                "Aave V3",
+                "borrowing requirements",
+                "collateral capacity"
+              ],
+              keywords: [
+                "Aave",
+                "borrow",
+                "collateral",
+                "capacity",
+                "debt",
+                "health factor",
+                "LTV",
+                "borrowing requirements",
+                "unsecured",
+                "garantia",
+                "empr\xE9stimo"
+              ],
+              sections: [
+                {
+                  heading: "Health-factor threshold",
+                  lineStart: 27,
+                  lineEnd: 32
+                },
+                {
+                  heading: "Account health-factor and LTV capacity validation",
+                  lineStart: 346,
+                  lineEnd: 384
+                }
+              ],
+              text: "The pinned Aave validateHFAndLtv routine computes collateral value, debt value, current LTV and health factor for its supplied user account. It requires a nonzero current LTV, health factor at least the liquidation threshold of 1, and collateral value sufficient to cover the debt at that LTV, using ceiling division. These are account capacity checks; authorization to act for an account does not itself establish that they pass. The BorrowLogic call site determines which account is checked during borrowing. This reference does not supply current prices, account balances, parameters or an assurance that every other transaction condition is satisfied."
             }
           ],
           scope: "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
           contentSha256: "0bfb51e54f0a8589fbf24bbc03046b12ee6f189641b7a2a6f1b2874acbb2bb45",
           sourceByteLength: 20419
+        },
+        {
+          sourceId: "aave-borrow-logic",
+          title: "Aave V3 reference delegated borrowing and debt-owner validation",
+          url: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/BorrowLogic.sol",
+          sourceFileUrl: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/BorrowLogic.sol",
+          revision: "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+          blobSha: "083dd14b578ae027b56589a87eb5cbfeedca5835",
+          license: "BUSL-1.1",
+          licenseUrl: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+          licenseBlobSha: "6691d235832fecd6779806608d7796d589c54e6d",
+          licenseEvidence: "The source declares BUSL-1.1 on line 1 and the root license was fetched at the same revision. The pack contains independently worded factual mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+          retrievedAt: "2026-11-12",
+          allowedUse: "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+          chunks: [
+            {
+              id: "aave-v3-delegated-borrow-sequence",
+              topics: [
+                "Aave V3",
+                "credit delegation",
+                "borrowing requirements"
+              ],
+              keywords: [
+                "Aave",
+                "borrow",
+                "credit delegation",
+                "onBehalfOf",
+                "debt owner",
+                "collateral",
+                "health factor",
+                "LTV",
+                "permission",
+                "delega\xE7\xE3o",
+                "empr\xE9stimo"
+              ],
+              sections: [
+                {
+                  heading: "Borrow validation, debt creation and mandatory debt-owner capacity validation",
+                  lineStart: 57,
+                  lineEnd: 103
+                }
+              ],
+              text: "In the pinned Aave BorrowLogic implementation, executeBorrow validates reserve borrowing conditions and mints variable debt using both the initiating user and the onBehalfOf debt owner. After that debt increase it calls validateHFAndLtv for onBehalfOf. That capacity-validation call is unconditional: selecting a different initiating user for a delegated borrow does not skip the debt owner's health-factor and LTV checks. The call site therefore connects delegated borrowing to debt-owner capacity validation; it does not claim that an allowance alone creates unsecured credit. The allowance check itself is implemented through the variable-debt token mint path. These reference-code steps do not establish any account's present capacity or authorize a transaction."
+            }
+          ],
+          scope: "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current account borrowing capacity.",
+          contentSha256: "daf57b87b1f9b669b7103c156ac6ae192b31ec74a60d57dc69e63730345d30bc",
+          sourceByteLength: 8125
+        },
+        {
+          sourceId: "aave-variable-debt",
+          title: "Aave V3 reference credit-delegation allowance during debt minting",
+          url: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/tokenization/VariableDebtToken.sol",
+          sourceFileUrl: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/tokenization/VariableDebtToken.sol",
+          revision: "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+          blobSha: "dc9e80ab555653c50d65052f11b6412565dbe351",
+          license: "BUSL-1.1",
+          licenseUrl: "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+          licenseBlobSha: "6691d235832fecd6779806608d7796d589c54e6d",
+          licenseEvidence: "The source declares BUSL-1.1 on line 1 and the root license was fetched at the same revision. The pack contains independently worded factual mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+          retrievedAt: "2026-11-12",
+          allowedUse: "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+          chunks: [
+            {
+              id: "aave-v3-credit-delegation-allowance",
+              topics: [
+                "Aave V3",
+                "credit delegation",
+                "borrowing requirements"
+              ],
+              keywords: [
+                "Aave",
+                "credit delegation",
+                "allowance",
+                "borrow",
+                "mint",
+                "VariableDebtToken",
+                "onBehalfOf",
+                "delegator",
+                "debt owner",
+                "authorization",
+                "delega\xE7\xE3o"
+              ],
+              sections: [
+                {
+                  heading: "Delegated debt mint and allowance consumption",
+                  lineStart: 76,
+                  lineEnd: 120
+                }
+              ],
+              text: "The pinned VariableDebtToken mint path distinguishes the initiating user from onBehalfOf, the account receiving the debt. When those addresses differ, it invokes the borrow-allowance reduction for the debt owner and initiating user. The source explains that this requires allowance at least as large as the requested borrow amount; allowance consumption accounts for the debt increase and its rounding, capped at the current allowance. This is credit-delegation permission for a caller to incur debt on another account, not unlimited borrowing authority or a replacement for the separate borrow-time collateral-capacity checks. The mint permission is restricted to the Pool. No live allowance or account balance is established by this reference."
+            }
+          ],
+          scope: "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current account borrowing capacity.",
+          contentSha256: "244dea7e12ca08807e0718accece159867d9be8435808d5b495667e34ee50233",
+          sourceByteLength: 7674
         },
         {
           sourceId: "x402-payment-identifier",
@@ -49824,6 +50006,37 @@ var require_foundations = __commonJS({
   }
 });
 
+// mcp/dist/foundation-pack-integrity.js
+var require_foundation_pack_integrity = __commonJS({
+  "mcp/dist/foundation-pack-integrity.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = void 0;
+    exports2.assertBuiltinFoundationPack = assertBuiltinFoundationPack;
+    var node_crypto_1 = require("node:crypto");
+    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = "46cd4ae8b57270a687509a8535bdef43eb01a0e09b0551c9338ee2de17ee2353";
+    function canonicalJson(value) {
+      if (value === null || typeof value === "string" || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) {
+        return JSON.stringify(value);
+      }
+      if (Array.isArray(value)) {
+        return `[${value.map(canonicalJson).join(",")}]`;
+      }
+      if (typeof value === "object" && value !== null) {
+        const record = value;
+        return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+      }
+      throw new Error("foundation built-in pack contains a non-JSON value");
+    }
+    function assertBuiltinFoundationPack(pack) {
+      const digest = (0, node_crypto_1.createHash)("sha256").update(canonicalJson(pack)).digest("hex");
+      if (digest !== exports2.BUILTIN_FOUNDATION_PACK_SHA256) {
+        throw new Error("foundation built-in pack integrity mismatch");
+      }
+    }
+  }
+});
+
 // mcp/dist/knowledge.js
 var require_knowledge = __commonJS({
   "mcp/dist/knowledge.js"(exports2) {
@@ -49836,6 +50049,7 @@ var require_knowledge = __commonJS({
     exports2.retrieveFoundationSources = retrieveFoundationSources;
     var foundations_json_1 = __importDefault(require_foundations());
     var expert_1 = require_expert();
+    var foundation_pack_integrity_1 = require_foundation_pack_integrity();
     var FOUNDATION_TOP_K = 5;
     var MAX_FOUNDATION_TOP_K = 9;
     var BM25_K1 = 1.2;
@@ -49922,6 +50136,14 @@ var require_knowledge = __commonJS({
       }
       return match[1].toLowerCase();
     }
+    function isPinnedFileUrl(value, revision, commit) {
+      const url = new URL(value);
+      const repository = revision.slice(0, revision.lastIndexOf("@")).toLowerCase();
+      if (!/^[a-z0-9_.-]+\/[a-z0-9_.-]+$/.test(repository))
+        return false;
+      const route = url.hostname === "github.com" ? `/${repository}/blob/${commit}/` : url.hostname === "raw.githubusercontent.com" ? `/${repository}/${commit}/` : void 0;
+      return Boolean(route && !url.username && !url.password && !url.port && url.pathname.toLowerCase().startsWith(route) && url.pathname.length > route.length);
+    }
     function requireSha(value, field, context) {
       if (!/^[a-f0-9]{40}$/i.test(value)) {
         throw new Error(`foundation ${context} ${field} must be a SHA-1 blob id`);
@@ -49990,10 +50212,10 @@ var require_knowledge = __commonJS({
         requireHttpsUrl(licenseUrl, `${context} pinned license`);
         requireSha(blobSha, "blobSha", context);
         requireSha(licenseBlobSha, "licenseBlobSha", context);
-        if (!sourceFileUrl.toLowerCase().includes(`/${commit}/`)) {
+        if (!isPinnedFileUrl(sourceFileUrl, revision, commit)) {
           throw new Error(`foundation ${context} source URL is not pinned to revision`);
         }
-        if (!licenseUrl.toLowerCase().includes(`/${commit}/`)) {
+        if (!isPinnedFileUrl(licenseUrl, revision, commit)) {
           throw new Error(`foundation ${context} license URL is not pinned to revision`);
         }
         if (!Array.isArray(source.chunks) || source.chunks.length === 0) {
@@ -50089,6 +50311,7 @@ var require_knowledge = __commonJS({
         }));
       };
     }
+    (0, foundation_pack_integrity_1.assertBuiltinFoundationPack)(foundations_json_1.default);
     var retrieveFromFoundationPack = buildFoundationRetriever(foundations_json_1.default);
     function retrieveFoundationSources(question, options) {
       return retrieveFromFoundationPack(question, options);

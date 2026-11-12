@@ -37,6 +37,7 @@ describe("foundations MCP profile (fixture generation)", () => {
               comparison.deployments.map((deployment) => [
                 deployment.id,
                 {
+                  requested: true,
                   answer: "Repository deployment snapshot.",
                   citationIds: [
                     comparison.evidence.byDeployment[deployment.id][0],
