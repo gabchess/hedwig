@@ -62,7 +62,7 @@ const current = JSON.parse(
   read("expert-review-v2-eval.json").toString("utf8")
 ) as Current;
 const runBinding = JSON.parse(
-  read("expert-review-v3-binding.json").toString("utf8")
+  read("expert-review-v4-binding.json").toString("utf8")
 ) as {
   schemaVersion: number;
   kind: string;
@@ -70,6 +70,20 @@ const runBinding = JSON.parse(
   caseFixture: { file: string; sha256: string; expectedCaseCount: number };
   historicalSourcePackBinding: Current["sourcePackBinding"];
   sourcePackBinding: Current["sourcePackBinding"];
+  previousRunBinding: { file: string; sha256: string };
+  updatedEvidenceUnits: Array<{
+    id: string;
+    sourceId: string;
+    previousUnit: { id: string; text: string; sections: unknown[] };
+    previousUnitSha256: string;
+    unitSha256: string;
+    summarySha256: string;
+    sourceFileUrl: string;
+    revision: string;
+    gitBlobSha1: string;
+    contentSha256: string;
+    sections: unknown[];
+  }>;
   addedEvidenceUnits: Array<{
     id: string;
     sourceId: string;
@@ -233,6 +247,48 @@ describe("versioned current review qualification fixture", () => {
     );
     expect(corpus.sources.flatMap((source) => source.chunks)).to.have.length(
       runBinding.sourcePackBinding.evidenceUnitCount
+    );
+    // The new role summary is a declared update, not a rewritten historical pack.
+    const previousBindingBytes = read("expert-review-v3-binding.json");
+    expect(sha(previousBindingBytes)).to.equal(
+      "319f56e5ddb2f6a12a788a43e29d0de8052b513193d624a66ed63fe6c15e6674"
+    );
+    expect(runBinding.previousRunBinding).to.deep.equal({
+      file: "mcp/test/fixtures/expert-review-v3-binding.json",
+      sha256: sha(previousBindingBytes),
+    });
+    const previousBinding = JSON.parse(previousBindingBytes.toString("utf8"));
+    expect(runBinding.addedEvidenceUnits).to.deep.equal(
+      previousBinding.addedEvidenceUnits
+    );
+    expect(runBinding.updatedEvidenceUnits.map(({ id }) => id)).to.deep.equal([
+      "x402-v2-roles-and-facilitator",
+    ]);
+    for (const evidence of runBinding.updatedEvidenceUnits) {
+      const source = corpus.sources.find(
+        ({ sourceId }) => sourceId === evidence.sourceId
+      )!;
+      expect(source).to.include({
+        sourceFileUrl: evidence.sourceFileUrl,
+        revision: evidence.revision,
+        blobSha: evidence.gitBlobSha1,
+        contentSha256: evidence.contentSha256,
+      });
+      const matches = source.chunks.filter(({ id }) => id === evidence.id);
+      expect(matches).to.have.length(1);
+      const chunk = matches[0];
+      expect(sha(JSON.stringify(chunk))).to.equal(evidence.unitSha256);
+      expect(sha(chunk.text)).to.equal(evidence.summarySha256);
+      expect(chunk.sections).to.deep.equal(evidence.sections);
+      expect(evidence.previousUnit.id).to.equal(evidence.id);
+      expect(sha(JSON.stringify(evidence.previousUnit))).to.equal(
+        evidence.previousUnitSha256
+      );
+      source.chunks[source.chunks.indexOf(chunk)] = evidence.previousUnit;
+    }
+    // Restoring only the declared previous unit must exactly reproduce v3.
+    expect(sha(JSON.stringify(corpus, null, 2) + "\n")).to.equal(
+      previousBinding.sourcePackBinding.sha256
     );
     expect(current.primaryEvidence).to.have.length(8);
     for (const evidence of current.primaryEvidence) {

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "kind": "source_pack_run_binding",
+  "purpose": "Bind one completed x402 role evidence unit and the existing Aave eligibility addition to unchanged, previously exposed review-v2 questions and oracles. This is source provenance, not a new suite or live qualification receipt.",
+  "qualificationState": "not_live_qualified",
+  "caseFixture": {
+    "file": "mcp/test/fixtures/expert-review-v2-eval.json",
+    "sha256": "0a63658a62109ffa57e6753bc4c765550088e30ba1234e02c91eebd2688d6139",
+    "expectedCaseCount": 78
+  },
+  "historicalSourcePackBinding": {
+    "file": "mcp/src/knowledge/foundations.json",
+    "sha256": "64ed4ca77005c34905ad4aeb0565d1db32ebdc7fca5a40223b70906bd50391bd",
+    "sourceCount": 38,
+    "evidenceUnitCount": 56
+  },
+  "sourcePackBinding": {
+    "file": "mcp/src/knowledge/foundations.json",
+    "sha256": "f3f81e56dbddcc83aefc25d1037723cd5718a5695c72a6e7903d733233c3d0d5",
+    "sourceCount": 38,
+    "evidenceUnitCount": 57
+  },
+  "addedEvidenceUnits": [
+    {
+      "id": "aave-v3-reserve-borrow-eligibility",
+      "sourceId": "aave-validation-logic",
+      "summarySha256": "7abb63b69ed9af79bf8343cf7e7771fd8b9f6b5efc349fdfdc819b939642075d",
+      "unitSha256": "88001424c203c2a1254ca8be111d2cdedf9e782d7ca4f3b45774d33293ff22f2",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "gitBlobSha1": "985978099465a3f3058d62263767b8de33d4fbfb",
+      "contentSha256": "0bfb51e54f0a8589fbf24bbc03046b12ee6f189641b7a2a6f1b2874acbb2bb45",
+      "sections": [
+        {
+          "heading": "Separate supply validation",
+          "lineStart": 34,
+          "lineEnd": 64
+        },
+        {
+          "heading": "Reserve borrow eligibility and eMode branch",
+          "lineStart": 97,
+          "lineEnd": 131
+        }
+      ]
+    }
+  ],
+  "previousRunBinding": {
+    "file": "mcp/test/fixtures/expert-review-v3-binding.json",
+    "sha256": "319f56e5ddb2f6a12a788a43e29d0de8052b513193d624a66ed63fe6c15e6674"
+  },
+  "updatedEvidenceUnits": [
+    {
+      "id": "x402-v2-roles-and-facilitator",
+      "sourceId": "x402-v2-spec",
+      "previousUnit": {
+        "id": "x402-v2-roles-and-facilitator",
+        "topics": [
+          "x402 v2 roles",
+          "resource server",
+          "facilitator",
+          "verify",
+          "settle"
+        ],
+        "keywords": [
+          "client",
+          "resource server",
+          "facilitator",
+          "verify endpoint",
+          "settle endpoint",
+          "supported schemes",
+          "network"
+        ],
+        "sections": [
+          {
+            "heading": "3. Protocol Components",
+            "anchor": "#3-protocol-components",
+            "lineStart": 47,
+            "lineEnd": 54
+          },
+          {
+            "heading": "7. Facilitator Interface",
+            "anchor": "#7-facilitator-interface",
+            "lineStart": 303,
+            "lineEnd": 494
+          }
+        ],
+        "text": "The client requests access and supplies a payment payload. The resource server requires payment for a protected resource and supplies acceptable payment requirements. The facilitator is a service component for payment verification and blockchain settlement; the resource server may delegate those endpoints to a trusted third party or host them itself. The protocol defines a /supported interface for reporting networks and schemes. Scheme-specific payment-flow ordering can vary. Reported protocol capability is not proof of any facilitator's current availability, configuration, or production readiness."
+      },
+      "previousUnitSha256": "2d36a5d9cf045f90c8b60ce81c94f953be2585f86a9b0c0ea8ca1acecb4681c4",
+      "unitSha256": "c2cd3eacd8bafbf916bc02cbb6e74b4a908a50db23a201d44aba8d75a5eac906",
+      "summarySha256": "eb8b3b1807b60b63be941ed9e0b546095146e69d4dd7264483b0110ff1abfcf4",
+      "sourceFileUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/specs/x402-specification-v2.md",
+      "revision": "x402-foundation/x402@4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f",
+      "gitBlobSha1": "7f324a6d9af1a2403387dc64e65ad9555d2dd1fc",
+      "contentSha256": "c0c94b8cc8ed6b95ebc85c893277b6259a8ff92c0545d746c9574a1682ccb1a5",
+      "sections": [
+        {
+          "heading": "2. Core Payment Flow",
+          "anchor": "#2-core-payment-flow",
+          "lineStart": 36,
+          "lineEnd": 45
+        },
+        {
+          "heading": "3. Protocol Components",
+          "anchor": "#3-protocol-components",
+          "lineStart": 47,
+          "lineEnd": 54
+        },
+        {
+          "heading": "6.1 Asset Transfer Methods and Payment Flow Models",
+          "anchor": "#61-asset-transfer-methods-and-payment-flow-models",
+          "lineStart": 285,
+          "lineEnd": 301
+        },
+        {
+          "heading": "7. Facilitator Interface",
+          "anchor": "#7-facilitator-interface",
+          "lineStart": 303,
+          "lineEnd": 494
+        }
+      ]
+    }
+  ]
+}

@@ -48033,10 +48033,22 @@ var require_foundations = __commonJS({
               ],
               sections: [
                 {
+                  heading: "2. Core Payment Flow",
+                  anchor: "#2-core-payment-flow",
+                  lineStart: 36,
+                  lineEnd: 45
+                },
+                {
                   heading: "3. Protocol Components",
                   anchor: "#3-protocol-components",
                   lineStart: 47,
                   lineEnd: 54
+                },
+                {
+                  heading: "6.1 Asset Transfer Methods and Payment Flow Models",
+                  anchor: "#61-asset-transfer-methods-and-payment-flow-models",
+                  lineStart: 285,
+                  lineEnd: 301
                 },
                 {
                   heading: "7. Facilitator Interface",
@@ -48045,7 +48057,7 @@ var require_foundations = __commonJS({
                   lineEnd: 494
                 }
               ],
-              text: "The client requests access and supplies a payment payload. The resource server requires payment for a protected resource and supplies acceptable payment requirements. The facilitator is a service component for payment verification and blockchain settlement; the resource server may delegate those endpoints to a trusted third party or host them itself. The protocol defines a /supported interface for reporting networks and schemes. Scheme-specific payment-flow ordering can vary. Reported protocol capability is not proof of any facilitator's current availability, configuration, or production readiness."
+              text: "The client requests access and constructs a payment payload for supported payment requirements; in the default authorization flow it submits a signed payment authorization in a subsequent request. The resource server supplies acceptable payment requirements and gates access to the protected resource: it rejects unsupported transfer-method/payment-flow combinations and requires the resolved flow's pre-resource verification or settlement check before executing the request. The facilitator is a service component for payment verification and blockchain settlement; the resource server may delegate those endpoints to a trusted third party or host them itself. The protocol defines a /supported interface for reporting networks and schemes. Scheme-specific payment-flow ordering can vary. Reported protocol capability is not proof of any facilitator's current availability, configuration, or production readiness."
             },
             {
               id: "x402-verification-settlement",
@@ -50287,7 +50299,7 @@ var require_foundation_pack_integrity = __commonJS({
     exports2.BUILTIN_FOUNDATION_PACK_SHA256 = void 0;
     exports2.assertBuiltinFoundationPack = assertBuiltinFoundationPack;
     var node_crypto_1 = require("node:crypto");
-    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = "d61ab07018c7d84eebd0f014c58bd2f6c2b005661cb27054c6b1a0957b9bc40a";
+    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = "523fc62ae7a7950691b5d38cf76015545e0000e1a8fb6bd0b1ccc2b1a2b4e747";
     function canonicalJson(value) {
       if (value === null || typeof value === "string" || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) {
         return JSON.stringify(value);
