@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 // compiled code, independently of the JSON asset whose integrity it checks.
 // This detects mismatched assets, not an attacker who can replace both files.
 export const BUILTIN_FOUNDATION_PACK_SHA256 =
-  "46cd4ae8b57270a687509a8535bdef43eb01a0e09b0551c9338ee2de17ee2353";
+  "d61ab07018c7d84eebd0f014c58bd2f6c2b005661cb27054c6b1a0957b9bc40a";
 
 // Sort object keys but preserve array order and JSON scalar values. Whitespace,
 // line endings and bundler object formatting do not change this representation.

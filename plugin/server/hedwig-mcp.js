@@ -49888,6 +49888,40 @@ var require_foundations = __commonJS({
                 }
               ],
               text: "The pinned Aave validateHFAndLtv routine computes collateral value, debt value, current LTV and health factor for its supplied user account. It requires a nonzero current LTV, health factor at least the liquidation threshold of 1, and collateral value sufficient to cover the debt at that LTV, using ceiling division. These are account capacity checks; authorization to act for an account does not itself establish that they pass. The BorrowLogic call site determines which account is checked during borrowing. This reference does not supply current prices, account balances, parameters or an assurance that every other transaction condition is satisfied."
+            },
+            {
+              id: "aave-v3-reserve-borrow-eligibility",
+              topics: [
+                "Aave V3",
+                "borrowable assets",
+                "reserve configuration"
+              ],
+              keywords: [
+                "Aave",
+                "reserve",
+                "asset",
+                "borrowable",
+                "borrowingEnabled",
+                "eMode",
+                "borrowableBitmap",
+                "supply",
+                "market",
+                "empr\xE9stimo",
+                "reserva"
+              ],
+              sections: [
+                {
+                  heading: "Separate supply validation",
+                  lineStart: 34,
+                  lineEnd: 64
+                },
+                {
+                  heading: "Reserve borrow eligibility and eMode branch",
+                  lineStart: 97,
+                  lineEnd: 131
+                }
+              ],
+              text: "Borrowing an Aave V3 reserve asset is conditional, not implied by supporting that asset for supply. In the pinned validateBorrow code, the reserve must be active, unpaused and unfrozen. When the user has an eMode category, the reserve must be enabled in that category's borrowable bitmap; outside eMode, the reserve's borrowingEnabled flag must be true. The separate validateSupply routine does not check this borrowing permission. Consequently, a multi-reserve market does not make every supplied reserve asset borrowable. These are asset-eligibility prerequisites, separate from the account's collateral capacity and other borrow checks. They do not assert today's reserve or mode configuration, active implementation or permission to execute a borrow."
             }
           ],
           scope: "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
@@ -50242,7 +50276,7 @@ var require_foundation_pack_integrity = __commonJS({
     exports2.BUILTIN_FOUNDATION_PACK_SHA256 = void 0;
     exports2.assertBuiltinFoundationPack = assertBuiltinFoundationPack;
     var node_crypto_1 = require("node:crypto");
-    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = "46cd4ae8b57270a687509a8535bdef43eb01a0e09b0551c9338ee2de17ee2353";
+    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = "d61ab07018c7d84eebd0f014c58bd2f6c2b005661cb27054c6b1a0957b9bc40a";
     function canonicalJson(value) {
       if (value === null || typeof value === "string" || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) {
         return JSON.stringify(value);
@@ -50385,8 +50419,8 @@ var require_knowledge = __commonJS({
       return value;
     }
     function tokenize(value) {
-      const receiptTerms = value.replace(/\batokens?\b/gi, "atoken");
-      const expandedCase = receiptTerms.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+      const protocolTerms = value.replace(/\batokens?\b/gi, "atoken").replace(/\bemode\b/gi, "emode");
+      const expandedCase = protocolTerms.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
       const canonical = expandedCase.replace(/\berc[\s-]*4626\b/gi, "erc4626");
       const rawTokens = canonical.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
       const tokens = [];

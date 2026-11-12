@@ -206,10 +206,12 @@ function requiredStringArray(
 }
 
 function tokenize(value: string): string[] {
-  // Preserve the receipt-token term before camel-case splitting would reduce
-  // aToken to the stopword "a" plus the unrelated generic term "token".
-  const receiptTerms = value.replace(/\batokens?\b/gi, "atoken");
-  const expandedCase = receiptTerms.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  // Preserve protocol terms before camel-case splitting loses their identity:
+  // aToken becomes generic "token", while eMode produces Portuguese "e".
+  const protocolTerms = value
+    .replace(/\batokens?\b/gi, "atoken")
+    .replace(/\bemode\b/gi, "emode");
+  const expandedCase = protocolTerms.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
   const canonical = expandedCase.replace(/\berc[\s-]*4626\b/gi, "erc4626");
   const rawTokens = canonical.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
   const tokens: string[] = [];
