@@ -1,5 +1,7 @@
 import { expect } from "chai";
 
+import expertReview from "./fixtures/expert-review-v2-eval.json";
+
 import {
   buildFoundationRetriever,
   retrieveFoundationSources,
@@ -115,6 +117,71 @@ describe("foundation BM25 retrieval", () => {
     expect(
       retrieveFoundationSources("What is an ERC4626 vault?").map(({ id }) => id)
     ).to.include("erc4626-shares-and-assets");
+  });
+
+  it("keeps aToken identity distinct from generic token wording across case and plural forms", () => {
+    const retrieve = buildFoundationRetriever(
+      fixturePack([
+        { id: "generic-token", text: "A generic token identifies an asset." },
+        { id: "interest-receipt", text: "An aToken balance accrues interest." },
+      ])
+    );
+    for (const term of [
+      "aToken",
+      "atoken",
+      "AToken",
+      "ATOKEN",
+      "aTokens",
+      "atokens",
+      "ATOKENS",
+    ]) {
+      expect(
+        retrieve(term).map(({ id }) => id),
+        term
+      ).to.deep.equal(["interest-receipt"]);
+    }
+    for (const term of ["token", "a token"]) {
+      expect(
+        retrieve(term).map(({ id }) => id),
+        term
+      ).to.deep.equal(["generic-token"]);
+    }
+    expect(retrieve("datoken")).to.deep.equal([]);
+  });
+
+  it("retrieves aToken accrual for English and Portuguese mechanism questions", () => {
+    for (const question of [
+      "How does interest accrue to an aToken supply position?",
+      "How does interest accrue to ATOKENS?",
+      "Como um atoken registra juros?",
+      "Por que o saldo de aTokens pode aumentar com juros?",
+      "How is an aToken different from a generic token?",
+    ]) {
+      expect(
+        retrieveFoundationSources(question).map(({ id }) => id),
+        question
+      ).to.include("aave-v3-atoken-accrual");
+    }
+  });
+
+  it("meets the unchanged mixed-yield evidence contract within nine sources", () => {
+    const regression = expertReview.cases.find(
+      ({ id }) => id === "f09-portuguese-mixed-yield"
+    );
+    if (!regression?.requiredSourceAlternatives) {
+      throw new Error("mixed-yield evidence contract is missing");
+    }
+    const sources = retrieveFoundationSources(regression.question, {
+      limit: 9,
+    });
+    const ids = sources.map(({ id }) => id);
+    expect(ids).to.have.length.at.most(9);
+    expect(ids).to.include.members(regression.requiredSourceIds);
+    expect(
+      regression.requiredSourceAlternatives.some((alternative) =>
+        alternative.every((id) => ids.includes(id))
+      )
+    ).to.equal(true);
   });
 
   it("returns no candidates for empty, stopword-only, unrelated, and oversized input", () => {

@@ -50359,7 +50359,8 @@ var require_knowledge = __commonJS({
       return value;
     }
     function tokenize(value) {
-      const expandedCase = value.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+      const receiptTerms = value.replace(/\batokens?\b/gi, "atoken");
+      const expandedCase = receiptTerms.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
       const canonical = expandedCase.replace(/\berc[\s-]*4626\b/gi, "erc4626");
       const rawTokens = canonical.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
       const tokens = [];
@@ -50472,6 +50473,36 @@ var require_knowledge = __commonJS({
       }
       return score;
     }
+    function coverExplicitTopics(ranked, queryTokens, scopeTopics, limit) {
+      if (!scopeTopics || ranked.length <= limit)
+        return ranked;
+      const selectedIds = /* @__PURE__ */ new Set();
+      const coveredTopics = /* @__PURE__ */ new Set();
+      for (const { document } of ranked) {
+        const matches = document.topics.filter((topic) => {
+          if (scopeTopics.has(normalizeTopic(topic)))
+            return false;
+          const terms = tokenize(topic);
+          return terms.length > 0 && queryTokens.some((_, start) => terms.every((term, offset) => queryTokens[start + offset] === term));
+        });
+        if (matches.some((topic) => !coveredTopics.has(normalizeTopic(topic)))) {
+          selectedIds.add(document.id);
+          for (const topic of matches)
+            coveredTopics.add(normalizeTopic(topic));
+          if (selectedIds.size === limit)
+            break;
+        }
+      }
+      for (const { document } of ranked) {
+        if (selectedIds.size >= limit)
+          break;
+        selectedIds.add(document.id);
+      }
+      return [
+        ...ranked.filter(({ document }) => selectedIds.has(document.id)),
+        ...ranked.filter(({ document }) => !selectedIds.has(document.id))
+      ];
+    }
     function buildFoundationRetriever(pack) {
       const documents = buildDocuments(pack);
       const documentFrequency = /* @__PURE__ */ new Map();
@@ -50488,11 +50519,12 @@ var require_knowledge = __commonJS({
         if (typeof question !== "string" || !question.trim() || question.length > expert_1.MAX_LEARNING_QUESTION_CHARS || !Number.isSafeInteger(limit) || limit < 1 || limit > MAX_FOUNDATION_TOP_K) {
           return [];
         }
-        const queryTerms = new Set(tokenize(question));
+        const queryTokens = tokenize(question);
+        const queryTerms = new Set(queryTokens);
         const allowedTopics = options.topics === void 0 ? void 0 : new Set(options.topics.map(normalizeTopic));
         const excludedIds = new Set(options.excludeIds);
         const excludedTopics = new Set(options.excludeTopics?.map(normalizeTopic));
-        const ranked = documents.filter((document) => !excludedIds.has(document.id) && !document.topics.some((topic) => excludedTopics.has(normalizeTopic(topic))) && (allowedTopics === void 0 || document.topics.some((topic) => allowedTopics.has(normalizeTopic(topic))))).map((document) => ({
+        const bm25Ranked = documents.filter((document) => !excludedIds.has(document.id) && !document.topics.some((topic) => excludedTopics.has(normalizeTopic(topic))) && (allowedTopics === void 0 || document.topics.some((topic) => allowedTopics.has(normalizeTopic(topic))))).map((document) => ({
           document,
           score: scoreDocument(queryTerms, document, documentFrequency, averageDocumentLength, documents.length)
         })).filter(({ score }) => score > 0).sort((left, right) => {
@@ -50501,6 +50533,7 @@ var require_knowledge = __commonJS({
             return difference;
           return left.document.id < right.document.id ? -1 : left.document.id > right.document.id ? 1 : 0;
         });
+        const ranked = coverExplicitTopics(bm25Ranked, queryTokens, allowedTopics, limit);
         const scored = ranked.slice(0, limit);
         if (options.onSelection) {
           options.onSelection(Object.freeze({

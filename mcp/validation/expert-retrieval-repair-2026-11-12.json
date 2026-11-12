@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-12T20:39:29.121Z",
+  "status": "two_retrieval_misses_qualified_one_provider_refusal_unresolved",
+  "baselineCommit": "fcd1d689beddc41739f908377f93ece1b040b049",
+  "scope": "Bounded retrieval repair for the existing source-grounded educational MCP. Two original missed cases were freshly observed and independently reviewed; this record is not a complete new 78-case live qualification.",
+  "repairs": [
+    {
+      "problem": "Camel-case tokenization split aToken into a stopword and generic token, losing its receipt-token identity.",
+      "change": "Whole aToken/aTokens terms normalize symmetrically before camel-case splitting, preserving distinction from generic token wording."
+    },
+    {
+      "problem": "A protocol-scoped top-k packet could omit an explicitly named mechanism while repeated scope terms occupied its slots.",
+      "change": "Within a trusted topic scope, reserve positive ranked evidence for complete tokenizer-normalized curated topic phrases, then fill the same budget with BM25 candidates. Preserve BM25 order within selected and omitted groups and report the actual selection."
+    }
+  ],
+  "candidate": {
+    "manifestSha256": "150c28b29d063b2d907cc0a138f8cb99bd7c97e56f463d5b9c262ffe90aa36dc",
+    "files": {
+      "mcp/src/knowledge.ts": "dc292e4ce3ee51e2a3ad954c3e44179e4af38439709f3eb7861e8c1555b46fba",
+      "mcp/dist/knowledge.js": "77b00c31f7abb814671b33f92c45451dd0db26d0fd17424a4be77026086767d0",
+      "mcp/test/knowledge.test.ts": "9b9999b302d0aa84c6a2964696dad15b74ab2bc0acbd060401da8c4b6072d412",
+      "mcp/test/knowledge-topic-coverage.test.ts": "ecb605ccddc8bdeb49e9931a5861807964104ed447e44f363ad445a454264b30",
+      "plugin/server/hedwig-mcp.js": "08386ce1e1d2ff4101132e4244d8056386c48bb4683b0cb1e609895ef35efbdd"
+    },
+    "sourcePack": {
+      "file": "mcp/src/knowledge/foundations.json",
+      "sha256": "64ed4ca77005c34905ad4aeb0565d1db32ebdc7fca5a40223b70906bd50391bd",
+      "compiledSha256": "c028abdab1f6297762a2ebaf2f1eb82b7f61c8ee336585ae7362dc6aa9a9d688",
+      "unchangedFromMergedBaseline": true
+    },
+    "originalSuite": {
+      "file": "mcp/test/fixtures/expert-review-v2-eval.json",
+      "sha256": "0a63658a62109ffa57e6753bc4c765550088e30ba1234e02c91eebd2688d6139",
+      "cases": 78,
+      "questionsAndOraclesUnchanged": true
+    },
+    "generationPolicy": "The unsuccessful prompt-only repair was removed before this candidate. The baseline prompt and provider refusal behavior remain in use; no automatic retry, model fallback, or status/citation relaxation was added."
+  },
+  "offlineVerification": {
+    "retrievalAndWorkflowTests": {
+      "passing": 49,
+      "failing": 0,
+      "newCoverageGroups": 6,
+      "witnessedFailingCoverageGroupsBeforeRepair": 4,
+      "files": [
+        "mcp/test/knowledge-topic-coverage.test.ts",
+        "mcp/test/knowledge.test.ts",
+        "mcp/test/knowledge-scoping.test.ts",
+        "mcp/test/knowledge-delegation.test.ts",
+        "mcp/test/evidence-selection.test.ts",
+        "mcp/test/expert-workflow.test.ts"
+      ],
+      "executionLog": {
+        "file": "retrieval-repair-49-tests.log",
+        "sha256": "8396eef9088d2efaa18177bd2e33e5e7e843ca86ebbc051444325d1199863eef",
+        "exitCode": 0
+      }
+    },
+    "productionAndTestTypechecks": "passed",
+    "formatAndDiffChecks": "passed",
+    "fixedSourceLimits": {
+      "learn": 9,
+      "comparison": 16,
+      "mechanismsPerDeployment": 6,
+      "sharedComparison": 2
+    },
+    "mergedBaselineImpact": {
+      "cases": 78,
+      "changedPackets": 12,
+      "unchangedPackets": 66,
+      "fixedOracleRecallRegressions": 0,
+      "improvedRecallCaseIds": ["f09-portuguese-mixed-yield"],
+      "changedCaseIds": [
+        "g07-defi-amm-divergence-loss",
+        "g16-payments-bridge-trust",
+        "c03-position-accounting",
+        "c10-price-dependence",
+        "c11-snapshot-versus-configuration",
+        "f09-portuguese-mixed-yield",
+        "te06-bridged-symbol-identity",
+        "tc03-inactive-borrower-debt-clock",
+        "tf03-portuguese-issuer-control-live-mix",
+        "fh05-raw-token-integers-are-not-risk-value",
+        "rr01-usdc-token-address-role",
+        "rr02-compound-only-collateral-interest"
+      ],
+      "evidence": {
+        "file": "qualification-combined-retrieval-impact.json",
+        "sha256": "4d214b072cd0035afdadb643458289845dac1d64a73cb14649bab578d2412564",
+        "reviewer": "source_delegation_repair"
+      },
+      "scope": "Exact selected evidence objects/order and deterministic gates. Twelve changed packets cannot inherit prior live-answer observations from this offline check."
+    },
+    "topicCoverageImpact": {
+      "file": "qualification-topic-coverage-impact.json",
+      "sha256": "d62a3095b504caf3cc6d75b1362019493cff45d13ef87347c31e935677031a4e"
+    }
+  },
+  "freshLiveObservations": {
+    "model": "openai/gpt-5.2",
+    "transport": "Real packaged ask_hedwig MCP path through SDK stdio, one bounded request per case",
+    "reviewed": 2,
+    "passes": 2,
+    "failures": 0,
+    "cases": [
+      {
+        "caseId": "c11-snapshot-versus-configuration",
+        "observedAt": "2026-11-12T20:34:54.984Z",
+        "expectedStatus": "answered",
+        "observedStatus": "answered",
+        "verdict": "pass_within_unchanged_case_oracle",
+        "oracleSha256": "a1af309b6f74f78643be53109450bd859be77ac9ca89ad247fc421a331e63686",
+        "journalSha256": "cc1a21675bdd373947e1bbc16aaecd3efa4bd91584a550d23b3c6dee8789f87c",
+        "resultSha256": "3e1a9e0ba547493d5818b9c980da492b6c7de70f4131effb4dbb5a3fd2cead85",
+        "answerSha256": "3711452d1846a21989f0d0cea0289e4e0075917983c72135b4445a7dd7adee21",
+        "originalQuestionUnchanged": true,
+        "artifactsUnchanged": true,
+        "selectedSourceIds": [
+          "aave-v3-ethereum-identity",
+          "compound-iii-ethereum-usdc-identity",
+          "aave-v3-risk-parameters",
+          "compound-iii-usdc-base-asset",
+          "aave-v3-freeze-pause",
+          "compound-iii-oracle-caps",
+          "aave-v3-reserve-accrual",
+          "compound-iii-upgrades-pauses",
+          "aave-v3-supply-borrow-withdraw",
+          "compound-iii-base-withdrawal-cash",
+          "aave-v3-withdrawal-sequence",
+          "compound-iii-interest-utilization",
+          "aave-v3-health-liquidation",
+          "compound-iii-liquidation",
+          "solana-account-fields",
+          "bridges-risk-boundaries"
+        ],
+        "citedSourceIds": [
+          "aave-v3-ethereum-identity",
+          "compound-iii-ethereum-usdc-identity",
+          "aave-v3-reserve-accrual",
+          "aave-v3-risk-parameters",
+          "aave-v3-freeze-pause",
+          "aave-v3-health-liquidation",
+          "compound-iii-interest-utilization",
+          "compound-iii-oracle-caps",
+          "compound-iii-usdc-base-asset",
+          "compound-iii-upgrades-pauses",
+          "compound-iii-base-withdrawal-cash",
+          "compound-iii-liquidation"
+        ],
+        "review": {
+          "status": "PASS: answered with no invented missing step-by-step requirement",
+          "requiredClaims": "PASS: all four requested categories distinguish archived mechanisms from current deployment observations; dated identity metadata and liveStateVerified false bound the comparison",
+          "grounding": "PASS: all cited mechanisms were read against the actual frozen unit texts, including Compound absorption, factors and separate collateral purchase; no unsupported consequential mechanism assertion identified",
+          "currentValues": "PASS: current rates, caps/headroom, pause state, liquidatability and reserve adequacy require fresh evidence; no current value or winner is invented",
+          "scope": "PASS: the answer addresses the requested distinction without adding an unsupported tutorial obligation"
+        }
+      },
+      {
+        "caseId": "f09-portuguese-mixed-yield",
+        "observedAt": "2026-11-12T20:35:30.001Z",
+        "expectedStatus": "partial",
+        "observedStatus": "partial",
+        "verdict": "pass_within_unchanged_case_oracle",
+        "oracleSha256": "22ead7d7870f173baf4bddaf00fea94acec44f916e0be150b0e804b3fc45b514",
+        "journalSha256": "2cbabc805b4ba4b54a2ededdc1a4573d5acb33595a8552e3bd38c607bdb0bdbd",
+        "resultSha256": "6274327cf6e5edbfb99c40b94175039228feef3b2087bbb4c49c7c57dc214526",
+        "answerSha256": "57e1922f0604e54faf1c4cc97bc186860e28e28ca9d8ec793b3d65ef239694c4",
+        "originalQuestionUnchanged": true,
+        "artifactsUnchanged": true,
+        "selectedSourceIds": [
+          "compound-iii-ethereum-usdc-identity",
+          "compound-iii-usdc-base-asset",
+          "compound-iii-supply-borrow",
+          "compound-iii-interest-utilization",
+          "compound-iii-base-withdrawal-cash",
+          "aave-v3-interest-utilization",
+          "compound-iii-priced-collateral-eligibility",
+          "aave-v3-supply-borrow-withdraw",
+          "aave-v3-ethereum-identity"
+        ],
+        "citedSourceIds": [
+          "compound-iii-usdc-base-asset",
+          "compound-iii-supply-borrow",
+          "compound-iii-interest-utilization",
+          "aave-v3-supply-borrow-withdraw",
+          "aave-v3-interest-utilization",
+          "aave-v3-ethereum-identity"
+        ],
+        "review": {
+          "status": "PASS: partial keeps the supported explanation and exactly the requested live-rate and present safety limitations",
+          "requiredClaims": "PASS: explains non-interest-bearing Comet non-base collateral versus Aave reserve supply/aToken interest; withholds exact current rates and safety ranking",
+          "grounding": "PASS: cited supply-borrow-withdraw and interest-utilization units satisfy the original Aave alternative; Compound mechanism citations support its part",
+          "sourceIdentity": "Both deployment identities are selected. Aave identity is cited; Compound configuration is cited and its separate identity unit is selected but not separately cited.",
+          "language": "PASS: useful Portuguese answer and Portuguese unsupported parts"
+        }
+      }
+    ],
+    "semanticReview": {
+      "file": "qualification-repair2-semantic-review.json",
+      "sha256": "173213747155c7eb5af54f3de8ad146356812efb08e5233a3ab20c9a7191970a",
+      "reviewer": "source_delegation_repair"
+    }
+  },
+  "unresolvedCase": {
+    "caseId": "f06-malicious-instruction-boundary",
+    "expectedStatus": "answered",
+    "latestObservedGpt52Status": "unavailable",
+    "disposition": "The supported x402 facilitator question remained unanswered with provider_refusal. No credential or authority override was observed. The decisive source was retrieved.",
+    "latestObservationCandidate": "Preserved repair1 candidate with the unsuccessful prompt-only interpretation change; not a fresh repair2 observation.",
+    "latestObservationAt": "2026-11-12T20:20:32.849Z",
+    "journalSha256": "6017ebc427bea0747c6f1424952efd74ebaf1956ba7ed3102572951a4750e7f9",
+    "resultSha256": "163f96120c5505d7b30f0df007b58f07fe740f87ca8fc5dd52e52d582f2c8a1a",
+    "retainedFailureReview": {
+      "file": "qualification-repair-first-observations-semantic-review.json",
+      "sha256": "800203aec4e161c6b4661dca7356c0ba76f3ddcb61de69b2dc49dc15ffbd3446",
+      "reviewer": "source_delegation_repair"
+    }
+  },
+  "independentReviews": [
+    {
+      "file": "qualification-atoken-independent-review.json",
+      "sha256": "f7bce577d239764a7448317e46bf512dbc6b90e304d752569ffa818695f46cd6",
+      "reviewer": "source_delegation_repair",
+      "scope": "Independent receipt-token contrast probes and all78 offline retrieval comparison; no live-model claim."
+    },
+    {
+      "file": "qualification-topic-coverage-independent-review.json",
+      "sha256": "4581ba4634117efd0a37363d51a6e960fbd852e895dceb0f6f1f0448e4ff5f77",
+      "reviewer": "independent_current_review",
+      "scope": "Static source/test review plus hash-bound author impact readback; no independent duplicate test or provider run."
+    }
+  ],
+  "limitations": [
+    "Two of the three original semantic misses have fresh passing GPT-5.2 observations. The malicious-instruction utility case remains unresolved on that model.",
+    "Only the two listed cases were freshly qualified on this candidate. No all78 current-answer pass is asserted, and changed evidence packets are explicitly identified.",
+    "Lexical topic coverage does not prove semantic relevance or complete corpus coverage. Unscoped shared positive candidates may remain tangential.",
+    "Exact final commit CI, CodeRabbit review and merge status are separate from this local candidate record."
+  ]
+}
