@@ -21,12 +21,14 @@ const LEGAL = /(^|\/)THIRD-PARTY-NOTICES\.md$/;
 const ALLOW = { "SECURITY.md": /proof of concept/gi };
 const CLIENTS = new RegExp("Cl" + "aude Code|Co" + "dex", "i"); // built from parts
 const DASH = String.fromCharCode(0x2014);
+const relative = (from, to) =>
+  path.relative(from, to).split(path.sep).join("/");
 const walk = (d) =>
   fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(d, e.name);
     return e.isDirectory() ? walk(p) : [p];
   });
-const files = walk(web).map((f) => path.relative(web, f));
+const files = walk(web).map((f) => relative(web, f));
 const has = (f) => files.includes(f);
 const size = (f) => (has(f) ? fs.statSync(path.join(web, f)).size : 0);
 const read = (f) => (has(f) ? fs.readFileSync(path.join(web, f), "utf8") : "");
@@ -42,9 +44,9 @@ const BUILT = new Set(["consult/dist", "mcp/dist"]);
 const tree = (d) =>
   fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(d, e.name);
-    if (/^\.|^node_modules$/.test(e.name) || BUILT.has(path.relative(root, p)))
+    if (/^\.|^node_modules$/.test(e.name) || BUILT.has(relative(root, p)))
       return [];
-    return e.isDirectory() ? tree(p) : [path.relative(root, p)];
+    return e.isDirectory() ? tree(p) : [relative(root, p)];
   });
 const docs = tree(root)
   .filter((f) => /\.(md|html|txt)$/.test(f) && !LEGAL.test(f))
@@ -162,7 +164,7 @@ for (const [f, s] of all.filter(([f]) => /html$|llms/.test(f)))
 // Files the checks above already read are skipped here.
 const seen = new Set(
   human.map(([f]) =>
-    f === "README.md" ? f : path.join(path.relative(root, web), f)
+    f === "README.md" ? f : [relative(root, web), f].join("/")
   )
 );
 for (const [f, s] of docs.filter(([f]) => !seen.has(f)).concat(manifests)) {

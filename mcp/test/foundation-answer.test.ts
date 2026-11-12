@@ -12,7 +12,6 @@ const source = {
   text: "Shares are a fractional claim on underlying holdings.",
 };
 const good = {
-  status: "answered",
   answer: "Shares represent a fractional claim on underlying holdings.",
   citationIds: [source.id],
   unsupportedParts: [],
@@ -37,7 +36,7 @@ describe("foundation answer contract (fixture generation)", () => {
     ).to.equal("insufficient_evidence");
     expect(calls).to.equal(0);
   });
-  it("returns generated answers with only retrieved provenance", async () => {
+  it("derives answered from cited content with no unsupported parts", async () => {
     const result = await answerFromFoundationSources(
       "Explain vault shares",
       [source],
@@ -56,13 +55,12 @@ describe("foundation answer contract (fixture generation)", () => {
     ]);
     expect(result.unsupportedParts).to.deep.equal([]);
   });
-  it("keeps the unsupported part of a mixed question explicit", async () => {
+  it("derives partial from cited content and explicit unsupported parts", async () => {
     const result = await answerFromFoundationSources(
       "Explain shares and assess this vault today",
       [source],
       async () => ({
         ...good,
-        status: "partial",
         unsupportedParts: [
           "The named vault's current condition is not in these sources.",
         ],
@@ -72,21 +70,52 @@ describe("foundation answer contract (fixture generation)", () => {
     expect(result.answer).to.equal(good.answer);
     expect(result.unsupportedParts).to.have.length(1);
   });
-  it("preserves a model abstention without inventing answer text", async () => {
+  it("preserves validated gaps on an abstention without answer text or sources", async () => {
+    const unsupportedParts = ["Current yields are unavailable."];
     const result = await answerFromFoundationSources(
       "Which vault has the highest APY today?",
       [source],
       async () => ({
-        status: "insufficient_evidence",
         answer: "",
         citationIds: [],
-        unsupportedParts: ["Current yields are unavailable."],
+        unsupportedParts,
       })
     );
-    expect(result.status).to.equal("insufficient_evidence");
-    expect(result.answer).to.equal(undefined);
+    expect(result).to.deep.equal({
+      status: "insufficient_evidence",
+      unsupportedParts: ["Current yields are unavailable."],
+    });
+    unsupportedParts[0] = "Changed after generation";
+    expect(result.unsupportedParts).to.deep.equal([
+      "Current yields are unavailable.",
+    ]);
   });
-  it("rejects inconsistent statuses, unsupported citations and extra output fields", async () => {
+  it("does not republish gap text from malformed or uncited generated content", async () => {
+    const abstention = {
+      answer: "",
+      citationIds: [],
+      unsupportedParts: ["An observation is unavailable."],
+    };
+    for (const value of [
+      { ...abstention, answer: "An uncited assertion." },
+      { ...abstention, citationIds: ["unknown-source"] },
+      { ...abstention, citationIds: [source.id] },
+      { ...abstention, unsupportedParts: [" "] },
+      { ...abstention, unsupportedParts: ["x".repeat(1001)] },
+      { ...abstention, unsupportedParts: Array(17).fill("unavailable") },
+      { ...abstention, unsupportedParts: Array(1) },
+      { ...abstention, status: "insufficient_evidence" },
+    ]) {
+      expect(
+        await answerFromFoundationSources(
+          "Explain this observation",
+          [source],
+          async () => value
+        )
+      ).to.deep.equal({ status: "insufficient_evidence" });
+    }
+  });
+  it("rejects generated status authority, unsupported citations and invalid content", async () => {
     for (const value of [
       null,
       {
@@ -95,16 +124,21 @@ describe("foundation answer contract (fixture generation)", () => {
           "EOAs authorize transactions [ethereum-transaction-transaction-model].",
       },
       { ...good, citationIds: Array(1) },
-      { ...good, status: "partial", unsupportedParts: Array(1) },
+      { ...good, unsupportedParts: Array(1) },
+      { ...good, status: "answered" },
       { ...good, status: "partial" },
-      { ...good, unsupportedParts: ["unanswered part"] },
+      { ...good, status: "answered", unsupportedParts: ["unanswered part"] },
       { ...good, status: "insufficient_evidence" },
       { ...good, citationIds: ["invented-source"] },
       { ...good, citationIds: [] },
       { ...good, answer: " " },
       { ...good, answer: "x".repeat(16001) },
       { ...good, proceed: true },
-      { ...good, status: "partial", unsupportedParts: [""] },
+      { ...good, unsupportedParts: [""] },
+      { ...good, unsupportedParts: [" "] },
+      { ...good, unsupportedParts: ["x".repeat(1001)] },
+      { ...good, unsupportedParts: Array(17).fill("unsupported") },
+      { ...good, answer: "", citationIds: [] },
     ]) {
       const result = await answerFromFoundationSources(
         "Explain shares",

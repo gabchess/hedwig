@@ -23,9 +23,25 @@ type FoundationIndexDocument = FoundationSource & {
   termFrequency: Map<string, number>;
 };
 
-export type FoundationRetriever = (question: string) => FoundationSource[];
+/** Trusted workflow selection, never inferred from question text. */
+export type FoundationRetrievalOptions = {
+  /** Exact metadata topics, matched as a union; an empty list admits nothing. */
+  topics?: readonly string[];
+  /** Exclusions take precedence and reserve space for shared asset/chain risks. */
+  excludeTopics?: readonly string[];
+  /** Evidence already reserved by the caller must not consume ranking slots. */
+  excludeIds?: readonly string[];
+  /** Defaults to five; only integer budgets from one through nine are allowed. */
+  limit?: number;
+};
+
+export type FoundationRetriever = (
+  question: string,
+  options?: FoundationRetrievalOptions
+) => FoundationSource[];
 
 const FOUNDATION_TOP_K = 5;
+const MAX_FOUNDATION_TOP_K = 9;
 const BM25_K1 = 1.2;
 const BM25_B = 0.75;
 const IDF_OFFSET = 0.5;
@@ -169,6 +185,10 @@ function frequencies(tokens: string[]): Map<string, number> {
   return result;
 }
 
+function normalizeTopic(topic: string): string {
+  return topic.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 function buildDocuments(pack: unknown): FoundationIndexDocument[] {
   const root = asRecord(pack);
   if (!root || root.schemaVersion !== 1 || !Array.isArray(root.sources)) {
@@ -294,18 +314,40 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
   }
   const averageDocumentLength = totalLength / documents.length;
 
-  return (question: string): FoundationSource[] => {
+  return (question: string, options = {}): FoundationSource[] => {
+    const limit =
+      options.limit === undefined ? FOUNDATION_TOP_K : options.limit;
     if (
       typeof question !== "string" ||
       !question.trim() ||
-      question.length > MAX_LEARNING_QUESTION_CHARS
+      question.length > MAX_LEARNING_QUESTION_CHARS ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > MAX_FOUNDATION_TOP_K
     ) {
       return [];
     }
     const queryTerms = new Set(tokenize(question));
     if (queryTerms.size === 0) return [];
+    const allowedTopics =
+      options.topics === undefined
+        ? undefined
+        : new Set(options.topics.map(normalizeTopic));
+    const excludedIds = new Set(options.excludeIds);
+    const excludedTopics = new Set(options.excludeTopics?.map(normalizeTopic));
 
     const scored = documents
+      .filter(
+        (document) =>
+          !excludedIds.has(document.id) &&
+          !document.topics.some((topic) =>
+            excludedTopics.has(normalizeTopic(topic))
+          ) &&
+          (allowedTopics === undefined ||
+            document.topics.some((topic) =>
+              allowedTopics.has(normalizeTopic(topic))
+            ))
+      )
       .map((document) => ({
         document,
         score: scoreDocument(
@@ -326,7 +368,7 @@ export function buildFoundationRetriever(pack: unknown): FoundationRetriever {
           ? 1
           : 0;
       })
-      .slice(0, FOUNDATION_TOP_K);
+      .slice(0, limit);
 
     return scored.map(({ document }) => ({
       id: document.id,
@@ -346,7 +388,8 @@ const retrieveFromFoundationPack = buildFoundationRetriever(foundationPack);
  * does not establish that the whole question is supported or safe to answer.
  */
 export function retrieveFoundationSources(
-  question: string
+  question: string,
+  options?: FoundationRetrievalOptions
 ): FoundationSource[] {
-  return retrieveFromFoundationPack(question);
+  return retrieveFromFoundationPack(question, options);
 }

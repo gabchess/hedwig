@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
 function jsonBlocks(file) {
-  return [...read(file).matchAll(/```json\n([\s\S]*?)\n```/g)].map((m) =>
+  return [...read(file).matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g)].map((m) =>
     JSON.parse(m[1])
   );
 }

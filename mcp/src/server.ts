@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   createOpenRouterGenerator,
   createOpenRouterFoundationGenerator,
+  type OpenRouterDiagnostic,
 } from "./openrouter";
 import {
   createHedwigServer,
@@ -16,6 +17,14 @@ import { pinPolicyFile } from "./policy";
 const POLICY_PATH_ENV = "HEDWIG_POLICY_FILE";
 const OPENROUTER_KEY_ENV = "OPENROUTER_API_KEY";
 const OPENROUTER_MODEL_ENV = "HEDWIG_OPENROUTER_MODEL";
+
+function logModelDiagnostic({ code, httpStatus }: OpenRouterDiagnostic): void {
+  console.error(
+    `hedwig-model: code=${code}${
+      httpStatus === undefined ? "" : ` httpStatus=${httpStatus}`
+    }`
+  );
+}
 
 // Bounds one incoming message before the transport finishes buffering it
 // into a JSON-RPC line, so a message far larger than any real call never
@@ -48,9 +57,16 @@ function configuredGenerators(
           generateFoundations: createOpenRouterFoundationGenerator({
             apiKey,
             model,
+            onDiagnostic: logModelDiagnostic,
           }),
         }
-      : { generate: createOpenRouterGenerator({ apiKey, model }) };
+      : {
+          generate: createOpenRouterGenerator({
+            apiKey,
+            model,
+            onDiagnostic: logModelDiagnostic,
+          }),
+        };
   } catch {
     console.error("hedwig-mcp: learning model configuration is invalid");
     return {};

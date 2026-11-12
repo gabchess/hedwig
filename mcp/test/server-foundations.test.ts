@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createHedwigServer, resolveKnowledgeMode } from "../src/server-core";
+import { SUPPORTED_DEPLOYMENTS } from "../src/expert-request";
 
 async function withClient(
   config: Parameters<typeof createHedwigServer>[0],
@@ -22,6 +23,92 @@ function content(result: any) {
   return result.structuredContent;
 }
 describe("foundations MCP profile (fixture generation)", () => {
+  it("publishes comparison sections through the unchanged public answer shape", async () => {
+    let calls = 0;
+    await withClient(
+      {
+        mode: "education",
+        knowledgeMode: "foundations",
+        generateFoundations: async ({ comparison }) => {
+          calls++;
+          if (!comparison) throw new Error("expected comparison context");
+          return {
+            sections: Object.fromEntries(
+              comparison.deployments.map((deployment) => [
+                deployment.id,
+                {
+                  answer: "Repository deployment snapshot.",
+                  citationIds: [
+                    comparison.evidence.byDeployment[deployment.id][0],
+                  ],
+                  unsupportedParts: [],
+                },
+              ])
+            ),
+          };
+        },
+      },
+      async (client) => {
+        const response = content(
+          await client.callTool({
+            name: "ask_hedwig",
+            arguments: {
+              question: "Compare repository deployment identities.",
+              mode: "compare",
+              deployments: SUPPORTED_DEPLOYMENTS.map(
+                ({ chainId, address }) => ({ chainId, address })
+              ),
+            },
+          })
+        );
+        expect(calls).to.equal(1);
+        expect(response.status).to.equal("answered");
+        expect(Object.keys(response).sort()).to.deep.equal([
+          "answer",
+          "comparison",
+          "sources",
+          "status",
+          "unsupportedParts",
+        ]);
+        expect(response.sources).to.have.length(2);
+        expect(
+          response.sources.every(
+            (source: Record<string, unknown>) => !("text" in source)
+          )
+        ).to.equal(true);
+        expect(response.comparison).not.to.have.property("evidence");
+        expect(response.answer).to.contain(SUPPORTED_DEPLOYMENTS[0].name);
+        expect(response.answer).to.contain(SUPPORTED_DEPLOYMENTS[1].name);
+      }
+    );
+  });
+  it("discovers comparison inputs and clarifies missing identities without generation", async () => {
+    let calls = 0;
+    await withClient(
+      {
+        mode: "education",
+        knowledgeMode: "foundations",
+        generateFoundations: async () => {
+          calls++;
+          throw new Error("unexpected");
+        },
+      },
+      async (client) => {
+        const listed = await client.listTools();
+        expect(listed.tools[0].inputSchema.properties).to.have.property(
+          "deployments"
+        );
+        const result = content(
+          await client.callTool({
+            name: "ask_hedwig",
+            arguments: { question: "Compare these pools", mode: "compare" },
+          })
+        );
+        expect(result.status).to.equal("needs_clarification");
+        expect(calls).to.equal(0);
+      }
+    );
+  });
   it("requires explicit profile selection and rejects unknown settings", () => {
     expect(resolveKnowledgeMode(undefined)).to.equal("seed");
     expect(resolveKnowledgeMode("foundations")).to.equal("foundations");
@@ -38,7 +125,6 @@ describe("foundations MCP profile (fixture generation)", () => {
         generateFoundations: async ({ sources }) => {
           seen = sources.map((s) => s.id);
           return {
-            status: "answered",
             answer: "Account balance is ETH denominated in wei.",
             citationIds: ["ethereum-account-state"],
             unsupportedParts: [],
@@ -72,7 +158,6 @@ describe("foundations MCP profile (fixture generation)", () => {
         generateFoundations: async ({ question }) =>
           question.includes("today")
             ? {
-                status: "partial",
                 answer:
                   "Shares represent a fractional claim on underlying holdings.",
                 citationIds: ["erc4626-shares-and-assets"],
@@ -81,7 +166,6 @@ describe("foundations MCP profile (fixture generation)", () => {
                 ],
               }
             : {
-                status: "insufficient_evidence",
                 answer: "",
                 citationIds: [],
                 unsupportedParts: ["Current yields unavailable."],

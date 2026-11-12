@@ -20,6 +20,14 @@ const HELD_OUT: Array<[string, string[]]> = [
     ["ethereum-account-state"],
   ],
   [
+    "What is the smallest unit of ether, and what is gwei used for?",
+    ["ethereum-ether-denominations"],
+  ],
+  [
+    "Qual ativo o campo balance representa e em qual unidade o saldo e expresso?",
+    ["ethereum-account-state", "ethereum-ether-denominations"],
+  ],
+  [
     "How is a transaction different from a message sent during contract execution?",
     ["ethereum-transaction-model"],
   ],

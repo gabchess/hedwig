@@ -4,7 +4,7 @@ This file records source attribution for the paraphrased knowledge chunks in `fo
 
 ## ethereum.org website source
 
-Source pages: [accounts](https://github.com/ethereum/ethereum-org-website/blob/07fde37b857dfb3439fdfe1a299ab6f37ed46b6f/public/content/developers/docs/accounts/index.md) and [transactions](https://github.com/ethereum/ethereum-org-website/blob/23c0a0d3408eab7dea7ae9ed6b8f510f7eea7dd2/public/content/developers/docs/transactions/index.md).
+Source pages: [accounts](https://github.com/ethereum/ethereum-org-website/blob/07fde37b857dfb3439fdfe1a299ab6f37ed46b6f/public/content/developers/docs/accounts/index.md), [transactions](https://github.com/ethereum/ethereum-org-website/blob/23c0a0d3408eab7dea7ae9ed6b8f510f7eea7dd2/public/content/developers/docs/transactions/index.md), and [technical intro to ether](https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/public/content/developers/docs/intro-to-ether/index.md).
 
 Copyright (c) 2019-2026 ethereum.org contributors. The pinned repository LICENSE is MIT. Its complete text follows.
 
@@ -266,3 +266,108 @@ limitations under the License.
 
 The pinned standard at [ethereum/ERCs](https://github.com/ethereum/ERCs/blob/cf8bff877b00d56cec0c60007a25bae0937d0d03/ERCS/erc-4626.md) states that copyright and related rights are waived via CC0. Its same-revision repository license is CC0 1.0 Universal.
 
+## Corpus expansion, 2026-11-12
+
+The added knowledge units are independently worded factual explanations. Full upstream sources are retained outside the distributed pack for review. No upstream code examples, diagrams, or documentation passages are reproduced in the knowledge JSON. A source license record describes the inspected upstream source; it does not claim that upstream licenses grant unrelated rights or certify factual correctness.
+
+### Aave address book
+
+Source: https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts
+
+Pinned license: https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/LICENSE
+
+```text
+Copyright 2026 BGD Labs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### Uniswap documentation
+
+Source: https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/content/get-started/concepts/liquidity-providers/concentrated-liquidity.mdx
+
+Pinned license: https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/LICENSE
+
+```text
+MIT License
+
+Copyright (c) 2026 Uniswap Labs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### Solana Foundation runtime concepts
+
+Source: https://github.com/solana-foundation/solana-dev-skill/blob/c9da2624cc6baca5c8c2123ea50d92ef19f1c917/skills/solana-dev/references/concepts.md
+
+Pinned license: https://github.com/solana-foundation/solana-dev-skill/blob/c9da2624cc6baca5c8c2123ea50d92ef19f1c917/LICENSE
+
+```text
+MIT License
+
+Copyright (c) 2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### Aave interfaces and reference mechanisms
+
+The selected Pool, PoolConfigurator, PoolAddressesProvider, AaveOracle and aToken interfaces and DefaultReserveInterestRateStrategyV2 file each carry an explicit `SPDX-License-Identifier: MIT` header and Aave authorship. Their repository root separately licenses other files under BUSL-1.1; that broader repository is not treated as MIT. The GenericLogic, ReserveLogic, SupplyLogic and ValidationLogic references carry BUSL-1.1 headers and the pinned root license. The pack contains only independently worded facts and mechanism explanations; no upstream implementation code or documentation prose is distributed. Full files and exact license terms remain in local adjudication evidence. This does not assert a blanket right to repackage Aave source. Exact revisions, file-level license URLs where applicable and blob hashes are in the source records.
+
+### Compound III factual references
+
+The documentation repository at `0fcd1f1821dae654c634d930be80d48626494f16` records GPL-3.0. The Comet repository at `f766f51583c23acc33b2a7824654ef2029a96804` records BUSL-1.1 with a stated change date no later than 2025-12-31 and GNU GPL v2.0-or-later as its change license. The pack records original factual explanations and deployment identifiers with links; no Compound code, documentation prose, configuration file or license-dependent adaptation is distributed. These source records do not assert a blanket license to repackage Compound documentation. Full sources and licenses are retained separately for inspection.
+
+### Solana Labs SDK
+
+The `solana-labs/solana` repository is archived. Selected account and transaction source documentation is pinned at `7700cb3128c1f19820de67b81aa45d18f73d2ac0`, with its Apache-2.0 LICENSE. These references support stable account/transaction distinctions, not latest network limits or transaction format claims. The Apache-2.0 terms are reproduced above in the x402 section; the exact upstream license text is linked in each source record. No root NOTICE file was present in the inspected repository listing.
+
+### Circle FiatToken
+
+Source: https://github.com/circlefin/stablecoin-evm/blob/fc85788bc7c23cefe3df1a757133048bfddadeaa/README.md
+
+License: https://github.com/circlefin/stablecoin-evm/blob/fc85788bc7c23cefe3df1a757133048bfddadeaa/LICENSE (Apache-2.0; complete terms above). No root NOTICE file was present in the inspected repository listing. The pack describes reference-code capabilities, not the live status, backing or regulatory position of any deployed stablecoin.
+
+### Additional source-specific boundaries
+
+The Uniswap returns page quotes an external Pintail article. This pack reproduces neither that quoted narrative nor its examples or artwork; it independently explains the underlying constant-product and holding comparison. Additional ethereum.org stablecoin, bridge and gas references use the pinned MIT notice already included above; same-ref licenses for the older accounts and transactions references were also fetched and verified. Added x402 EVM scheme and optional payment-identifier references use the same pinned Apache-2.0 LICENSE and NOTICE as the existing x402 core reference. GitHub metadata and pinned root-directory-listing receipts supporting the Solana archive and absence-of-root-NOTICE observations are retained in local evidence; these observations do not establish the absence of notices in every subdirectory.
+
+### EIP-140 and Comet reference-code additions
+
+EIP-140 (Alex Beregszaszi and Nikolai Mushegian) at `ethereum/EIPs@9e393a79d9937f579acbdcb234a67869259d5a96` explicitly waives copyright and related rights under CC0. The exact-ref LICENSE.md is retained; the same CC0 legal text is already identified for the ERC-4626 reference. The pack adds an independently worded REVERT explanation. The CometWithExtendedAssetList.sol reference at `compound-finance/comet@f766f51583c23acc33b2a7824654ef2029a96804` carries the BUSL-1.1 header and the pinned root change-license terms described above. Its added withdrawal and pricing explanations contain no upstream source code or prose, do not establish active proxy bytecode, and do not claim current cash or oracle correctness.

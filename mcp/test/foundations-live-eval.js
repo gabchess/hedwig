@@ -4,10 +4,20 @@
 const { createRequire } = require("node:module");
 const fs = require("node:fs");
 const path = require("node:path");
+const { createInterface } = require("node:readline");
+const { createReportWriter } = require("./live-eval-report");
+const {
+  captureEvidenceBinding,
+  evidenceBindingsMatch,
+  parseProviderDiagnostic,
+} = require("./live-eval-evidence");
 
 const CATALOG_URL = "https://openrouter.ai/api/v1/models";
 const KEY_USAGE_URL = "https://openrouter.ai/api/v1/key";
 const LIVE_REQUEST_TIMEOUT_MS = 10_000;
+const BETWEEN_CASES_MS = 60_000;
+const PAID_BETWEEN_CASES_MS = 1_000;
+const PROVIDER_DIAGNOSTIC_TIMEOUT_MS = 1_000;
 const STOP_REASONS = new Set([
   "configuration_missing_or_invalid",
   "fixture_invalid",
@@ -16,6 +26,9 @@ const STOP_REASONS = new Set([
   "usage_measurement_unavailable",
   "server_or_protocol_unavailable",
   "model_unavailable_no_retry",
+  "evidence_changed_during_run",
+  "budget_guard_refused",
+  "receipt_unavailable",
 ]);
 const FOUNDATION_STATUSES = new Set([
   "answered",
@@ -23,6 +36,7 @@ const FOUNDATION_STATUSES = new Set([
   "insufficient_evidence",
   "invalid_question",
   "unavailable",
+  "needs_clarification",
 ]);
 
 function asObject(value) {
@@ -122,13 +136,30 @@ async function readUsage(apiKey) {
   return value;
 }
 
-function readFixture(repoRoot) {
+function fixtureFileForArgs(args) {
+  const suites = new Map([
+    ["--suite=foundations", "foundations-eval.json"],
+    ["--suite=transfer", "foundations-transfer-eval.json"],
+    ["--suite=account-repair", "foundations-account-repair-eval.json"],
+    ["--suite=acceptance", "expert-acceptance-eval.json"],
+    ["--suite=expert-transfer", "expert-transfer-eval.json"],
+    ["--suite=final-holdout", "expert-final-holdout-eval.json"],
+    ["--suite=repair-delta", "expert-repair-delta-eval.json"],
+    ["--suite=repair3-delta", "expert-repair3-delta-eval.json"],
+  ]);
+  if (args.length === 0) return "foundations-eval.json";
+  if (args.length !== 1 || !suites.has(args[0]))
+    throw new Error("unknown public suite");
+  return suites.get(args[0]);
+}
+
+function readFixture(repoRoot, fixtureName) {
   const fixturePath = path.join(
     repoRoot,
     "mcp",
     "test",
     "fixtures",
-    "foundations-eval.json"
+    fixtureName
   );
   const fixture = asObject(JSON.parse(fs.readFileSync(fixturePath, "utf8")));
   if (!fixture || !Array.isArray(fixture.cases) || fixture.cases.length === 0)
@@ -143,7 +174,16 @@ function readFixture(repoRoot) {
       typeof item.expectedStatus !== "string" ||
       !FOUNDATION_STATUSES.has(item.expectedStatus) ||
       !Array.isArray(item.requiredSourceIds) ||
-      item.requiredSourceIds.some((id) => typeof id !== "string")
+      item.requiredSourceIds.some((id) => typeof id !== "string") ||
+      (item.requiredSourceAlternatives !== undefined &&
+        (!Array.isArray(item.requiredSourceAlternatives) ||
+          item.requiredSourceAlternatives.length === 0 ||
+          item.requiredSourceAlternatives.some(
+            (proof) =>
+              !Array.isArray(proof) ||
+              proof.length === 0 ||
+              proof.some((id) => typeof id !== "string" || !id.trim())
+          )))
     ) {
       throw new Error("public fixture invalid");
     }
@@ -173,9 +213,16 @@ function sourceIdsFromAnswer(answer) {
     .filter((id) => typeof id === "string");
 }
 
-function retrievalMatches(requiredIds, retrievedIds) {
-  if (requiredIds.length === 0) return null;
-  return requiredIds.every((id) => retrievedIds.includes(id));
+function retrievalMatches(requiredIds, retrievedIds, alternatives) {
+  if (requiredIds.length === 0 && alternatives === undefined) return null;
+  return (
+    requiredIds.every((id) => retrievedIds.includes(id)) &&
+    (alternatives === undefined ||
+      alternatives.some(
+        (proof) =>
+          proof.length > 0 && proof.every((id) => retrievedIds.includes(id))
+      ))
+  );
 }
 
 function statusSummary(cases) {
@@ -184,6 +231,44 @@ function statusSummary(cases) {
     statusMatchCount,
     statusCheckPassed: statusMatchCount === cases.length,
   };
+}
+
+function isIsolatedProviderRefusal(status, diagnostics) {
+  return (
+    status === "unavailable" &&
+    diagnostics.length > 0 &&
+    diagnostics.every(({ code }) => code === "provider_refusal")
+  );
+}
+
+// Calls are sequential and the runtime emits one diagnosed failure per call.
+// A missing diagnostic must stop the suite; no later case may consume it.
+function waitForCaseDiagnostics(
+  reader,
+  diagnostics,
+  startIndex,
+  timeoutMs = PROVIDER_DIAGNOSTIC_TIMEOUT_MS
+) {
+  const current = () => diagnostics.slice(startIndex);
+  if (current().length || !reader || reader.closed)
+    return Promise.resolve(current());
+  return new Promise((resolve) => {
+    let timer;
+    const finish = () => {
+      clearTimeout(timer);
+      reader.removeListener("line", onLine);
+      reader.removeListener("close", finish);
+      resolve(current());
+    };
+    const onLine = (line) => {
+      if (parseProviderDiagnostic(line)) finish();
+    };
+    // The report collector is registered first, so its allowlisted diagnostic
+    // is present before this listener observes the same line.
+    reader.on("line", onLine);
+    reader.once("close", finish);
+    timer = setTimeout(finish, timeoutMs);
+  });
 }
 
 async function main() {
@@ -200,18 +285,49 @@ async function main() {
     statusCheckPassed: null,
     semanticReview: "not_performed",
     usageDelta: null,
+    usageDeltaAttribution: "shared account counter; not per-request cost",
+    providerDiagnostics: [],
+    evidenceBinding: null,
+    evidenceStable: null,
+    spendingMode: "verified_zero_price",
+    budget: null,
     complete: false,
+    activeCase: null,
   };
   let apiKey;
   let usageBefore;
   let usageAfter;
   let usageAfterAttempted = false;
   let exitCode = 2;
+  let budgetPlan;
+  let budgetHelpers;
+  let checkpoint;
+  let receiptFailed = false;
+  const budgetPlanPath = process.env.HEDWIG_EVAL_BUDGET_PLAN;
+  const budgetLedgerPath = process.env.HEDWIG_EVAL_BUDGET_LEDGER;
+  const reportPath = process.env.HEDWIG_EVAL_REPORT_PATH;
+  const saveCheckpoint = () => {
+    try {
+      checkpoint?.(report);
+    } catch {
+      receiptFailed = true;
+      throw new Error("receipt unavailable");
+    }
+  };
 
   try {
     apiKey = process.env.OPENROUTER_API_KEY?.trim();
     const model = process.env.HEDWIG_OPENROUTER_MODEL?.trim();
-    if (!apiKey || !model || !model.endsWith(":free")) {
+    const paidRequested = Boolean(budgetPlanPath || budgetLedgerPath);
+    try {
+      if (paidRequested || reportPath)
+        checkpoint = createReportWriter(reportPath, repoRoot, report);
+    } catch {
+      failStop(report, "receipt_unavailable");
+      writeDiagnostic();
+      return exitCode;
+    }
+    if (!apiKey || !model || (!model.endsWith(":free") && !paidRequested)) {
       failStop(report, "configuration_missing_or_invalid");
       writeDiagnostic();
       return exitCode;
@@ -220,7 +336,9 @@ async function main() {
 
     let fixtureCases;
     try {
-      fixtureCases = readFixture(repoRoot);
+      const fixtureName = fixtureFileForArgs(process.argv.slice(2));
+      fixtureCases = readFixture(repoRoot, fixtureName);
+      report.fixture = fixtureName;
     } catch {
       failStop(report, "fixture_invalid");
       writeDiagnostic();
@@ -234,9 +352,39 @@ async function main() {
       writeDiagnostic();
       return exitCode;
     }
+    report.evidenceBinding = captureEvidenceBinding(repoRoot, report.fixture);
 
     try {
-      report.verifiedPricing = await verifyZeroPricing(model);
+      if (paidRequested) {
+        if (
+          !budgetPlanPath ||
+          !budgetLedgerPath ||
+          !path.isAbsolute(budgetPlanPath) ||
+          !path.isAbsolute(budgetLedgerPath)
+        ) {
+          throw new Error("absolute budget paths required");
+        }
+        budgetHelpers = require("./live-eval-budget");
+        const savedPlan = JSON.parse(fs.readFileSync(budgetPlanPath, "utf8"));
+        budgetPlan = budgetHelpers.qualifyExistingBudgetPlan(
+          budgetLedgerPath,
+          savedPlan,
+          await fetchJson(CATALOG_URL),
+          model
+        );
+        // Creation is an explicit operator setup action. A missing ledger
+        // cannot be interpreted as an unused spending allowance on resume.
+        report.budget = budgetHelpers.readBudgetSummary(
+          budgetLedgerPath,
+          budgetPlan
+        );
+        if (report.budget.blocked) throw new Error("budget is blocked");
+        report.spendingMode = "bounded_paid";
+        report.budgetPlanHash = budgetPlan.planHash;
+        report.verifiedPricing = budgetPlan.catalogPricing;
+      } else {
+        report.verifiedPricing = await verifyZeroPricing(model);
+      }
     } catch {
       failStop(report, "price_qualification_failed");
       writeDiagnostic();
@@ -261,10 +409,16 @@ async function main() {
       "@modelcontextprotocol/sdk/client/stdio.js"
     );
     const { retrieveFoundationSources } = require(retrieverPath);
+    const { prepareExpertRequest } = require(path.join(
+      repoRoot,
+      "mcp/dist/expert-workflow.js"
+    ));
 
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [serverPath],
+      args: budgetPlan
+        ? ["--require", path.join(__dirname, "live-eval-budget.js"), serverPath]
+        : [serverPath],
       cwd: repoRoot,
       env: {
         ...getDefaultEnvironment(),
@@ -272,10 +426,33 @@ async function main() {
         HEDWIG_KNOWLEDGE_MODE: "foundations",
         HEDWIG_OPENROUTER_MODEL: model,
         OPENROUTER_API_KEY: apiKey,
+        ...(budgetPlan
+          ? {
+              HEDWIG_EVAL_BUDGET_PLAN: budgetPlanPath,
+              HEDWIG_EVAL_BUDGET_LEDGER: budgetLedgerPath,
+              HEDWIG_EVAL_BUDGET_PRELOAD: "1",
+            }
+          : {}),
       },
       stderr: "pipe",
     });
-    transport.stderr?.on("data", () => undefined);
+    // Only fixed, provider-owned diagnostic codes are retained. Raw stderr
+    // can contain other application output and must never enter the report.
+    const diagnosticReader = transport.stderr
+      ? createInterface({ input: transport.stderr })
+      : undefined;
+    diagnosticReader?.on("line", (line) => {
+      const diagnostic = parseProviderDiagnostic(line);
+      if (
+        diagnostic &&
+        report.providerDiagnostics.length < fixtureCases.length
+      ) {
+        report.providerDiagnostics.push({
+          ...diagnostic,
+          observedAt: new Date().toISOString(),
+        });
+      }
+    });
     const client = new Client(
       { name: "hedwig-foundations-public-eval", version: "0.1.0" },
       { capabilities: {} }
@@ -284,50 +461,83 @@ async function main() {
     let stopAfterUnavailable = false;
     try {
       await client.connect(transport);
+      let callsStarted = 0;
       for (const item of fixtureCases) {
-        const retrievedIds = retrieveFoundationSources(item.question).map(
-          (source) => source.id
+        if (callsStarted > 0) {
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              budgetPlan ? PAID_BETWEEN_CASES_MS : BETWEEN_CASES_MS
+            )
+          );
+        }
+        callsStarted += 1;
+        const prepared = prepareExpertRequest(
+          { question: item.question, ...(item.arguments ?? {}) },
+          retrieveFoundationSources
         );
+        const retrievedIds =
+          prepared.status === "ready"
+            ? prepared.sources.map((source) => source.id)
+            : [];
         const started = Date.now();
+        if (budgetPlan)
+          report.budget = budgetHelpers.readBudgetSummary(
+            budgetLedgerPath,
+            budgetPlan
+          );
+        const providerRequestsBefore = budgetPlan
+          ? report.budget.requestCount
+          : undefined;
+        report.status = "running";
+        report.activeCase = {
+          testcaseId: item.id,
+          startedAt: new Date().toISOString(),
+          ...(providerRequestsBefore !== undefined
+            ? { providerRequestsBefore }
+            : {}),
+        };
+        saveCheckpoint();
+        const diagnosticStart = report.providerDiagnostics.length;
         let callResult;
         try {
           callResult = await client.callTool({
             name: "ask_hedwig",
-            arguments: { question: item.question },
+            arguments: { question: item.question, ...(item.arguments ?? {}) },
           });
         } catch {
-          report.cases.push({
-            testcaseId: item.id,
-            expectedStatus: item.expectedStatus,
-            result: { status: "unavailable" },
-            latencyMs: Date.now() - started,
-            retrievedIds,
-            requiredRetrievalMatched: retrievalMatches(
-              item.requiredSourceIds,
-              retrievedIds
-            ),
-            statusMatched: false,
-          });
-          failStop(report, "server_or_protocol_unavailable");
-          stopAfterUnavailable = true;
-          break;
+          // Preserve the ledger delta below even when the MCP response fails.
         }
 
         const answer = getResultPayload(callResult);
+        if (budgetPlan)
+          report.budget = budgetHelpers.readBudgetSummary(
+            budgetLedgerPath,
+            budgetPlan
+          );
+        const providerRequestsStarted = budgetPlan
+          ? report.budget.requestCount - providerRequestsBefore
+          : undefined;
         if (!answer) {
           report.cases.push({
             testcaseId: item.id,
             expectedStatus: item.expectedStatus,
             result: { status: "unavailable" },
+            ...(providerRequestsStarted !== undefined
+              ? { providerRequestsBefore, providerRequestsStarted }
+              : {}),
             latencyMs: Date.now() - started,
             retrievedIds,
             requiredRetrievalMatched: retrievalMatches(
               item.requiredSourceIds,
-              retrievedIds
+              retrievedIds,
+              item.requiredSourceAlternatives
             ),
             statusMatched: false,
           });
           failStop(report, "server_or_protocol_unavailable");
+          report.activeCase = null;
+          saveCheckpoint();
           stopAfterUnavailable = true;
           break;
         }
@@ -337,30 +547,69 @@ async function main() {
           FOUNDATION_STATUSES.has(answer.status)
             ? answer.status
             : "invalid_result";
+        const latencyMs = Date.now() - started;
+        const caseDiagnostics =
+          status === "unavailable"
+            ? await waitForCaseDiagnostics(
+                diagnosticReader,
+                report.providerDiagnostics,
+                diagnosticStart
+              )
+            : report.providerDiagnostics.slice(diagnosticStart);
+        const providerRefusal = isIsolatedProviderRefusal(
+          status,
+          caseDiagnostics
+        );
         const result = {
           status,
           ...(typeof answer.answer === "string"
             ? { answer: answer.answer }
             : {}),
           sourceIds: sourceIdsFromAnswer(answer),
+          ...(Array.isArray(answer.availableSources)
+            ? {
+                availableSourceIds: answer.availableSources
+                  .map((s) => s?.id)
+                  .filter((id) => typeof id === "string"),
+              }
+            : {}),
           unsupportedParts: Array.isArray(answer.unsupportedParts)
             ? answer.unsupportedParts.filter((part) => typeof part === "string")
             : [],
+          ...(asObject(answer.comparison)
+            ? { comparison: answer.comparison }
+            : {}),
+          ...(Array.isArray(answer.supportedDeployments)
+            ? { supportedDeployments: answer.supportedDeployments }
+            : {}),
         };
         report.cases.push({
           testcaseId: item.id,
           expectedStatus: item.expectedStatus,
           result,
-          latencyMs: Date.now() - started,
+          ...(providerRequestsStarted !== undefined
+            ? { providerRequestsBefore, providerRequestsStarted }
+            : {}),
+          latencyMs,
           retrievedIds,
           requiredRetrievalMatched: retrievalMatches(
             item.requiredSourceIds,
-            retrievedIds
+            retrievedIds,
+            item.requiredSourceAlternatives
           ),
           statusMatched: status === item.expectedStatus,
+          providerRefusal,
         });
+        report.activeCase = null;
+        saveCheckpoint();
+        process.stderr.write(
+          `foundations-live-eval: case=${item.id} status=${status}\n`
+        );
 
-        if (status === "unavailable" || status === "invalid_result") {
+        if (
+          (status === "unavailable" && !providerRefusal) ||
+          status === "invalid_result"
+        ) {
           failStop(
             report,
             status === "unavailable"
@@ -372,10 +621,14 @@ async function main() {
         }
       }
     } catch {
-      failStop(report, "server_or_protocol_unavailable");
+      failStop(
+        report,
+        receiptFailed ? "receipt_unavailable" : "server_or_protocol_unavailable"
+      );
       stopAfterUnavailable = true;
     } finally {
       await client.close().catch(() => undefined);
+      diagnosticReader?.close();
     }
 
     usageAfterAttempted = true;
@@ -398,9 +651,44 @@ async function main() {
       writeDiagnostic();
     }
   } catch {
-    failStop(report, "server_or_protocol_unavailable");
+    failStop(
+      report,
+      receiptFailed ? "receipt_unavailable" : "server_or_protocol_unavailable"
+    );
     writeDiagnostic();
   } finally {
+    if (budgetPlan && budgetHelpers) {
+      try {
+        report.budget = budgetHelpers.readBudgetSummary(
+          budgetLedgerPath,
+          budgetPlan
+        );
+        if (report.budget.blocked) {
+          failStop(report, "budget_guard_refused");
+          report.complete = false;
+          exitCode = 2;
+        }
+      } catch {
+        failStop(report, "budget_guard_refused");
+        report.complete = false;
+        exitCode = 2;
+      }
+    }
+    if (report.evidenceBinding) {
+      try {
+        report.evidenceStable = evidenceBindingsMatch(
+          report.evidenceBinding,
+          captureEvidenceBinding(repoRoot, report.fixture)
+        );
+      } catch {
+        report.evidenceStable = false;
+      }
+      if (!report.evidenceStable) {
+        failStop(report, "evidence_changed_during_run");
+        report.complete = false;
+        exitCode = 2;
+      }
+    }
     if (usageBefore !== undefined && !usageAfterAttempted) {
       usageAfterAttempted = true;
       try {
@@ -414,14 +702,35 @@ async function main() {
         writeDiagnostic();
       }
     }
+    report.statusMatchCount = statusSummary(report.cases).statusMatchCount;
+    report.providerRefusalCount = report.cases.filter(
+      (item) => item.providerRefusal
+    ).length;
     report.finishedAt = new Date().toISOString();
     apiKey = undefined;
+    try {
+      saveCheckpoint();
+    } catch {
+      failStop(report, "receipt_unavailable");
+      report.complete = false;
+      exitCode = 2;
+      writeDiagnostic();
+    } finally {
+      checkpoint?.close();
+    }
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
     process.exitCode = exitCode;
   }
 }
 
-module.exports = { qualifyZeroPricing, retrievalMatches, statusSummary };
+module.exports = {
+  fixtureFileForArgs,
+  qualifyZeroPricing,
+  retrievalMatches,
+  statusSummary,
+  isIsolatedProviderRefusal,
+  waitForCaseDiagnostics,
+};
 
 if (require.main === module) {
   main().catch(() => {

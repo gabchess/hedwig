@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "status": "reviewed_for_foundations_profile",
-  "retrievedAt": "2026-11-11",
-  "description": "Small, reviewed, source-derived educational summaries for the first Hedwig retrieval slice. These are paraphrases, not full source text. Current-state, safety, and implementation claims require other evidence.",
+  "status": "reference_snapshot",
+  "retrievedAt": "2026-11-12",
+  "description": "Pinned primary-source evidence units for blockchain, DeFi, onchain payments and a documented Aave V3 Ethereum versus Compound III Ethereum USDC comparison. Original factual paraphrases preserve source scope and explicit gaps; full upstream snapshots are retained separately for adjudication. This is not current chain state, a live implementation attestation, financial advice, or permission to transact.",
   "sources": [
     {
       "sourceId": "ethereum-org-accounts",
@@ -46,7 +46,7 @@
               "lineEnd": 50
             }
           ],
-          "text": "Ethereum distinguishes externally owned accounts (EOAs), controlled by cryptographic keys, from contract accounts, controlled by deployed code. Both can hold and transfer assets and interact with contracts. The account guide describes EOAs as transaction initiators and contract code as executing in response to a transaction or message. EIP-7702 lets an EOA authorize a delegation indicator to contract code while preserving the account as an EOA and keeping transaction authorization with that account. The page explains that codeHash hashes account code, which may be an EIP-7702 delegation indicator for an EOA."
+          "text": "Ethereum distinguishes externally owned accounts (EOAs), controlled by cryptographic keys, from contract accounts, controlled by deployed code. Both can hold and transfer assets and interact with contracts. The account guide describes EOAs as transaction initiators and contract code as executing in response to a transaction or message. EIP-7702 lets an EOA authorize a delegation indicator to contract code while preserving the account as an EOA and its key-based transaction authorization."
         },
         {
           "id": "ethereum-account-state",
@@ -72,9 +72,56 @@
               "lineEnd": 50
             }
           ],
-          "text": "The account guide describes four state fields: nonce, balance, codeHash, and storageRoot. Nonce is an ordering and replay-protection counter, with account-specific rules. Balance is the ETH held by the address, expressed in wei. codeHash identifies code; an EOA normally has the empty-code hash, while EIP-7702 delegation is represented by a delegation indicator. storageRoot commits to the account’s storage. The guide notes that applying an EIP-7702 authorization also increments the authorizing EOA’s nonce."
+          "text": "The account guide describes four state fields: nonce, balance, codeHash, and storageRoot. Nonce is an ordering and replay-protection counter, with account-specific rules. Balance is the ETH held by the address, expressed in wei. Account code and codeHash are distinct: an undelegated EOA has empty account code and the hash of empty code; an EIP-7702 delegated EOA has account code containing a delegation indicator, and codeHash hashes that code. storageRoot commits to the account's storage. The guide notes that applying an EIP-7702 authorization also increments the authorizing EOA's nonce."
         }
-      ]
+      ],
+      "contentSha256": "f60d824548788384c27198c4caaabe1f64a2023eef863a2f9720725551c3a2af",
+      "sourceByteLength": 9572
+    },
+    {
+      "sourceId": "ethereum-org-intro-to-ether",
+      "title": "Technical intro to ether",
+      "url": "https://ethereum.org/developers/docs/intro-to-ether/",
+      "sourceFileUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/public/content/developers/docs/intro-to-ether/index.md",
+      "revision": "ethereum/ethereum-org-website@615da78169928217b73b4ec70cc44659057321e4",
+      "blobSha": "5443191afb8acb80768d17d9f10079a1cbab8135",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/LICENSE",
+      "licenseBlobSha": "0199ecaceaa0751fd1269559e9a6d0adcecdf41e",
+      "licenseEvidence": "The same-revision repository-root LICENSE is MIT (blob SHA 0199ecaceaa0751fd1269559e9a6d0adcecdf41e), matching the already included ethereum.org license text in THIRD-PARTY-NOTICES.md.",
+      "retrievedAt": "2026-11-12",
+      "chunks": [
+        {
+          "id": "ethereum-ether-denominations",
+          "topics": [
+            "Ether denominations",
+            "ETH units",
+            "wei",
+            "gwei",
+            "Account-balance units"
+          ],
+          "keywords": [
+            "smallest ether amount",
+            "wei conversion",
+            "gwei conversion",
+            "gas costs",
+            "saldo",
+            "unidade do saldo",
+            "account balance unit"
+          ],
+          "sections": [
+            {
+              "heading": "Denominations of ether",
+              "anchor": "#denominations",
+              "lineStart": 45,
+              "lineEnd": 56
+            }
+          ],
+          "text": "Ether has smaller denominations. Wei is the smallest possible amount of ether; 1 wei equals 10^-18 ETH. Gwei, short for giga-wei, equals 10^-9 ETH and is often used to describe gas costs."
+        }
+      ],
+      "contentSha256": "5bd38ce33d3a90fbec632666e8607933cbab30fa01af934de5d74b6cc55f997c",
+      "sourceByteLength": 7152
     },
     {
       "sourceId": "ethereum-org-transactions",
@@ -167,7 +214,9 @@
           ],
           "text": "The overview lists sender (from), recipient (to), signature, nonce, ETH value, optional input data, gas limit, and EIP-1559 fee caps. The signature shows sender authorization; the nonce orders an account’s transactions; to selects a recipient or contract; input data carries call data; gasLimit sets the maximum gas units the transaction may consume. maxFeePerGas caps the fee per gas, while maxPriorityFeePerGas caps the validator tip per gas. These fields describe a request, not proof of its later inclusion, success, or current status."
         }
-      ]
+      ],
+      "contentSha256": "6f94f8a58aab567f2466786a26a8ec53ce8a7f745d20d7861b46cd3757f24be1",
+      "sourceByteLength": 15918
     },
     {
       "sourceId": "ethereum-erc-4626",
@@ -304,7 +353,9 @@
           ],
           "text": "The convertTo methods give idealized asset/share conversions. The standard requires these conversions to exclude fees and slippage effects and round down. Preview methods estimate the corresponding operation more closely, but their results can move with on-chain conditions, can be manipulated, and do not replace operation-specific maximum-limit checks. The EIP warns that previews are not always safe as price oracles and that implementers and integrators must account for operation-specific rounding and limits."
         }
-      ]
+      ],
+      "contentSha256": "698c05bff73bfb796f59cd7c4732edccdf7e40176f9bb027c19a0bbe7251e10a",
+      "sourceByteLength": 24417
     },
     {
       "sourceId": "x402-v2-spec",
@@ -404,8 +455,2069 @@
             }
           ],
           "text": "The client requests access and supplies a payment payload. The resource server requires payment for a protected resource and supplies acceptable payment requirements. The facilitator is a service component for payment verification and blockchain settlement; the resource server may delegate those endpoints to a trusted third party or host them itself. The protocol defines a /supported interface for reporting networks and schemes. Scheme-specific payment-flow ordering can vary. Reported protocol capability is not proof of any facilitator's current availability, configuration, or production readiness."
+        },
+        {
+          "id": "x402-verification-settlement",
+          "topics": [
+            "x402 v2",
+            "verification versus settlement",
+            "payment flow"
+          ],
+          "keywords": [
+            "x402",
+            "verify",
+            "settle",
+            "verification",
+            "settlement",
+            "authorization",
+            "upfront",
+            "escrow",
+            "resource",
+            "pagamento"
+          ],
+          "sections": [
+            {
+              "heading": "Payment flow models",
+              "lineStart": 285,
+              "lineEnd": 301
+            },
+            {
+              "heading": "Verify interface",
+              "lineStart": 303,
+              "lineEnd": 309
+            },
+            {
+              "heading": "Settle interface",
+              "lineStart": 395,
+              "lineEnd": 397
+            }
+          ],
+          "text": "In x402 v2, verify is read-only validation of payment authorization or state; it must not commit payment state or write onchain state. Settle durably commits payment state according to the scheme. In the default authorization flow, verification comes before resource execution and settlement follows successful resource execution. Upfront and escrow flows use different orderings and omit verify. Settlement can mean a transfer, escrow, recorded charge or consumption of a prepaid proof, so a generic successful verification is not a settled payment and not every scheme uses one identical onchain transfer."
+        },
+        {
+          "id": "x402-replay-authentication",
+          "topics": [
+            "x402 v2",
+            "replay protection",
+            "authentication boundary"
+          ],
+          "keywords": [
+            "x402",
+            "replay",
+            "nonce",
+            "validAfter",
+            "validBefore",
+            "signature",
+            "authentication",
+            "identity",
+            "SIWE",
+            "CAIP-2",
+            "segurança"
+          ],
+          "sections": [
+            {
+              "heading": "EIP-3009 authorization fields",
+              "lineStart": 210,
+              "lineEnd": 223
+            },
+            {
+              "heading": "Replay and authentication integration",
+              "lineStart": 614,
+              "lineEnd": 627
+            },
+            {
+              "heading": "Network identifiers",
+              "lineStart": 629,
+              "lineEnd": 642
+            }
+          ],
+          "text": "The x402 specification's EIP-3009 authorization example includes a random 32-byte nonce and validAfter/validBefore timestamps. Its replay defenses rely on checking signatures and validity windows and on the token contract preventing nonce reuse; these are method-specific requirements, not proof that every x402 implementation is secure. V2 identifies networks using CAIP-2. Payment authorization is distinct from application authentication: the protocol describes integration with systems such as Sign-In with Ethereum rather than making payment alone a verified user identity. Unsupported network, scheme, token or transfer-method combinations must not be assumed to work."
+        },
+        {
+          "id": "x402-scheme-network-distinction",
+          "topics": [
+            "x402 v2",
+            "scheme versus network",
+            "payment mechanisms"
+          ],
+          "keywords": [
+            "x402",
+            "scheme",
+            "network",
+            "chain",
+            "CAIP-2",
+            "exact",
+            "upto",
+            "settlement",
+            "EVM",
+            "Solana",
+            "rede"
+          ],
+          "sections": [
+            {
+              "heading": "Payment requirements fields",
+              "lineStart": 120,
+              "lineEnd": 130
+            },
+            {
+              "heading": "Schemes and mechanisms",
+              "lineStart": 273,
+              "lineEnd": 291
+            },
+            {
+              "heading": "Network identifiers",
+              "lineStart": 631,
+              "lineEnd": 645
+            }
+          ],
+          "text": "In x402 v2 a scheme defines how payment payloads are formed, validated and settled; a network identifies where the payment mechanism operates. For example, exact is a scheme while eip155:8453 names Base mainnet in CAIP-2 format. The same scheme label does not imply identical token support, transfer method or settlement behavior across networks. A mechanism combines a scheme with a network, and its asset-transfer method and payment flow further constrain authorization and settlement. Unsupported combinations must not be assumed interchangeable."
         }
-      ]
+      ],
+      "contentSha256": "c0c94b8cc8ed6b95ebc85c893277b6259a8ff92c0545d746c9574a1682ccb1a5",
+      "sourceByteLength": 39012
+    },
+    {
+      "sourceId": "aave-addresses",
+      "title": "Aave V3 Ethereum deployment address-book snapshot",
+      "url": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+      "revision": "aave-dao/aave-address-book@b8c801a413c4b934afaf7976d2ddc5fbada6dce6",
+      "blobSha": "41918762016d8da3367bf281e73eaa10c81848ec",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/LICENSE",
+      "licenseBlobSha": "b4ebd9ffdc174b89d825e294af9e3fcf7f6d5acc",
+      "licenseEvidence": "The repository license was fetched at the source revision (MIT); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-ethereum-identity",
+          "topics": [
+            "Aave V3 Ethereum",
+            "deployment identity",
+            "Ethereum mainnet"
+          ],
+          "keywords": [
+            "Aave",
+            "V3",
+            "Ethereum",
+            "pool",
+            "proxy",
+            "chain",
+            "mainnet",
+            "address",
+            "deployment",
+            "endereço",
+            "rede"
+          ],
+          "sections": [
+            {
+              "heading": "POOL and infrastructure addresses",
+              "lineStart": 1,
+              "lineEnd": 24
+            },
+            {
+              "heading": "Chain ID",
+              "lineStart": 146,
+              "lineEnd": 146
+            },
+            {
+              "heading": "USDC reserve",
+              "lineStart": 180,
+              "lineEnd": 190
+            }
+          ],
+          "text": "The pinned Aave address book identifies Aave V3 Ethereum on chain ID 1. Its Pool proxy is 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2. The listed PoolAddressesProvider is 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e, and the listed USDC underlying token is 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48. This is a repository deployment snapshot, not an onchain observation. It does not verify the currently active implementation, reserve parameters, liquidity, pause state, audits or incidents. Aave V3 on a different chain or at a different address is a different deployment."
+        }
+      ],
+      "scope": "Repository identity snapshot; live chain state and exact active implementation are not verified.",
+      "contentSha256": "b3707d0dd0ce721793bd22e99285f279e841f534b229ea32126f5a499b397868",
+      "sourceByteLength": 64132
+    },
+    {
+      "sourceId": "aave-pool-interface",
+      "title": "Aave V3 Pool interface and lending mechanics",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPool.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPool.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "2f2b88e7c55ff989f9b6c02850be2eaec66d6690",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPool.sol",
+      "licenseBlobSha": "2f2b88e7c55ff989f9b6c02850be2eaec66d6690",
+      "licenseEvidence": "The source file explicitly declares SPDX-License-Identifier: MIT on line 1; the repository root separately licenses other files under BUSL-1.1. Only original factual paraphrases of this MIT interface are included.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-supply-borrow-withdraw",
+          "topics": [
+            "Aave V3",
+            "lending",
+            "collateral",
+            "supply and withdrawal"
+          ],
+          "keywords": [
+            "Aave",
+            "lending",
+            "borrow",
+            "supply",
+            "withdraw",
+            "aToken",
+            "debt",
+            "USDC",
+            "collateral",
+            "empréstimo",
+            "resgate"
+          ],
+          "sections": [
+            {
+              "heading": "supply, withdraw, borrow and repay",
+              "lineStart": 193,
+              "lineEnd": 290
+            },
+            {
+              "heading": "Collateral selection",
+              "lineStart": 331,
+              "lineEnd": 336
+            }
+          ],
+          "text": "The Aave V3 Pool interface accepts a specified reserve asset for supply and issues the corresponding aTokens. Withdrawal burns aTokens for underlying assets. Borrowing specifies a reserve asset and creates variable debt represented by variable debt tokens (VariableDebtToken); the interface requires sufficient collateral or a credit delegation allowance. Repayment burns the corresponding variable debt tokens as it reduces the reserve-specific debt. Suppliers can enable or disable eligible supplied assets as collateral. This is a multi-reserve interface, not a rule that every token is supported or every deposit is available for instant withdrawal. The interface alone does not establish a particular reserve's current liquidity, caps or an account's borrowing capacity."
+        },
+        {
+          "id": "aave-v3-health-liquidation",
+          "topics": [
+            "Aave V3",
+            "health factor",
+            "liquidation"
+          ],
+          "keywords": [
+            "Aave",
+            "health factor",
+            "liquidation",
+            "liquidator",
+            "debt",
+            "collateral",
+            "bonus",
+            "threshold",
+            "liquidação",
+            "saúde"
+          ],
+          "sections": [
+            {
+              "heading": "liquidationCall",
+              "lineStart": 338,
+              "lineEnd": 355
+            },
+            {
+              "heading": "getUserAccountData",
+              "lineStart": 402,
+              "lineEnd": 426
+            }
+          ],
+          "text": "Aave V3 exposes total collateral, total debt, available borrowing, loan-to-value, liquidation threshold and health factor through getUserAccountData. The documented liquidationCall targets a collateral-unhealthy position with health factor below 1. A liquidator covers part of the user's debt and receives corresponding collateral plus a liquidation bonus; it may choose collateral aTokens or the underlying asset. This describes the mechanism, not the current health of any account, a guaranteed liquidation result, or the amount that a specific transaction can liquidate."
+        }
+      ],
+      "contentSha256": "ee58bacafc0b033adeaf673da3b08130d9f3a9a3eb563f7f19a03240e488eba7",
+      "sourceByteLength": 36349
+    },
+    {
+      "sourceId": "aave-config-interface",
+      "title": "Aave V3 collateral parameters, caps and pause controls",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPoolConfigurator.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPoolConfigurator.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "6f66c1cdc6aa9f6bd263607502dc4b1305daf8b3",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPoolConfigurator.sol",
+      "licenseBlobSha": "6f66c1cdc6aa9f6bd263607502dc4b1305daf8b3",
+      "licenseEvidence": "The source file explicitly declares SPDX-License-Identifier: MIT on line 1; the repository root separately licenses other files under BUSL-1.1. Only original factual paraphrases of this MIT interface are included.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-risk-parameters",
+          "topics": [
+            "Aave V3",
+            "LTV",
+            "liquidation threshold",
+            "risk controls"
+          ],
+          "keywords": [
+            "Aave",
+            "LTV",
+            "loan to value",
+            "liquidation threshold",
+            "liquidation bonus",
+            "basis points",
+            "bps",
+            "collateral",
+            "limite"
+          ],
+          "sections": [
+            {
+              "heading": "Collateral configuration",
+              "lineStart": 274,
+              "lineEnd": 288
+            },
+            {
+              "heading": "Borrow and supply caps",
+              "lineStart": 383,
+              "lineEnd": 395
+            }
+          ],
+          "text": "Aave V3 configures collateral loan-to-value, liquidation threshold and liquidation bonus separately. The interface expresses these collateral parameters in basis points: 10,000 represents 100%. Loan-to-value concerns borrowing against collateral; the liquidation threshold identifies when a loan is undercollateralized, and the bonus compensates the liquidator. Borrow caps and supply caps are separate configurable controls. A borrowing limit is not interchangeable with a liquidation threshold, and documentation does not establish today's parameter values."
+        },
+        {
+          "id": "aave-v3-freeze-pause",
+          "topics": [
+            "Aave V3",
+            "freeze versus pause",
+            "withdrawal restrictions"
+          ],
+          "keywords": [
+            "Aave",
+            "frozen",
+            "freeze",
+            "paused",
+            "pause",
+            "withdrawal",
+            "supply",
+            "repay",
+            "liquidation",
+            "controls",
+            "saque",
+            "pausa"
+          ],
+          "sections": [
+            {
+              "heading": "Freeze and pause",
+              "lineStart": 304,
+              "lineEnd": 340
+            },
+            {
+              "heading": "Pool pause",
+              "lineStart": 365,
+              "lineEnd": 381
+            }
+          ],
+          "text": "The pinned Aave V3 configurator distinguishes freezing from pausing. A frozen reserve disallows new supply and borrowing but the documented freeze behavior allows repayments, liquidations and withdrawals. Pausing is a broader interaction stop. Consequently, 'frozen' and 'paused' are not equivalent states. Whether a real withdrawal can execute also depends on the deployment and account state; this snapshot contains no current status observation and must not be used to promise withdrawal availability."
+        }
+      ],
+      "contentSha256": "e84bcade8ae8bd981db571c25cab4f20f313b6e4800c4e0d8e9fff216b518da8",
+      "sourceByteLength": 19595
+    },
+    {
+      "sourceId": "aave-provider-interface",
+      "title": "Aave V3 proxy implementation and oracle administration",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPoolAddressesProvider.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPoolAddressesProvider.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "c2c2a83d6c909f35bec510add4a2faf2848ef21f",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPoolAddressesProvider.sol",
+      "licenseBlobSha": "c2c2a83d6c909f35bec510add4a2faf2848ef21f",
+      "licenseEvidence": "The source file explicitly declares SPDX-License-Identifier: MIT on line 1; the repository root separately licenses other files under BUSL-1.1. Only original factual paraphrases of this MIT interface are included.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-upgrades",
+          "topics": [
+            "Aave V3",
+            "upgrade control",
+            "Pool proxy"
+          ],
+          "keywords": [
+            "Aave",
+            "upgrade",
+            "proxy",
+            "implementation",
+            "governance",
+            "PoolAddressesProvider",
+            "admin",
+            "mudança"
+          ],
+          "sections": [
+            {
+              "heading": "Pool and configurator proxy implementation setters",
+              "lineStart": 142,
+              "lineEnd": 166
+            },
+            {
+              "heading": "Price oracle setter",
+              "lineStart": 168,
+              "lineEnd": 178
+            }
+          ],
+          "text": "Aave V3's PoolAddressesProvider interface distinguishes the Pool proxy from its implementation and provides a setter that updates the implementation. The configurator also has a proxy/implementation distinction, and the price oracle address can be changed. A fixed Pool proxy address therefore does not prove that implementation code or dependencies are immutable. A present-tense upgrade-risk assessment needs current implementation, controlling permissions and relevant governance evidence; the interface does not supply those live facts."
+        }
+      ],
+      "contentSha256": "6a44f3a913093d62dd072d1691cf605a76262f56da42cbecdcf80607d8aeef94",
+      "sourceByteLength": 8210
+    },
+    {
+      "sourceId": "aave-oracle-interface",
+      "title": "Aave V3 asset price source interface",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAaveOracle.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAaveOracle.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "265d25609c6b6b63ffe29122d023f425b4834ce2",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAaveOracle.sol",
+      "licenseBlobSha": "265d25609c6b6b63ffe29122d023f425b4834ce2",
+      "licenseEvidence": "The source file explicitly declares SPDX-License-Identifier: MIT on line 1; the repository root separately licenses other files under BUSL-1.1. Only original factual paraphrases of this MIT interface are included.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-oracles",
+          "topics": [
+            "Aave V3",
+            "oracles",
+            "price source controls"
+          ],
+          "keywords": [
+            "Aave",
+            "oracle",
+            "price feed",
+            "price source",
+            "fallback",
+            "valuation",
+            "oráculo",
+            "preço"
+          ],
+          "sections": [
+            {
+              "heading": "Asset sources, fallback and price queries",
+              "lineStart": 40,
+              "lineEnd": 70
+            }
+          ],
+          "text": "The Aave oracle interface supports asset-specific price sources, replacement of those sources, a fallback oracle and asset-price queries. This creates a dependency on the configured sources used for valuation. The interface establishes the existence of those controls, not that a current feed is correct, fresh, manipulation-resistant or even the one still active. A comparison of oracle risk must identify current feeds, units, update/failure behavior and observation time instead of treating an oracle address as a safety certificate."
+        }
+      ],
+      "contentSha256": "e55953dba6daa0883e7fb5776c6939cf6d28060e4d7733809a90bf454b31224b",
+      "sourceByteLength": 2389
+    },
+    {
+      "sourceId": "compound-roots",
+      "title": "Compound III Ethereum USDC deployment roots snapshot",
+      "url": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+      "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+      "revision": "compound-finance/comet@f766f51583c23acc33b2a7824654ef2029a96804",
+      "blobSha": "8cdf987c178cd0ba8af8286a4089b70c11bbcf24",
+      "license": "BUSL-1.1; stated change license GPL-2.0-or-later",
+      "licenseUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/LICENSE",
+      "licenseBlobSha": "d459430704b211e6efd26ce8d76f0d7201b1a195",
+      "licenseEvidence": "The pinned root LICENSE is BUSL-1.1 with a stated change date no later than 2025-12-31 and a GPL-2.0-or-later change license. Only independently worded address/identity facts are distributed, not source code or licensed prose. No broader reuse permission is inferred.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "compound-iii-ethereum-usdc-identity",
+          "topics": [
+            "Compound III",
+            "Ethereum USDC Comet",
+            "deployment identity"
+          ],
+          "keywords": [
+            "Compound",
+            "III",
+            "v3",
+            "Comet",
+            "Ethereum",
+            "mainnet",
+            "USDC",
+            "proxy",
+            "chain",
+            "address",
+            "deployment",
+            "endereço"
+          ],
+          "sections": [
+            {
+              "heading": "Mainnet USDC roots",
+              "lineStart": 1,
+              "lineEnd": 6
+            }
+          ],
+          "text": "The pinned Compound repository's deployments/mainnet/usdc/roots.json identifies the Ethereum mainnet USDC Comet at 0xc3d688B66703497DAA19211EEdff47f25384cdc3 and its configurator at 0x316f9708bB98af7dA9c68C1C3b5e79039cD336E3. This is the Compound III USDC market, not Compound v2 and not a USDC market on another chain. The repository snapshot does not verify current proxy implementation, live reserves, utilization, active governance parameters, incidents or audit coverage."
+        }
+      ],
+      "contentSha256": "689cf0e940bfdc440eba854201d8ed738be5a442802ee5723a05a4b2d16f6c57",
+      "sourceByteLength": 2003
+    },
+    {
+      "sourceId": "compound-config",
+      "title": "Compound III Ethereum USDC configuration snapshot",
+      "url": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/configuration.json",
+      "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/configuration.json",
+      "revision": "compound-finance/comet@f766f51583c23acc33b2a7824654ef2029a96804",
+      "blobSha": "433a0e052c035cbf1979bf645660b4ae31d54549",
+      "license": "BUSL-1.1; stated change license GPL-2.0-or-later",
+      "licenseUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/LICENSE",
+      "licenseBlobSha": "d459430704b211e6efd26ce8d76f0d7201b1a195",
+      "licenseEvidence": "The pinned root LICENSE is BUSL-1.1 with a stated change date no later than 2025-12-31 and GPL-2.0-or-later change license. Only original summaries of configuration facts are included; no implementation code, full configuration or licensed prose is distributed.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "compound-iii-usdc-base-asset",
+          "topics": [
+            "Compound III",
+            "base asset",
+            "deployment configuration"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "USDC",
+            "base asset",
+            "base token",
+            "cUSDCv3",
+            "collateral",
+            "price feed",
+            "configuration"
+          ],
+          "sections": [
+            {
+              "heading": "Market name, base token and admin fields",
+              "lineStart": 1,
+              "lineEnd": 11
+            },
+            {
+              "heading": "Collateral asset entries",
+              "lineStart": 29,
+              "lineEnd": 76
+            }
+          ],
+          "text": "The pinned Ethereum USDC configuration names the market Compound USDC, symbol cUSDCv3, with USDC as its base asset at 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48. It records a base-token price feed, governor, pause guardian, rate-model parameters and a list of collateral configurations with their own price feeds, factors and caps. These are repository configuration facts, not a measurement of today's onchain values. Numeric values in this source must not be presented as current rates, liquidity or available caps."
+        }
+      ],
+      "contentSha256": "28825ee92d6b91d0f3d3bbfbf6d8b39f2761f464722bffe629288f7efd69e6f8",
+      "sourceByteLength": 2301
+    },
+    {
+      "sourceId": "compound-collateral",
+      "title": "Compound III collateral, base-asset lending and withdrawal documentation",
+      "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/collateral-and-borrowing.md",
+      "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/collateral-and-borrowing.md",
+      "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+      "blobSha": "18504bfc1670e8756f5ae86c69c9468d98ae6bf6",
+      "license": "GPL-3.0",
+      "licenseUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/LICENSE",
+      "licenseBlobSha": "e72bfddabc15be5718a7cc061ac10e47741d8219",
+      "licenseEvidence": "The documentation repository's pinned LICENSE is GPL-3.0. This pack distributes original factual explanations and links, with no copied code examples or documentation prose; it does not claim permission to redistribute the full documentation as an independently licensed pack.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "compound-iii-supply-borrow",
+          "topics": [
+            "Compound III",
+            "lending",
+            "collateral versus base asset"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "base asset",
+            "supply",
+            "borrow",
+            "collateral",
+            "interest",
+            "USDC",
+            "empréstimo",
+            "juros"
+          ],
+          "sections": [
+            {
+              "heading": "Collateral, balances and supply",
+              "lineStart": 19,
+              "lineEnd": 42
+            }
+          ],
+          "text": "In Compound III, each market has a base asset. Supplying the base asset first repays an existing base-asset debt; a positive base-asset balance earns interest. Supplying an accepted collateral asset adds borrowing capacity subject to its collateral factor and supply cap, but the collateral asset itself does not earn protocol interest. The base asset is the borrowed asset. Thus depositing collateral is economically different from supplying the base asset, even though both operations use supply. These are documented mechanisms, not current APYs or approval to lend."
+        },
+        {
+          "id": "compound-iii-withdraw-borrow-limits",
+          "topics": [
+            "Compound III",
+            "withdrawal",
+            "borrow limits"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "withdraw",
+            "borrow",
+            "collateral factor",
+            "minimum borrow",
+            "repay",
+            "liquidity",
+            "resgate",
+            "saque"
+          ],
+          "sections": [
+            {
+              "heading": "Borrow capacity",
+              "lineStart": 19,
+              "lineEnd": 25
+            },
+            {
+              "heading": "Withdraw or borrow",
+              "lineStart": 78,
+              "lineEnd": 96
+            }
+          ],
+          "text": "Compound III uses withdraw both to remove assets and to borrow its base asset. Collateral that supports an outstanding borrow cannot simply be withdrawn without respecting the borrowing requirements. A base-asset withdrawal that creates a borrow requires enough collateral and must satisfy the market's minimum borrow size. Repayment uses supply of the base asset. These constraints do not establish current cash availability, pause status or the success of any proposed withdrawal."
+        }
+      ],
+      "contentSha256": "a63e20407c4eee3668c902767d55ab28c76702f50e3db54c267153b805cede33",
+      "sourceByteLength": 8657
+    },
+    {
+      "sourceId": "compound-liquidation",
+      "title": "Compound III liquidation, absorption and reserve mechanics",
+      "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/liquidation.md",
+      "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/liquidation.md",
+      "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+      "blobSha": "189662e991599aff4aa904760876abd11965d128",
+      "license": "GPL-3.0",
+      "licenseUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/LICENSE",
+      "licenseBlobSha": "e72bfddabc15be5718a7cc061ac10e47741d8219",
+      "licenseEvidence": "Pinned documentation license GPL-3.0; only an original factual explanation is distributed, not source prose or code.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "compound-iii-liquidation",
+          "topics": [
+            "Compound III",
+            "liquidation",
+            "absorb",
+            "reserves"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "absorb",
+            "liquidation",
+            "collateral factor",
+            "reserve",
+            "bad debt",
+            "buy collateral",
+            "liquidação"
+          ],
+          "sections": [
+            {
+              "heading": "Liquidation criteria and reserves",
+              "lineStart": 19,
+              "lineEnd": 29
+            },
+            {
+              "heading": "Absorb",
+              "lineStart": 54,
+              "lineEnd": 66
+            },
+            {
+              "heading": "Buy collateral",
+              "lineStart": 82,
+              "lineEnd": 98
+            }
+          ],
+          "text": "Compound III distinguishes borrow collateral factors from higher liquidation collateral factors. A position may lose further borrowing capacity before becoming liquidatable. When eligible, absorb transfers the position's debt and collateral to the protocol: base-asset reserves cover the debt, collateral becomes protocol property and the user may retain an excess base-asset balance after the penalty. Buying absorbed collateral is a separate operation that exchanges base assets for protocol-held collateral at a configured discount, subject to reserve conditions. Reserve adequacy and realized losses are current-state questions that this documentation cannot answer."
+        }
+      ],
+      "contentSha256": "a9dd4b74a9a574777e0ee6a41d3e724d199afa043aab546a7a1abe9b49b37259",
+      "sourceByteLength": 10214
+    },
+    {
+      "sourceId": "compound-governance",
+      "title": "Compound III upgrade, pause and risk-parameter governance",
+      "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/governance.md",
+      "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/governance.md",
+      "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+      "blobSha": "4e36d4dfca2611bb533f560f06a2429f5a159136",
+      "license": "GPL-3.0",
+      "licenseUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/LICENSE",
+      "licenseBlobSha": "e72bfddabc15be5718a7cc061ac10e47741d8219",
+      "licenseEvidence": "Pinned documentation license GPL-3.0; this pack includes independently worded factual descriptions only, not documentation prose or code.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "compound-iii-upgrades-pauses",
+          "topics": [
+            "Compound III",
+            "governance",
+            "upgrades",
+            "pause guardian"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "governance",
+            "Timelock",
+            "proxy",
+            "upgrade",
+            "pause",
+            "guardian",
+            "withdrawal",
+            "controle"
+          ],
+          "sections": [
+            {
+              "heading": "Governance and upgrades",
+              "lineStart": 49,
+              "lineEnd": 65
+            },
+            {
+              "heading": "Pause guardian and functionality",
+              "lineStart": 95,
+              "lineEnd": 132
+            }
+          ],
+          "text": "The Compound III documentation describes governance through COMP holders/delegates and a Timelock controlling proxies and implementation configuration. Changing an immutable Comet parameter requires deploying a new implementation and updating the proxy. A governor or pause guardian can pause supply, transfer, withdrawal, absorption or collateral purchases. These administrative powers are part of the comparison with Aave; they do not by themselves determine which deployment is safer. Current administrators, delays, implementation code and pause flags require fresh evidence."
+        },
+        {
+          "id": "compound-iii-oracle-caps",
+          "topics": [
+            "Compound III",
+            "oracles",
+            "collateral risk configuration"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "oracle",
+            "price feed",
+            "collateral factor",
+            "supply cap",
+            "risk parameter",
+            "oráculo"
+          ],
+          "sections": [
+            {
+              "heading": "Governance control",
+              "lineStart": 49,
+              "lineEnd": 57
+            },
+            {
+              "heading": "Risk-parameter setter index",
+              "lineStart": 19,
+              "lineEnd": 44
+            }
+          ],
+          "text": "Compound III's governance interface exposes changes to base and collateral price feeds, borrow collateral factors, liquidation collateral factors, liquidation factors and collateral supply caps. Different factors govern borrowing capacity and liquidation eligibility. A source-level description of these controls is not a current reading of their settings, feed freshness, reserves or risk. Compare the configured dependency and control mechanisms separately from unsupported live-state conclusions."
+        }
+      ],
+      "contentSha256": "1d1f63bd63da467945d67b57bea673aadd8efdd536d93882abb3ff5e4b2d8496",
+      "sourceByteLength": 22074
+    },
+    {
+      "sourceId": "compound-interest",
+      "title": "Compound III interest and utilization documentation",
+      "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/interest-rates.md",
+      "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/interest-rates.md",
+      "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+      "blobSha": "fe13ea1530afc8f88fd9f309644829cb60b89e70",
+      "license": "GPL-3.0",
+      "licenseUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/LICENSE",
+      "licenseBlobSha": "e72bfddabc15be5718a7cc061ac10e47741d8219",
+      "licenseEvidence": "Pinned documentation license GPL-3.0; only original factual explanations are included, with no copied formulas, examples or prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "compound-iii-interest-utilization",
+          "topics": [
+            "Compound III",
+            "interest rates",
+            "utilization"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "interest",
+            "utilization",
+            "supply rate",
+            "borrow rate",
+            "APR",
+            "APY",
+            "collateral",
+            "juros"
+          ],
+          "sections": [
+            {
+              "heading": "Interest rate models",
+              "lineStart": 15,
+              "lineEnd": 21
+            },
+            {
+              "heading": "Supply APR calculation",
+              "lineStart": 23,
+              "lineEnd": 43
+            }
+          ],
+          "text": "Compound III has separate supply and borrow rate models for its base asset. A positive base balance earns interest; a negative one accrues borrowing interest. Rates depend on utilization, with a kink above which the slope increases; collateral assets do not earn or pay interest merely for being supplied. The documentation describes per-second accrual and an annualized supply APR calculation. APR is an annualized rate, not a guaranteed realized return, and this source contains no current rate or APY observation."
+        }
+      ],
+      "contentSha256": "4355324924aee7dd044ad909f31221d1284ad4d6ce3940f6a58f4a984a1c7588",
+      "sourceByteLength": 4749
+    },
+    {
+      "sourceId": "uniswap-concentrated",
+      "title": "Uniswap concentrated liquidity and active ranges",
+      "url": "https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/content/get-started/concepts/liquidity-providers/concentrated-liquidity.mdx",
+      "sourceFileUrl": "https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/content/get-started/concepts/liquidity-providers/concentrated-liquidity.mdx",
+      "revision": "Uniswap/docs@1c7597d73be0e9a3a4e44aa75b8fb212b40ea136",
+      "blobSha": "461f12755ffd8c8a7b8bea9fca7bd989540c4915",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/LICENSE",
+      "licenseBlobSha": "fb60be16ed35e71eaa8a5a01ac349f77890d9563",
+      "licenseEvidence": "The repository license was fetched at the source revision (MIT); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "uniswap-concentrated-liquidity",
+          "topics": [
+            "Uniswap v3",
+            "AMM",
+            "concentrated liquidity"
+          ],
+          "keywords": [
+            "Uniswap",
+            "v3",
+            "AMM",
+            "liquidity",
+            "range",
+            "position",
+            "tick",
+            "fees",
+            "liquidez",
+            "faixa"
+          ],
+          "sections": [
+            {
+              "heading": "How concentrated liquidity works",
+              "lineStart": 20,
+              "lineEnd": 29
+            },
+            {
+              "heading": "Active liquidity",
+              "lineStart": 31,
+              "lineEnd": 37
+            },
+            {
+              "heading": "Ticks",
+              "lineStart": 39,
+              "lineEnd": 49
+            }
+          ],
+          "text": "Uniswap v3 lets liquidity providers choose lower and upper price boundaries for a position instead of distributing liquidity across the full price range as in v2. Only a position whose range contains the current price is active and earns swap fees. As price crosses a position's range its token composition changes; outside the range it can become entirely one asset and stops earning fees until price re-enters. Ticks discretize range boundaries. Concentrating liquidity can increase capital efficiency, but does not guarantee fees, eliminate price exposure or make a position risk-free."
+        }
+      ],
+      "contentSha256": "59e1e66bccfd27d14197f0d3d92bd5f658f302b4ad018a99a72c35d3233e961f",
+      "sourceByteLength": 4873
+    },
+    {
+      "sourceId": "uniswap-returns",
+      "title": "Uniswap v2 market-making returns and divergence loss",
+      "url": "https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/content/protocols/v2/concepts/understanding-returns.mdx",
+      "sourceFileUrl": "https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/content/protocols/v2/concepts/understanding-returns.mdx",
+      "revision": "Uniswap/docs@1c7597d73be0e9a3a4e44aa75b8fb212b40ea136",
+      "blobSha": "6beed2273fd3b021b60f0773b7c8d2f4aec61dc7",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/Uniswap/docs/blob/1c7597d73be0e9a3a4e44aa75b8fb212b40ea136/LICENSE",
+      "licenseBlobSha": "fb60be16ed35e71eaa8a5a01ac349f77890d9563",
+      "licenseEvidence": "Uniswap/docs root LICENSE is MIT. The returns page quotes an external Pintail article; the pack contains only an original explanation of mechanisms and the holding comparison, with no quoted narrative, numeric example or illustration.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "uniswap-amm-impermanent-loss",
+          "topics": [
+            "Uniswap v2",
+            "AMM",
+            "impermanent loss",
+            "liquidity pool"
+          ],
+          "keywords": [
+            "AMM",
+            "automated market maker",
+            "constant product",
+            "liquidity pool",
+            "Uniswap",
+            "impermanent loss",
+            "divergence loss",
+            "hold",
+            "fees",
+            "perda impermanente"
+          ],
+          "sections": [
+            {
+              "heading": "Return drivers",
+              "lineStart": 7,
+              "lineEnd": 11
+            },
+            {
+              "heading": "Constant product and holding comparison",
+              "lineStart": 25,
+              "lineEnd": 49
+            }
+          ],
+          "text": "In an idealized Uniswap v2 constant-product pool, swaps change the relative quantities of the two pooled assets while preserving the reserve product when fees are ignored. A liquidity provider's position therefore changes composition as the relative price moves. Impermanent or divergence loss compares the position's value with simply holding the originally deposited assets at the same later prices; it can be a relative shortfall even when the position gained in absolute currency value. Trading fees can offset some shortfall but are not guaranteed to do so. The idealized v2 comparison is not automatically a numerical formula for a concentrated v3 position."
+        }
+      ],
+      "contentSha256": "9e52a3f9c95426e3fd677b4c2a87555c20c20516eb5113a5dc979c7aff393001",
+      "sourceByteLength": 6564
+    },
+    {
+      "sourceId": "ethereum-stablecoins",
+      "title": "Ethereum.org stablecoin backing and issuer trade-offs",
+      "url": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/src/intl/en/page-stablecoins.json",
+      "sourceFileUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/src/intl/en/page-stablecoins.json",
+      "revision": "ethereum/ethereum-org-website@615da78169928217b73b4ec70cc44659057321e4",
+      "blobSha": "ae24b76582798557112cb14acb091e2c0e3d949f",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/LICENSE",
+      "licenseBlobSha": "0199ecaceaa0751fd1269559e9a6d0adcecdf41e",
+      "licenseEvidence": "The repository license was fetched at the source revision (MIT); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "stablecoin-backing-depeg",
+          "topics": [
+            "Stablecoins",
+            "backing",
+            "issuer risk",
+            "depeg"
+          ],
+          "keywords": [
+            "stablecoin",
+            "USDC",
+            "peg",
+            "depeg",
+            "redemption",
+            "reserves",
+            "issuer",
+            "collateral",
+            "bank",
+            "resgate",
+            "lastro"
+          ],
+          "sections": [
+            {
+              "heading": "Target value",
+              "lineStart": 6,
+              "lineEnd": 6
+            },
+            {
+              "heading": "Stablecoin design and backing categories",
+              "lineStart": 25,
+              "lineEnd": 47
+            }
+          ],
+          "text": "Stablecoins aim to track a reference value; the mechanism used to support that target matters. Fiat-backed designs rely on an issuer and reserves, making reserve sufficiency and redemption arrangements relevant. Crypto-backed designs depend on collateral values and overcollateralization; some also hold centralized stablecoins as collateral. A target peg is not itself evidence that a token is trading at par or can be redeemed by a particular holder now. A depeg is a deviation from the reference value, and a risk assessment must separate backing, issuer/custody and redemption dependencies from the market price. This conceptual source provides no current reserve, redemption or price verification."
+        }
+      ],
+      "contentSha256": "cee7322d0072af766e5ff95e880cc37f114dd63cc77ba15247c87202ba595bc2",
+      "sourceByteLength": 14895
+    },
+    {
+      "sourceId": "circle-readme",
+      "title": "Circle FiatToken issuer and administrative controls",
+      "url": "https://github.com/circlefin/stablecoin-evm/blob/fc85788bc7c23cefe3df1a757133048bfddadeaa/README.md",
+      "sourceFileUrl": "https://github.com/circlefin/stablecoin-evm/blob/fc85788bc7c23cefe3df1a757133048bfddadeaa/README.md",
+      "revision": "circlefin/stablecoin-evm@fc85788bc7c23cefe3df1a757133048bfddadeaa",
+      "blobSha": "ff4a622d2bc7b1cfa4fbdff5669a510152cc91cb",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/circlefin/stablecoin-evm/blob/fc85788bc7c23cefe3df1a757133048bfddadeaa/LICENSE",
+      "licenseBlobSha": "7a4a3ea2424c09fbe48d455aed1eaa94d9124835",
+      "licenseEvidence": "The repository license was fetched at the source revision (Apache-2.0); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "stablecoin-issuer-controls",
+          "topics": [
+            "Circle FiatToken",
+            "stablecoin issuer controls",
+            "pause and blacklist"
+          ],
+          "keywords": [
+            "USDC",
+            "Circle",
+            "FiatToken",
+            "issuer",
+            "pause",
+            "blacklist",
+            "freeze",
+            "upgrade",
+            "proxy",
+            "mint",
+            "stablecoin",
+            "bloqueio"
+          ],
+          "sections": [
+            {
+              "heading": "Proxy contracts",
+              "lineStart": 159,
+              "lineEnd": 170
+            },
+            {
+              "heading": "Pause, upgrade, blacklist and ownership",
+              "lineStart": 182,
+              "lineEnd": 214
+            }
+          ],
+          "text": "Circle's FiatToken reference implementation documents separate administrative controls: a pauser can stop transfers, a blacklister can prevent listed addresses from sending or receiving tokens, a proxy owner can change the implementation, and minting is controlled through authorized minters. Holding an ERC-20 token therefore does not imply that its transfer rules are immutable or free of issuer controls. These are reference-implementation capabilities, not a claim about which addresses are currently restricted, who currently controls a deployed token, reserve sufficiency, or a holder's redemption eligibility."
+        }
+      ],
+      "contentSha256": "12aad0494130101cba2bee2fc602014b90abec840af93b1984a6fa54b10e3185",
+      "sourceByteLength": 6493
+    },
+    {
+      "sourceId": "ethereum-bridges",
+      "title": "Ethereum.org bridge mechanisms and security risks",
+      "url": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/public/content/developers/docs/bridges/index.md",
+      "sourceFileUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/public/content/developers/docs/bridges/index.md",
+      "revision": "ethereum/ethereum-org-website@615da78169928217b73b4ec70cc44659057321e4",
+      "blobSha": "acf3ed5da8128ddddf103de88e2d2adc926a827c",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/LICENSE",
+      "licenseBlobSha": "0199ecaceaa0751fd1269559e9a6d0adcecdf41e",
+      "licenseEvidence": "The repository license was fetched at the source revision (MIT); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "bridges-mechanisms-trust",
+          "topics": [
+            "Blockchain bridges",
+            "interoperability",
+            "trust assumptions"
+          ],
+          "keywords": [
+            "bridge",
+            "bridges",
+            "cross-chain",
+            "lock mint",
+            "burn mint",
+            "wrapped asset",
+            "validator",
+            "trust",
+            "ponte"
+          ],
+          "sections": [
+            {
+              "heading": "Connectivity",
+              "lineStart": 9,
+              "lineEnd": 15
+            },
+            {
+              "heading": "Transfer mechanisms",
+              "lineStart": 31,
+              "lineEnd": 46
+            },
+            {
+              "heading": "Trust trade-offs",
+              "lineStart": 48,
+              "lineEnd": 66
+            }
+          ],
+          "text": "A blockchain bridge transfers assets or messages between chains that do not natively share one state. Designs include locking assets on one chain and minting a representation on another, burning and minting, or liquidity/atomic-swap arrangements. Verification may depend on the connected chains or on an additional set of validators, signers or oracles. A token's familiar symbol on a destination chain does not prove it has the same issuer, backing or redemption path as the original asset."
+        },
+        {
+          "id": "bridges-risk-boundaries",
+          "topics": [
+            "Blockchain bridge risk",
+            "wrapped assets",
+            "counterparty risk"
+          ],
+          "keywords": [
+            "bridge",
+            "risk",
+            "wrapped",
+            "custody",
+            "validator",
+            "audit",
+            "censorship",
+            "congestion",
+            "rollback",
+            "ponte",
+            "risco"
+          ],
+          "sections": [
+            {
+              "heading": "Bridge risk",
+              "lineStart": 68,
+              "lineEnd": 75
+            }
+          ],
+          "text": "Bridge risk includes contract flaws, failure of the backing or wrapped-asset arrangement, and reliance on external verifiers who may collude or censor. Congestion, chain failures and state rollbacks can affect cross-chain assumptions. An audit does not eliminate these risks, and a label such as trustless does not establish the security of a particular bridge deployment. This source describes risk classes; it does not certify any current route, incident status or safe transfer."
+        }
+      ],
+      "contentSha256": "5b3d8308aed0160bd933bd5021458e157f1a5b89388d22df7684ea7dec5b0a98",
+      "sourceByteLength": 15048
+    },
+    {
+      "sourceId": "solana-account-info",
+      "title": "Solana SDK account fields: archived primary implementation",
+      "url": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/sdk/program/src/account_info.rs",
+      "sourceFileUrl": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/sdk/program/src/account_info.rs",
+      "revision": "solana-labs/solana@7700cb3128c1f19820de67b81aa45d18f73d2ac0",
+      "blobSha": "3db3e9839b6535786e60be5602c03d0c909bf937",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/LICENSE",
+      "licenseBlobSha": "e83dc12de83cb606f2a9ee980b05f8ca763eec6f",
+      "licenseEvidence": "The repository license was fetched at the source revision (Apache-2.0); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "solana-account-fields",
+          "topics": [
+            "Solana accounts",
+            "program owner",
+            "signer"
+          ],
+          "keywords": [
+            "Solana",
+            "account",
+            "owner",
+            "program",
+            "lamports",
+            "data",
+            "signer",
+            "writable",
+            "executable",
+            "conta",
+            "proprietário"
+          ],
+          "sections": [
+            {
+              "heading": "AccountInfo fields",
+              "lineStart": 16,
+              "lineEnd": 35
+            }
+          ],
+          "text": "The Solana SDK account view separates an account's address, lamport balance, data, owning program and executable flag from the instruction/transaction permissions is_signer and is_writable. The owner field names a program, not necessarily a human wallet holder. A signing key and the program that owns stored account data are different concepts. This archived primary-code snapshot supports the stable field distinction; it does not establish current balances, rent rules, account limits or the latest transaction format."
+        }
+      ],
+      "scope": "Archived Solana Labs SDK; stable account concepts only, not current network limits.",
+      "contentSha256": "dc0096411ce48bed4ec21e0b0ba45f39de5e3c72d69db2594ac12a65acb62413",
+      "sourceByteLength": 16801
+    },
+    {
+      "sourceId": "solana-account-control",
+      "title": "Solana runtime account-data ownership checks",
+      "url": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/sdk/src/transaction_context.rs",
+      "sourceFileUrl": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/sdk/src/transaction_context.rs",
+      "revision": "solana-labs/solana@7700cb3128c1f19820de67b81aa45d18f73d2ac0",
+      "blobSha": "7df7fc96d6793303c26e3f25c1ec9f7fd0015efd",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/LICENSE",
+      "licenseBlobSha": "e83dc12de83cb606f2a9ee980b05f8ca763eec6f",
+      "licenseEvidence": "The repository license was fetched at the source revision (Apache-2.0); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "solana-owner-write-authority",
+          "topics": [
+            "Solana account ownership",
+            "write permission",
+            "program authority"
+          ],
+          "keywords": [
+            "Solana",
+            "owner",
+            "writable",
+            "data",
+            "program",
+            "signer",
+            "authority",
+            "permission",
+            "conta",
+            "permissão"
+          ],
+          "sections": [
+            {
+              "heading": "Runtime account data mutation checks",
+              "lineStart": 1071,
+              "lineEnd": 1103
+            }
+          ],
+          "text": "The inspected Solana runtime checks require ordinary mutable account data to be non-executable, writable, and owned by the executing program. A transaction signature by itself is not permission for an arbitrary program to rewrite another program's account data. Signer status, writable access and owning-program authority must be distinguished. This is a documented runtime rule in an archived implementation snapshot, not a security audit of a particular Solana program."
+        }
+      ],
+      "scope": "Archived primary implementation; used for ownership distinctions, not deployment security certification.",
+      "contentSha256": "c17bab5e2d532b3dd31a8f27b8ec71d3f588dbaba81aa3e949ea04d849cdf1ae",
+      "sourceByteLength": 44476
+    },
+    {
+      "sourceId": "solana-transactions",
+      "title": "Solana transactions, signatures and atomic execution",
+      "url": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/sdk/src/transaction/mod.rs",
+      "sourceFileUrl": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/sdk/src/transaction/mod.rs",
+      "revision": "solana-labs/solana@7700cb3128c1f19820de67b81aa45d18f73d2ac0",
+      "blobSha": "00095510876b22e8db0115c84ca94b0031f211eb",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/solana-labs/solana/blob/7700cb3128c1f19820de67b81aa45d18f73d2ac0/LICENSE",
+      "licenseBlobSha": "e83dc12de83cb606f2a9ee980b05f8ca763eec6f",
+      "licenseEvidence": "The repository license was fetched at the source revision (Apache-2.0); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "solana-transaction-atomicity",
+          "topics": [
+            "Solana transactions",
+            "instructions",
+            "atomicity"
+          ],
+          "keywords": [
+            "Solana",
+            "transaction",
+            "instruction",
+            "atomic",
+            "failure",
+            "signature",
+            "fee payer",
+            "blockhash",
+            "transação",
+            "atômica"
+          ],
+          "sections": [
+            {
+              "heading": "Transaction module overview",
+              "lineStart": 1,
+              "lineEnd": 43
+            }
+          ],
+          "text": "A Solana transaction groups one or more instructions into a signed message. Instructions execute in order; their state changes commit together only if all complete successfully, otherwise the instruction changes roll back. A fee-paying account signs, and other required signatures depend on the invoked programs. This atomicity statement concerns instruction-state changes and makes no promise about fees. A recent blockhash normally bounds validity and helps distinguish duplicate submissions; a durable nonce is a separate supported mechanism. This archived source does not establish current confirmation status or latest transaction size/version limits."
+        }
+      ],
+      "scope": "Archived primary transaction documentation; no latest v1/v0 size limits or network status claims.",
+      "contentSha256": "e6c453517f47e2aa9dcc94d70a4b29d3ad579425aaea2da44f702ee5f5fd1382",
+      "sourceByteLength": 62469
+    },
+    {
+      "sourceId": "solana-concepts",
+      "title": "Solana Foundation runtime message concepts",
+      "url": "https://github.com/solana-foundation/solana-dev-skill/blob/c9da2624cc6baca5c8c2123ea50d92ef19f1c917/skills/solana-dev/references/concepts.md",
+      "sourceFileUrl": "https://github.com/solana-foundation/solana-dev-skill/blob/c9da2624cc6baca5c8c2123ea50d92ef19f1c917/skills/solana-dev/references/concepts.md",
+      "revision": "solana-foundation/solana-dev-skill@c9da2624cc6baca5c8c2123ea50d92ef19f1c917",
+      "blobSha": "e8fd6115d315af6fe5064b42476a8202773a8eb5",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/solana-foundation/solana-dev-skill/blob/c9da2624cc6baca5c8c2123ea50d92ef19f1c917/LICENSE",
+      "licenseBlobSha": "14fac913ccf80234b1848540089a3bbcb6e5283d",
+      "licenseEvidence": "The repository license was fetched at the source revision (MIT); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "solana-message-accounts-instructions",
+          "topics": [
+            "Solana message",
+            "instructions",
+            "account permissions"
+          ],
+          "keywords": [
+            "Solana",
+            "message",
+            "instruction",
+            "account list",
+            "program id",
+            "signer",
+            "writable",
+            "blockhash",
+            "Ethereum"
+          ],
+          "sections": [
+            {
+              "heading": "Legacy transaction message and permissions",
+              "lineStart": 48,
+              "lineEnd": 60
+            }
+          ],
+          "text": "The Solana Foundation runtime guide describes a legacy message as a header, a shared account-address list, a recent blockhash and compiled instructions containing program/account indexes plus instruction data. Signer and writable permissions are aggregated across the transaction's accounts. This differs from treating each instruction as an independently signed Ethereum-style transaction. The description is specifically of the legacy message; it does not generalize the byte layout to every Solana transaction version."
+        }
+      ],
+      "contentSha256": "f3f0cb5b1ddbb7ad8d2e398425377e25d01049a1078b9445de8a205fcb142293",
+      "sourceByteLength": 4540
+    },
+    {
+      "sourceId": "x402-exact-evm",
+      "title": "x402 v2 exact EVM scheme: authorization and settlement limits",
+      "url": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/specs/schemes/exact/scheme_exact_evm.md",
+      "sourceFileUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/specs/schemes/exact/scheme_exact_evm.md",
+      "revision": "x402-foundation/x402@4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f",
+      "blobSha": "cda2ed42b0169e8db05969c193a8012f74fb0b20",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/LICENSE",
+      "licenseBlobSha": "b09cd7856d58590578ee1a4f3ad45d1310a97f87",
+      "licenseEvidence": "The repository license was fetched at the source revision (Apache-2.0); complete source bytes are retained separately for adjudication. The distributed pack includes original factual paraphrases, not copied implementation code or documentation prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "x402-exact-evm-authorization",
+          "topics": [
+            "x402 v2",
+            "exact EVM",
+            "EIP-3009",
+            "authorization scope"
+          ],
+          "keywords": [
+            "x402",
+            "exact",
+            "EVM",
+            "EIP-3009",
+            "signature",
+            "amount",
+            "token",
+            "network",
+            "recipient",
+            "authorization",
+            "pagamento"
+          ],
+          "sections": [
+            {
+              "heading": "Transfer methods and roles",
+              "lineStart": 1,
+              "lineEnd": 23
+            },
+            {
+              "heading": "EIP-3009 verification and settlement",
+              "lineStart": 69,
+              "lineEnd": 87
+            }
+          ],
+          "text": "The x402 exact EVM scheme separates asset-transfer methods. Its EIP-3009 path uses a token's transferWithAuthorization support, while the specification also describes Permit2 and ERC-7710 paths; the same payload assumptions must not be applied to every method. For EIP-3009 verification, the facilitator checks the signer, balance, amount and validity window, token/network match and simulated transfer. Settlement calls the token with the signed authorization. The facilitator broadcasts the authorized transfer and cannot freely substitute its amount or destination. A valid signature is not evidence that an arbitrary endpoint is honest or that an onchain payment has already settled."
+        },
+        {
+          "id": "x402-settlement-pending",
+          "topics": [
+            "x402 settlement",
+            "pending transaction",
+            "retry risk"
+          ],
+          "keywords": [
+            "x402",
+            "settlement_pending",
+            "settle",
+            "confirmation",
+            "broadcast",
+            "timeout",
+            "retry",
+            "transaction hash",
+            "pending",
+            "liquidação"
+          ],
+          "sections": [
+            {
+              "heading": "EIP-3009 settlement uncertainty",
+              "lineStart": 83,
+              "lineEnd": 87
+            },
+            {
+              "heading": "Permit2 settlement uncertainty",
+              "lineStart": 210,
+              "lineEnd": 216
+            }
+          ],
+          "text": "For the documented x402 exact EVM flow, a successful broadcast can be followed by uncertainty while waiting for confirmation. The facilitator may report settlement_pending with the broadcast transaction hash. That condition is non-terminal: the transaction may still confirm. The caller must reconcile the transaction on the indicated chain before deciding to retry; it must not equate a timeout with a definitely failed payment or blindly create a second payment. This is an operational protocol rule, not a live status result for any transaction."
+        }
+      ],
+      "contentSha256": "186111e25a5bdd5be839635ba1c441885567de09b57bdd93f78e465ca3b8e792",
+      "sourceByteLength": 21131
+    },
+    {
+      "sourceId": "ethereum-gas",
+      "title": "Ethereum gas accounting, fee calculation and failed execution",
+      "url": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/public/content/developers/docs/gas/index.md",
+      "sourceFileUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/public/content/developers/docs/gas/index.md",
+      "revision": "ethereum/ethereum-org-website@615da78169928217b73b4ec70cc44659057321e4",
+      "blobSha": "0b81e91ffb0c7f023fc68e85aa4128398103d190",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ethereum/ethereum-org-website/blob/615da78169928217b73b4ec70cc44659057321e4/LICENSE",
+      "licenseBlobSha": "0199ecaceaa0751fd1269559e9a6d0adcecdf41e",
+      "licenseEvidence": "The MIT license was fetched at this source revision. The pack contains independently worded facts and attributed mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "ethereum-gas-fee-formula",
+          "topics": [
+            "Ethereum",
+            "gas fees",
+            "transaction cost"
+          ],
+          "keywords": [
+            "gas",
+            "gasUsed",
+            "fee",
+            "base fee",
+            "priority fee",
+            "EIP-1559",
+            "gwei",
+            "ETH",
+            "cost",
+            "taxa"
+          ],
+          "sections": [
+            {
+              "heading": "Gas and computation fees",
+              "lineStart": 14,
+              "lineEnd": 24
+            },
+            {
+              "heading": "Effective fee calculation",
+              "lineStart": 30,
+              "lineEnd": 50
+            },
+            {
+              "heading": "Gas limits and unused gas",
+              "lineStart": 103,
+              "lineEnd": 113
+            }
+          ],
+          "text": "Gas measures Ethereum computation; ETH pays its price. The transaction execution fee is gas used multiplied by the effective per-gas price. For the documented base-fee/priority-fee model, that price is base fee plus the applicable priority fee, rather than the gas limit or the maximum fee cap alone. A gas limit bounds possible consumption; actual gas used determines the execution fee. The protocol burns the base-fee component and the validator receives the tip. This explanation gives a calculation, not a current gas quote."
+        },
+        {
+          "id": "ethereum-reverted-transaction-fees",
+          "topics": [
+            "Ethereum",
+            "reverted transactions",
+            "gas consumption"
+          ],
+          "keywords": [
+            "Ethereum",
+            "revert",
+            "reverted",
+            "failure",
+            "failed transaction",
+            "gas",
+            "execution",
+            "validation",
+            "rollback",
+            "taxa",
+            "falha"
+          ],
+          "sections": [
+            {
+              "heading": "Fees on success and failure",
+              "lineStart": 14,
+              "lineEnd": 24
+            },
+            {
+              "heading": "Rejected versus out-of-gas transactions",
+              "lineStart": 109,
+              "lineEnd": 113
+            }
+          ],
+          "text": "An Ethereum transaction that executes and fails still pays for gas consumed. Reverting execution state changes does not refund the computation already performed. The documented out-of-gas case reverts state changes while consuming all gas provided. This differs from a transaction rejected during pre-inclusion validation, for which the page's insufficient intrinsic gas example consumes no gas. Do not generalize a reverted contract call into a free attempt, or every rejected submission into a charged transaction."
+        }
+      ],
+      "scope": "Ethereum execution-fee concepts; not a live fee quote or a complete breakdown of every network or blob fee.",
+      "contentSha256": "7ec25e0734b6d6fc8da62db46510c89f0245c1da2b15670f9ed3db3bdd83984e",
+      "sourceByteLength": 12891
+    },
+    {
+      "sourceId": "aave-rate-strategy",
+      "title": "Aave V3 reference interest-rate strategy",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/misc/DefaultReserveInterestRateStrategyV2.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/misc/DefaultReserveInterestRateStrategyV2.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "ce974f7c4d7a8551b73127c5a992620625ef0fb9",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/misc/DefaultReserveInterestRateStrategyV2.sol",
+      "licenseBlobSha": "ce974f7c4d7a8551b73127c5a992620625ef0fb9",
+      "licenseEvidence": "File-level SPDX-License-Identifier: MIT on line 1. The repository root separately licenses other files under BUSL-1.1. Only independently worded factual descriptions are included.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-interest-utilization",
+          "topics": [
+            "Aave V3",
+            "supply interest",
+            "borrow interest",
+            "utilization"
+          ],
+          "keywords": [
+            "Aave",
+            "supply",
+            "borrow",
+            "interest",
+            "yield",
+            "rate",
+            "APY",
+            "APR",
+            "utilization",
+            "reserve factor",
+            "liquidity",
+            "juros",
+            "rendimento"
+          ],
+          "sections": [
+            {
+              "heading": "Utilization and two-slope rate calculation",
+              "lineStart": 124,
+              "lineEnd": 169
+            }
+          ],
+          "text": "In this pinned Aave V3 rate-strategy implementation, the variable borrowing rate depends on debt relative to available liquidity plus debt, using configured base and slope parameters around an optimal usage ratio. The liquidity rate paid to supply balances is derived from the borrowing rate multiplied by supply usage and the portion left after the reserve factor. Supply usage also accounts for unbacked amounts. With no debt, this calculation returns a zero liquidity rate. Thus this mechanism links supplier income to borrower activity and reserve configuration; it does not promise a fixed or guaranteed yield. This code snapshot establishes neither today's APY nor the current implementation or configuration of the Ethereum Pool."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
+      "contentSha256": "74db0a12ae7a4312968c5db66d4f3dc46b0dadacfecd23d59905a75605b13a79",
+      "sourceByteLength": 8506
+    },
+    {
+      "sourceId": "aave-atoken-interface",
+      "title": "Aave aToken scaled balances and interest interface",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAToken.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAToken.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "2242a0cace9ffe1d1849ac47568f65e6c2c58c92",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAToken.sol",
+      "licenseBlobSha": "2242a0cace9ffe1d1849ac47568f65e6c2c58c92",
+      "licenseEvidence": "File-level SPDX-License-Identifier: MIT on line 1. The repository root separately licenses other files under BUSL-1.1. Only independently worded factual descriptions are included.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-atoken-accrual",
+          "topics": [
+            "Aave V3",
+            "aToken",
+            "interest accrual"
+          ],
+          "keywords": [
+            "Aave",
+            "aToken",
+            "supply",
+            "interest",
+            "accrue",
+            "liquidity index",
+            "balance",
+            "withdraw",
+            "juros"
+          ],
+          "sections": [
+            {
+              "heading": "Scaled-balance interface",
+              "lineStart": 1,
+              "lineEnd": 13
+            },
+            {
+              "heading": "Mint, burn and accrued interest",
+              "lineStart": 23,
+              "lineEnd": 55
+            }
+          ],
+          "text": "Aave's pinned aToken interface extends the scaled-balance-token interface. Minting and burning use the reserve liquidity index; burning corresponds to sending the underlying asset to the recipient. The interface explicitly accounts for interest accrued by the user, including a case where that interest exceeds the burn amount. An aToken balance is therefore a supply-position accounting unit with interest accrual in this design, rather than a guarantee of immediate redeemability or a fixed return. The interface alone does not establish current liquidity or the active proxy implementation."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
+      "contentSha256": "d469a2379e46863f10835a93d4fadff7b75012352e65efc6de5d9c19de9cf665",
+      "sourceByteLength": 5688
+    },
+    {
+      "sourceId": "aave-logic",
+      "title": "Aave V3 reference collateral, debt and health-factor calculation",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/GenericLogic.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/GenericLogic.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "7b9820133e7f76c2acf6e7b304c7143b2da3f126",
+      "license": "BUSL-1.1",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+      "licenseBlobSha": "6691d235832fecd6779806608d7796d589c54e6d",
+      "licenseEvidence": "The BUSL-1.1 license was fetched at this source revision. The pack contains independently worded facts and attributed mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-health-price-calculation",
+          "topics": [
+            "Aave V3",
+            "health factor",
+            "oracle prices",
+            "collateral and debt"
+          ],
+          "keywords": [
+            "Aave",
+            "health factor",
+            "liquidation",
+            "threshold",
+            "collateral",
+            "oracle",
+            "price",
+            "debt",
+            "interest",
+            "LTV",
+            "saúde",
+            "preço"
+          ],
+          "sections": [
+            {
+              "heading": "Oracle-priced collateral and debt",
+              "lineStart": 93,
+              "lineEnd": 146
+            },
+            {
+              "heading": "Threshold-weighted health factor",
+              "lineStart": 156,
+              "lineEnd": 180
+            },
+            {
+              "heading": "Indexed debt and supply valuation",
+              "lineStart": 209,
+              "lineEnd": 255
+            }
+          ],
+          "text": "This Aave V3 GenericLogic snapshot converts eligible collateral and borrowed assets into the oracle's base currency using their asset prices and decimal units. Health factor is threshold-weighted collateral value divided by debt value, with fixed-point scaling; applicable eMode thresholds can alter the collateral weights. Debt valuation uses the scaled variable-debt balance multiplied through normalized debt, while supplied collateral uses normalized income. Consequently, as a mathematical implication of this formula, lower collateral prices or higher debt value can reduce health factor when other inputs are held constant. A changing debt index can affect the denominator even without a new borrow. This is a reference-code calculation, not a current account-health measurement."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
+      "contentSha256": "4b18019505e4fbfab2624f371f28946557588c22f5c51e331fd2595613ba516d",
+      "sourceByteLength": 10585
+    },
+    {
+      "sourceId": "aave-reserve-logic",
+      "title": "Aave V3 reference reserve accrual and available-liquidity accounting",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ReserveLogic.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ReserveLogic.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "17e159fd7e6bf0965b87e4528197dc19e0903542",
+      "license": "BUSL-1.1",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+      "licenseBlobSha": "6691d235832fecd6779806608d7796d589c54e6d",
+      "licenseEvidence": "The BUSL-1.1 license was fetched at this source revision. The pack contains independently worded facts and attributed mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-reserve-accrual",
+          "topics": [
+            "Aave V3",
+            "interest accrual",
+            "variable debt"
+          ],
+          "keywords": [
+            "Aave",
+            "interest",
+            "debt",
+            "accrue",
+            "borrow",
+            "liquidity index",
+            "variable borrow index",
+            "time",
+            "health factor",
+            "juros"
+          ],
+          "sections": [
+            {
+              "heading": "Normalized income and variable debt",
+              "lineStart": 32,
+              "lineEnd": 77
+            }
+          ],
+          "text": "The pinned Aave reserve implementation updates normalized supply income with elapsed-time interest using the current liquidity rate, and normalized variable debt with elapsed-time compounded interest using the current variable borrowing rate. It returns the stored index when already updated in the current block. This supplies the interest-accrual mechanism used by indexed balances; it does not establish an individual balance or the rates currently configured in the Ethereum deployment."
+        },
+        {
+          "id": "aave-v3-available-liquidity",
+          "topics": [
+            "Aave V3",
+            "withdrawal liquidity",
+            "reserve accounting"
+          ],
+          "keywords": [
+            "Aave",
+            "withdraw",
+            "withdrawal",
+            "liquidity",
+            "available",
+            "cash",
+            "reserve",
+            "utilization",
+            "resgate",
+            "saque"
+          ],
+          "sections": [
+            {
+              "heading": "Liquidity supplied to rate calculation and checked subtraction",
+              "lineStart": 132,
+              "lineEnd": 174
+            }
+          ],
+          "text": "In this Aave reference reserve code, rate updates receive liquidity added and liquidity taken, together with the reserve's virtual underlying balance and current debt. Withdrawn or borrowed liquidity is then subtracted from that tracked underlying balance. The subtraction is outside an unchecked block, so taking more than that balance would fail under Solidity's checked arithmetic; this is an inference from the inspected implementation. A claim on supplied assets is therefore not evidence that the reserve has enough immediately available underlying for any requested withdrawal. Current available liquidity still requires current deployment state."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
+      "contentSha256": "1c32cb87bbc151310f151b9a3636086ecf6adfdc78610f4bf5b69e3299221d1a",
+      "sourceByteLength": 10890
+    },
+    {
+      "sourceId": "aave-supply-logic",
+      "title": "Aave V3 reference withdrawal sequence",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/SupplyLogic.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/SupplyLogic.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "cb21799287fcb1d4167c5d9e8dc80c294448efa7",
+      "license": "BUSL-1.1",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+      "licenseBlobSha": "6691d235832fecd6779806608d7796d589c54e6d",
+      "licenseEvidence": "The BUSL-1.1 license was fetched at this source revision. The pack contains independently worded facts and attributed mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-withdrawal-sequence",
+          "topics": [
+            "Aave V3",
+            "withdrawal",
+            "collateral restrictions"
+          ],
+          "keywords": [
+            "Aave",
+            "withdraw",
+            "withdrawal",
+            "collateral",
+            "liquidity",
+            "health factor",
+            "borrow",
+            "aToken",
+            "saque",
+            "resgate"
+          ],
+          "sections": [
+            {
+              "heading": "Withdrawal balance, reserve accounting and burn",
+              "lineStart": 112,
+              "lineEnd": 153
+            },
+            {
+              "heading": "Post-withdraw collateral health validation",
+              "lineStart": 155,
+              "lineEnd": 173
+            }
+          ],
+          "text": "In the pinned Aave SupplyLogic implementation, withdrawal updates reserve state, computes the user's scaled supply balance, validates the withdrawal and accounts for the underlying amount taken from the reserve before burning the aTokens. If the asset is used as collateral and the user has a borrow, it then validates health-factor and zero-LTV collateral rules on the resulting position. A supply balance alone is consequently insufficient to establish that any requested collateral withdrawal will succeed. This describes the reference implementation's sequence; it does not prove the active code or current withdrawal capacity of the Ethereum Pool."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
+      "contentSha256": "51a8ed9ed08bbe673809dd09af698f8a3f8de1f4aef9c83a04ae2fcfa62161a6",
+      "sourceByteLength": 12958
+    },
+    {
+      "sourceId": "aave-validation-logic",
+      "title": "Aave V3 reference withdrawal and collateral-health preconditions",
+      "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "blobSha": "985978099465a3f3058d62263767b8de33d4fbfb",
+      "license": "BUSL-1.1",
+      "licenseUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/LICENSE",
+      "licenseBlobSha": "6691d235832fecd6779806608d7796d589c54e6d",
+      "licenseEvidence": "The BUSL-1.1 license was fetched at this source revision. The pack contains independently worded facts and attributed mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "aave-v3-withdrawal-preconditions",
+          "topics": [
+            "Aave V3",
+            "withdrawal restrictions",
+            "health factor"
+          ],
+          "keywords": [
+            "Aave",
+            "withdraw",
+            "withdrawal",
+            "collateral",
+            "health factor",
+            "paused",
+            "active",
+            "balance",
+            "LTV",
+            "saque",
+            "resgate"
+          ],
+          "sections": [
+            {
+              "heading": "Health-factor threshold",
+              "lineStart": 27,
+              "lineEnd": 32
+            },
+            {
+              "heading": "Withdrawal amount and reserve flags",
+              "lineStart": 66,
+              "lineEnd": 83
+            },
+            {
+              "heading": "Health-factor validation",
+              "lineStart": 304,
+              "lineEnd": 329
+            },
+            {
+              "heading": "Withdrawal zero-LTV rule",
+              "lineStart": 388,
+              "lineEnd": 428
+            }
+          ],
+          "text": "Aave's pinned withdrawal validation requires a nonzero scaled amount no larger than the user's scaled balance, an active reserve and an unpaused reserve. Its collateral-health validation requires health factor to remain at least 1. For withdrawals from multi-collateral positions containing zero-LTV collateral, the inspected rule additionally requires selecting zero-LTV collateral first. These are documented reference-code preconditions rather than a promise that every otherwise valid withdrawal succeeds; current liquidity, the active implementation and other transaction conditions must also be checked."
+        }
+      ],
+      "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
+      "contentSha256": "0bfb51e54f0a8589fbf24bbc03046b12ee6f189641b7a2a6f1b2874acbb2bb45",
+      "sourceByteLength": 20419
+    },
+    {
+      "sourceId": "x402-payment-identifier",
+      "title": "x402 optional payment-identifier extension and request idempotency",
+      "url": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/docs/extensions/payment-identifier.mdx",
+      "sourceFileUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/docs/extensions/payment-identifier.mdx",
+      "revision": "x402-foundation/x402@4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f",
+      "blobSha": "8f9fb3443c8ee349a46ff2f5a3662e42fe9bdd4a",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/LICENSE",
+      "licenseBlobSha": "b09cd7856d58590578ee1a4f3ad45d1310a97f87",
+      "licenseEvidence": "The Apache-2.0 license was fetched at this source revision. The pack contains independently worded facts and attributed mechanism descriptions, not upstream code or documentation prose. Full source and license snapshots remain in local review evidence.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "chunks": [
+        {
+          "id": "x402-payment-idempotency",
+          "topics": [
+            "x402 v2",
+            "idempotency",
+            "retry and resource execution"
+          ],
+          "keywords": [
+            "x402",
+            "idempotency",
+            "retry",
+            "duplicate",
+            "nonce",
+            "payment identifier",
+            "resource",
+            "fingerprint",
+            "timeout",
+            "replay",
+            "request",
+            "repetição"
+          ],
+          "sections": [
+            {
+              "heading": "Optional extension flow",
+              "lineStart": 1,
+              "lineEnd": 20
+            },
+            {
+              "heading": "Cache after successful settlement",
+              "lineStart": 249,
+              "lineEnd": 275
+            },
+            {
+              "heading": "Request binding and retry behavior",
+              "lineStart": 481,
+              "lineEnd": 516
+            },
+            {
+              "heading": "Optional support",
+              "lineStart": 837,
+              "lineEnd": 848
+            }
+          ],
+          "text": "The pinned x402 payment-identifier extension addresses repeated logical requests separately from a token authorization nonce. A server advertises support, the client reuses one payment ID for retries of the same logical request, and the server caches the settled result. Within its retention window, matching IDs and request fingerprints can return that result without processing another payment. After the cached ID's TTL expires, the documented behavior is to process the payment normally and update the cache. The fingerprint includes scheme, network, asset, amount, recipient, resource path/method and an application operation identifier when available; a reused ID with a different fingerprint should produce a conflict rather than a second execution. Storage must be scoped across resources or tenants. The extension is optional. On cache unavailability, its documented fallback also processes normally. These are request-handling rules: normal processing does not itself prove that a second payment succeeds or settles (a scope inference, not an observed payment result). Neither signature/nonce replay protection nor ID reuse establishes permanent deduplication or exactly-once application effects."
+        }
+      ],
+      "scope": "Optional x402 extension semantics at a pinned repository revision, not an implementation audit or proof of universal exactly-once behavior.",
+      "contentSha256": "8495dfb23cd899c2039b311bc5c24966ce844f305a0e73f13d19a742a5108066",
+      "sourceByteLength": 26287
+    },
+    {
+      "sourceId": "eip140",
+      "title": "EIP-140 ordinary REVERT gas and rollback semantics",
+      "url": "https://github.com/ethereum/EIPs/blob/9e393a79d9937f579acbdcb234a67869259d5a96/EIPS/eip-140.md",
+      "sourceFileUrl": "https://github.com/ethereum/EIPs/blob/9e393a79d9937f579acbdcb234a67869259d5a96/EIPS/eip-140.md",
+      "revision": "ethereum/EIPs@9e393a79d9937f579acbdcb234a67869259d5a96",
+      "blobSha": "e907550930fe6a0ca2004878fe1763912a12a427",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://github.com/ethereum/EIPs/blob/9e393a79d9937f579acbdcb234a67869259d5a96/LICENSE.md",
+      "licenseBlobSha": "0e259d42c996742e9e3cba14c677129b2c1b6311",
+      "licenseEvidence": "The EIP copyright section explicitly waives rights under CC0; the linked LICENSE.md was fetched at this exact commit.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "scope": "Final EVM instruction specification; concerns ordinary REVERT and its stated exceptional cases, not a current transaction receipt.",
+      "chunks": [
+        {
+          "id": "ethereum-revert-unused-gas",
+          "topics": [
+            "Ethereum",
+            "REVERT",
+            "unused gas"
+          ],
+          "keywords": [
+            "Ethereum",
+            "REVERT",
+            "revert",
+            "rollback",
+            "gas",
+            "unused",
+            "failure",
+            "out-of-gas",
+            "falha",
+            "gás"
+          ],
+          "sections": [
+            {
+              "heading": "REVERT summary and abstract",
+              "lineStart": 11,
+              "lineEnd": 17
+            },
+            {
+              "heading": "Rollback, memory cost and exceptional cases",
+              "lineStart": 23,
+              "lineEnd": 37
+            },
+            {
+              "heading": "Test showing consumed gas",
+              "lineStart": 45,
+              "lineEnd": 54
+            }
+          ],
+          "text": "EIP-140 defines REVERT as ending the affected execution with failure, undoing its state changes and returning optional error data without automatically consuming all remaining gas. Ordinary REVERT still charges its memory-related cost and does not undo gas already spent on execution; the EIP's example consumes gas despite reverting storage. Therefore unused gas can remain after an ordinary revert. This is distinct from running out of gas: if there is insufficient gas to execute REVERT itself, or a stack underflow, it behaves like an out-of-gas exception and consumes all gas available to that execution. A revert is neither automatically free nor automatically a loss of the entire transaction gas limit."
+        }
+      ],
+      "contentSha256": "8d8259af8d26b91ae9aca1e5156f30b3d3f09a6f215c758ee23f883a1203cc87",
+      "sourceByteLength": 3159
+    },
+    {
+      "sourceId": "compound-comet-contract",
+      "title": "Compound III reference base withdrawals and priced collateral eligibility",
+      "url": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/CometWithExtendedAssetList.sol",
+      "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/CometWithExtendedAssetList.sol",
+      "revision": "compound-finance/comet@f766f51583c23acc33b2a7824654ef2029a96804",
+      "blobSha": "3490e984d133789aa1afe2e8f7e37a11d2512396",
+      "license": "BUSL-1.1",
+      "licenseUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/LICENSE",
+      "licenseBlobSha": "d459430704b211e6efd26ce8d76f0d7201b1a195",
+      "licenseEvidence": "The source declares BUSL-1.1 on line 1. The exact-ref root license records a change date no later than 2025-12-31 and GPL-2.0-or-later as the change license. The pack includes only independently worded factual mechanism descriptions, not source code or prose.",
+      "retrievedAt": "2026-11-12",
+      "allowedUse": "Original factual summary with attribution; no upstream code or prose reproduced in this pack.",
+      "scope": "Pinned CometWithExtendedAssetList reference code; not a verified match to the current implementation behind the named Ethereum USDC Comet proxy.",
+      "chunks": [
+        {
+          "id": "compound-iii-base-withdrawal-cash",
+          "topics": [
+            "Compound III",
+            "Comet",
+            "base asset withdrawal",
+            "available cash"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "USDC",
+            "withdraw",
+            "withdrawal",
+            "base",
+            "cash",
+            "liquidity",
+            "transfer",
+            "paused",
+            "collateral",
+            "resgate",
+            "saque"
+          ],
+          "sections": [
+            {
+              "heading": "Base token cash versus protocol reserves",
+              "lineStart": 359,
+              "lineEnd": 367
+            },
+            {
+              "heading": "Token transfer success and failure",
+              "lineStart": 680,
+              "lineEnd": 701
+            },
+            {
+              "heading": "Withdrawal pause, permission, balance and collateral checks",
+              "lineStart": 955,
+              "lineEnd": 998
+            }
+          ],
+          "text": "In this pinned Comet reference implementation, withdrawals first require withdrawals to be unpaused and the operator to be authorized. A base-token withdrawal accrues interest and reduces the user's present base balance; if that becomes debt, the minimum-borrow and collateralization checks must pass. It then calls the base token's transfer function. A reverted transfer propagates failure, and a returned failure triggers TransferOutFailed. Thus, as an inference from the actual token-transfer path under the intended token semantics, sufficient transferable base-token cash is a separate requirement from a positive accounting claim or adequate collateral. The contract also distinguishes its actual token balance from its calculated protocol reserves. These source mechanisms do not establish current USDC cash, withdrawal availability or active proxy code."
+        },
+        {
+          "id": "compound-iii-priced-collateral-eligibility",
+          "topics": [
+            "Compound III",
+            "Comet",
+            "oracle valuation",
+            "borrow and liquidation eligibility"
+          ],
+          "keywords": [
+            "Compound",
+            "Comet",
+            "USDC",
+            "price",
+            "oracle",
+            "debt",
+            "collateral",
+            "borrow factor",
+            "liquidation factor",
+            "eligibility",
+            "health",
+            "preço",
+            "risco"
+          ],
+          "sections": [
+            {
+              "heading": "Borrow collateralization calculation",
+              "lineStart": 370,
+              "lineEnd": 410
+            },
+            {
+              "heading": "Liquidation eligibility calculation",
+              "lineStart": 413,
+              "lineEnd": 453
+            },
+            {
+              "heading": "Price and factor arithmetic",
+              "lineStart": 551,
+              "lineEnd": 576
+            }
+          ],
+          "text": "For a negative base principal, the pinned Comet code starts with the signed present base balance multiplied by the base-token oracle price and divided by the base-asset scale. It adds eligible collateral balances multiplied by their respective oracle prices, normalized by asset scales and weighted by configured collateral factors. Borrow eligibility uses borrowCollateralFactor and requires the resulting value to be nonnegative; liquidation eligibility instead uses liquidateCollateralFactor and tests whether the resulting value is negative. Nonnegative base principal is treated as not liquidatable by these checks. Holding quantities and factors fixed, a lower collateral price or a higher base-debt price can worsen eligibility; this is an inference from the inspected arithmetic. The calculation is a pinned reference mechanism, not a current health assessment or an attestation of active implementation or oracle correctness."
+        }
+      ],
+      "contentSha256": "c9099e56eda092fd0150005706edf086723899afb102f164b60ad1f36a426961",
+      "sourceByteLength": 51622
     }
-  ]
+  ],
+  "coverage": {
+    "kind": "documented-mechanisms-and-repository-snapshots",
+    "comparisonPair": [
+      "aave-v3-ethereum-identity",
+      "compound-iii-ethereum-usdc-identity"
+    ],
+    "unsupported": [
+      "current rates, balances, liquidity and reserve adequacy",
+      "live chain state, endpoint availability and transaction confirmation",
+      "current proxy implementation or permissions",
+      "complete incident or audit history",
+      "individualized investment suitability or deposit safety",
+      "all other deployment identities and latest Solana version or size limits"
+    ]
+  }
 }
