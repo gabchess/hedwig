@@ -279,6 +279,25 @@ describe("operator quarantine of completed requests with unverified charges", ()
     }
   });
 
+  it("does not treat a modern entry missing its planHash as a legacy entry", () => {
+    const modified = read(ledgerPath);
+    delete modified.entries.at(-1).planHash;
+    save(ledgerPath, modified);
+    const before = fs.readFileSync(ledgerPath);
+    expect(() => budget.readBudgetSummary(ledgerPath, plan)).to.throw(
+      "invalid_ledger"
+    );
+    expect(() =>
+      budget.quarantineCompletedReservation(
+        ledgerPath,
+        plan,
+        proposal(ledgerPath)
+      )
+    ).to.throw("invalid_ledger");
+    expect(fs.readFileSync(ledgerPath)).to.deep.equal(before);
+    expect(fs.existsSync(`${ledgerPath}.lock`)).to.equal(false);
+  });
+
   it("rejects another unsettled request and an active writer without replacing its lock", () => {
     const bytes = fs.readFileSync(ledgerPath),
       operation = proposal(ledgerPath);
@@ -510,4 +529,145 @@ describe("operator quarantine of completed requests with unverified charges", ()
           "completed_uncertain"
         );
     });
+});
+
+describe("completed-request quarantine in the original ledger schema", () => {
+  let directory: string, ledgerPath: string, plan: any;
+  beforeEach(async () => {
+    directory = fs.mkdtempSync(join(tmpdir(), "hedwig-legacy-quarantine-"));
+    ledgerPath = join(directory, "ledger.json");
+    plan = budget.createBudgetPlan(catalog, catalog.id, 1);
+    save(ledgerPath, {
+      schemaVersion: 1,
+      planHash: plan.planHash,
+      capNanoUsd: plan.capNanoUsd,
+      entries: [],
+    });
+    await budget.installBudgetGuard({
+      ledgerPath,
+      plan,
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            id: "gen-legacy-completed-429",
+            error: { message: "fixture rate limit" },
+          }),
+          { status: 429 }
+        ),
+    })(endpoint, request(plan.model));
+  });
+  afterEach(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+  it("quarantines an actual legacy dispatch without adding entry identity fields or migrating history", async () => {
+    const beforeBytes = fs.readFileSync(ledgerPath),
+      before = read(ledgerPath),
+      priorSummary = budget.readBudgetSummary(ledgerPath, plan);
+    expect(before).not.to.have.property("planHistory");
+    const entry = before.entries[0];
+    expect(entry).not.to.have.property("planHash");
+    expect(entry).to.include({
+      status: "uncertain",
+      generationId: "gen-legacy-completed-429",
+    });
+    for (const field of ["requestedAt", "responseReceivedAt", "completedAt"])
+      expect(entry[field]).to.be.a("string");
+    const result = budget.quarantineCompletedReservation(
+      ledgerPath,
+      plan,
+      proposal(ledgerPath)
+    );
+    const after = read(ledgerPath),
+      { recovery, ...original } = after.entries[0];
+    expect(original).to.deep.equal(entry);
+    expect(recovery.originalEntrySha256).to.equal(hash(entry));
+    expect(after.schemaVersion).to.equal(1);
+    expect(after.planHash).to.equal(before.planHash);
+    expect(after.capNanoUsd).to.equal(before.capNanoUsd);
+    expect(after).not.to.have.property("planHistory");
+    expect(result.summary).to.deep.equal({
+      ...priorSummary,
+      blocked: false,
+      recoveredReservedUsd: priorSummary.reservedUsd,
+    });
+    expect(
+      fs.readFileSync(join(result.auditDirectory, "ledger.before.json"))
+    ).to.deep.equal(beforeBytes);
+    const child = spawnSync(
+      process.execPath,
+      [
+        "-e",
+        "const b=require(process.argv[1]); process.stdout.write(JSON.stringify(b.readBudgetSummary(process.argv[2],JSON.parse(process.argv[3]))));",
+        helper,
+        ledgerPath,
+        JSON.stringify(plan),
+      ],
+      { encoding: "utf8" }
+    );
+    expect(child.status, child.stderr).to.equal(0);
+    expect(JSON.parse(child.stdout)).to.deep.equal(result.summary);
+    await budget.installBudgetGuard({
+      ledgerPath,
+      plan,
+      fetch: async () =>
+        new Response(JSON.stringify({ usage: { cost: 0.001 } })),
+    })(endpoint, request(plan.model));
+    expect(read(ledgerPath).entries[0]).to.deep.equal(after.entries[0]);
+    expect(budget.readBudgetSummary(ledgerPath, plan).reservedUsd).to.equal(
+      priorSummary.reservedUsd
+    );
+  });
+
+  it("rejects a planHash smuggled into schema1 and missing planHash under schema2", () => {
+    const original = read(ledgerPath);
+    for (const modified of [
+      {
+        ...original,
+        entries: [{ ...original.entries[0], planHash: plan.planHash }],
+      },
+      { ...original, schemaVersion: 2, planHistory: [plan] },
+    ]) {
+      save(ledgerPath, modified);
+      const before = fs.readFileSync(ledgerPath);
+      expect(() => budget.readBudgetSummary(ledgerPath, plan)).to.throw(
+        "invalid_ledger"
+      );
+      expect(() =>
+        budget.quarantineCompletedReservation(
+          ledgerPath,
+          plan,
+          proposal(ledgerPath)
+        )
+      ).to.throw("invalid_ledger");
+      expect(fs.readFileSync(ledgerPath)).to.deep.equal(before);
+      expect(fs.existsSync(`${ledgerPath}.lock`)).to.equal(false);
+    }
+  });
+
+  it("refuses a legacy migration that would alter hashed recovery provenance before publishing", () => {
+    budget.quarantineCompletedReservation(
+      ledgerPath,
+      plan,
+      proposal(ledgerPath)
+    );
+    const before = fs.readFileSync(ledgerPath),
+      summary = budget.readBudgetSummary(ledgerPath, plan),
+      next = budget.createBudgetPlan(alternative, alternative.id, 1);
+    expect(() => budget.amendBudgetPlan(ledgerPath, plan, next)).to.throw(
+      "legacy_completed_quarantine_migration_refused"
+    );
+    expect(fs.readFileSync(ledgerPath)).to.deep.equal(before);
+    expect(fs.existsSync(`${ledgerPath}.lock`)).to.equal(false);
+    expect(budget.readBudgetSummary(ledgerPath, plan)).to.deep.equal(summary);
+    expect(() =>
+      budget.applyBudgetModelAmendment(ledgerPath, plan, alternative, {
+        amendmentId: randomUUID(),
+        amendedAt: new Date().toISOString(),
+        approvalReference: "fixture unsupported legacy amendment",
+        expectedLedgerIntegrity: read(ledgerPath).integrity,
+        model: alternative.id,
+      })
+    ).to.throw("invalid_model_amendment");
+    expect(fs.readFileSync(ledgerPath)).to.deep.equal(before);
+    expect(fs.existsSync(`${ledgerPath}.lock`)).to.equal(false);
+  });
 });

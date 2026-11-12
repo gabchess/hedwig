@@ -343,10 +343,10 @@ function accountedCost(entry) {
 function digest(value) {
   return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 }
-function validRecovery(entry, plan) {
+function validRecovery(entry, plan, ledgerSchemaVersion) {
   const recovery = entry.recovery;
   if (recovery?.kind === "completed_uncertain")
-    return validCompletedRecovery(entry, plan);
+    return validCompletedRecovery(entry, plan, ledgerSchemaVersion);
   const keys = [
     "disposition",
     "recoveryId",
@@ -452,7 +452,8 @@ function readLedger(filename, plan) {
     }
     if (
       entry.recovery !== undefined &&
-      (entry.status !== "uncertain" || !validRecovery(entry, entryPlan))
+      (entry.status !== "uncertain" ||
+        !validRecovery(entry, entryPlan, ledger.schemaVersion))
     )
       fail("invalid_ledger");
     for (const key of [
@@ -746,6 +747,15 @@ function amendBudgetPlan(filename, suppliedOldPlan, suppliedNewPlan) {
   try {
     const ledger = readLedger(location, oldPlan);
     if (summary(ledger).blocked) fail("unsettled_request");
+    // This legacy migration adds planHash to every entry. It cannot rewrite an
+    // entry whose completed-quarantine provenance hashes its original fields.
+    if (
+      ledger.schemaVersion === 1 &&
+      ledger.entries.some(
+        (entry) => entry.recovery?.kind === "completed_uncertain"
+      )
+    )
+      fail("legacy_completed_quarantine_migration_refused");
     const history = ledger.schemaVersion === 2 ? ledger.planHistory : [oldPlan];
     // Never reactivate an old plan: an already-created old guard must stay invalid.
     if (history.some((previous) => previous.planHash === newPlan.planHash))
@@ -1777,7 +1787,18 @@ function completedQuarantineEvidence(
     Date.parse(evidence.reviewedAt) <= Date.parse(recoveredAt)
   );
 }
-function validCompletedRecovery(entry, plan) {
+function completedQuarantineOriginal(entry, plan, ledgerSchemaVersion) {
+  if (ledgerSchemaVersion === 1) {
+    // Legacy entries inherit the ledger's sole plan. Normalize only for strict
+    // validation; the persisted entry and its provenance hash remain untouched.
+    return (
+      !Object.hasOwn(entry, "planHash") &&
+      reconciliationOriginal({ ...entry, planHash: plan.planHash }, plan)
+    );
+  }
+  return reconciliationOriginal(entry, plan);
+}
+function validCompletedRecovery(entry, plan, ledgerSchemaVersion) {
   const { recovery, ...original } = entry;
   return (
     reconciliationKeys(recovery, [
@@ -1801,7 +1822,7 @@ function validCompletedRecovery(entry, plan) {
     digest(recovery.previousLedgerIntegrity) &&
     recovery.originalEntrySha256 === hash(original) &&
     recovery.reservedNanoUsd === entry.reservedNanoUsd &&
-    reconciliationOriginal(original, plan) &&
+    completedQuarantineOriginal(original, plan, ledgerSchemaVersion) &&
     completedQuarantineEvidence(
       original,
       recovery.operatorEvidenceJson,
@@ -1846,9 +1867,10 @@ function quarantineCompletedReservation(filename, suppliedPlan, request) {
       fail("quarantine_state_changed");
     const entry = ledger.entries.at(-1),
       index = ledger.entries.length - 1;
-    const entryPlan = ledger.planHistory?.find(
-      (item) => item.planHash === entry?.planHash
-    );
+    const entryPlan =
+      ledger.schemaVersion === 1
+        ? plan
+        : ledger.planHistory?.find((item) => item.planHash === entry?.planHash);
     if (
       !entry ||
       entry.id !== request.expectedEntryId ||
@@ -1859,7 +1881,7 @@ function quarantineCompletedReservation(filename, suppliedPlan, request) {
     if (
       !entryPlan ||
       index < immutableHistoryPrefixCount(ledger) ||
-      !reconciliationOriginal(entry, entryPlan) ||
+      !completedQuarantineOriginal(entry, entryPlan, ledger.schemaVersion) ||
       ledger.entries.some(
         (item) => item !== entry && item.status !== "settled" && !item.recovery
       )
@@ -1879,7 +1901,7 @@ function quarantineCompletedReservation(filename, suppliedPlan, request) {
       operatorEvidenceSha256: request.expectedEvidenceSha256,
     };
     const quarantined = { ...entry, recovery };
-    if (!validCompletedRecovery(quarantined, entryPlan))
+    if (!validCompletedRecovery(quarantined, entryPlan, ledger.schemaVersion))
       fail("invalid_quarantine_evidence");
     const proposed = {
       ...ledger,
