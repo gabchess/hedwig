@@ -65,25 +65,37 @@ function isZeroPrice(value) {
   return typeof value === "string" && /^\+?0+(?:\.0+)?$/.test(value.trim());
 }
 
-async function verifyZeroPricing(model) {
-  const payload = asObject(await fetchJson(CATALOG_URL));
+function qualifyZeroPricing(payload, model) {
+  payload = asObject(payload);
   if (!payload || !Array.isArray(payload.data))
     throw new Error("catalog unavailable");
   const matches = payload.data.filter((entry) => asObject(entry)?.id === model);
   if (matches.length !== 1) throw new Error("model missing or ambiguous");
   const pricing = asObject(asObject(matches[0])?.pricing);
-  const fields = ["prompt", "completion", "request"];
+  const tokenFields = ["prompt", "completion"];
   if (
     !pricing ||
-    fields.some(
+    tokenFields.some(
       (field) =>
         !Object.prototype.hasOwnProperty.call(pricing, field) ||
         !isZeroPrice(pricing[field])
-    )
+    ) ||
+    (Object.prototype.hasOwnProperty.call(pricing, "request") &&
+      !isZeroPrice(pricing.request))
   ) {
     throw new Error("model is not verified zero-price");
   }
-  return { prompt: "0", completion: "0", request: "0" };
+  return {
+    prompt: "0",
+    completion: "0",
+    ...(Object.prototype.hasOwnProperty.call(pricing, "request")
+      ? { request: "0" }
+      : {}),
+  };
+}
+
+async function verifyZeroPricing(model) {
+  return qualifyZeroPricing(await fetchJson(CATALOG_URL), model);
 }
 
 async function readUsage(apiKey) {
@@ -409,7 +421,7 @@ async function main() {
   }
 }
 
-module.exports = { retrievalMatches, statusSummary };
+module.exports = { qualifyZeroPricing, retrievalMatches, statusSummary };
 
 if (require.main === module) {
   main().catch(() => {
