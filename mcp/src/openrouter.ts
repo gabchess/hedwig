@@ -271,6 +271,7 @@ function createOpenRouterRequest(
           ...policy.requestParameters,
           max_tokens: policy.maxTokens[purpose],
           provider: {
+            ...policy.providerParameters,
             data_collection: "deny",
             require_parameters: true,
             allow_fallbacks: false,

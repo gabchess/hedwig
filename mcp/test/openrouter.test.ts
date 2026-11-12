@@ -131,6 +131,139 @@ describe("OpenRouter serialized request-byte budget", () => {
 });
 
 describe("OpenRouter answer adapter (fixture transport, no live inference)", () => {
+  for (const purpose of ["seed", "foundations"] as const) {
+    it(`uses only exact DeepSeek Flash high reasoning without changing ${purpose} evidence or output schema`, async () => {
+      const bodies: any[] = [];
+      const retrievedInput = {
+        question: input.question,
+        sources: [
+          {
+            ...source,
+            sourceFileUrl: source.url,
+            revision: "reviewed-fixture",
+            title: "Reviewed fixture",
+          },
+        ],
+      };
+      for (const model of [
+        "test/model",
+        "deepseek/deepseek-v4-flash-0731",
+        "deepseek/deepseek-v4-flash-0731:free",
+        "deepseek/deepseek-v4-flash-20260731",
+      ]) {
+        const config = {
+          apiKey: "fixture",
+          model,
+          fetch: (async (_url: unknown, options: RequestInit) => {
+            bodies.push(JSON.parse(options.body as string));
+            return completion(
+              JSON.stringify({
+                answer: "",
+                citationIds: [],
+                ...(purpose === "foundations" ? { unsupportedParts: [] } : {}),
+              })
+            );
+          }) as typeof fetch,
+        };
+        await (purpose === "seed"
+          ? createOpenRouterGenerator(config)
+          : createOpenRouterFoundationGenerator(config))(retrievedInput);
+      }
+      const [ordinary, deepseek, freeVariant, canonicalAlias] = bodies;
+      expect(deepseek).to.include({
+        model: "deepseek/deepseek-v4-flash-0731",
+        stream: false,
+        max_tokens: 8192,
+      });
+      expect(deepseek.reasoning).to.deep.equal({
+        effort: "high",
+        exclude: true,
+      });
+      expect(deepseek).not.to.have.property("temperature");
+      expect(deepseek.provider).to.deep.equal({
+        data_collection: "deny",
+        require_parameters: true,
+        allow_fallbacks: false,
+        zdr: true,
+      });
+      expect(deepseek.messages).to.deep.equal(ordinary.messages);
+      expect(JSON.parse(deepseek.messages[1].content)).to.deep.equal(
+        retrievedInput
+      );
+      expect(deepseek.response_format).to.deep.equal(ordinary.response_format);
+      for (const body of [ordinary, freeVariant, canonicalAlias]) {
+        expect(body).to.include({
+          temperature: 0,
+          max_tokens: purpose === "seed" ? 1024 : 2048,
+        });
+        expect(body).not.to.have.property("reasoning");
+      }
+    });
+  }
+  for (const purpose of ["seed", "foundations"] as const) {
+    it(`sorts only exact Qwen requests by throughput while preserving ${purpose} evidence, schema and limits`, async () => {
+      const bodies: any[] = [];
+      const retrievedInput = {
+        question: input.question,
+        sources: [
+          {
+            ...source,
+            sourceFileUrl: source.url,
+            revision: "reviewed-fixture",
+            title: "Reviewed fixture",
+          },
+        ],
+      };
+      for (const model of [
+        "test/model",
+        "qwen/qwen3-235b-a22b-2507",
+        "qwen/qwen3-235b-a22b-2507:free",
+        "qwen/qwen3-235b-a22b-07-25",
+      ]) {
+        const config = {
+          apiKey: "fixture",
+          model,
+          fetch: (async (_url: unknown, options: RequestInit) => {
+            bodies.push(JSON.parse(options.body as string));
+            return completion(
+              JSON.stringify({
+                answer: "",
+                citationIds: [],
+                ...(purpose === "foundations" ? { unsupportedParts: [] } : {}),
+              })
+            );
+          }) as typeof fetch,
+        };
+        const generate =
+          purpose === "seed"
+            ? createOpenRouterGenerator(config)
+            : createOpenRouterFoundationGenerator(config);
+        await generate(retrievedInput);
+      }
+      const [ordinary, qwen, freeVariant, canonicalAlias] = bodies;
+      expect(qwen).to.include({
+        model: "qwen/qwen3-235b-a22b-2507",
+        stream: false,
+        temperature: 0,
+        max_tokens: purpose === "seed" ? 1024 : 2048,
+      });
+      expect(qwen).not.to.have.property("reasoning");
+      expect(qwen.provider).to.deep.equal({
+        data_collection: "deny",
+        require_parameters: true,
+        allow_fallbacks: false,
+        zdr: true,
+        sort: "throughput",
+      });
+      expect(qwen.messages).to.deep.equal(ordinary.messages);
+      expect(JSON.parse(qwen.messages[1].content)).to.deep.equal(
+        retrievedInput
+      );
+      expect(qwen.response_format).to.deep.equal(ordinary.response_format);
+      for (const body of [ordinary, freeVariant, canonicalAlias])
+        expect(body.provider).not.to.have.property("sort");
+    });
+  }
   it("sends retrieved evidence to the configured model and parses its answer", async () => {
     let request: RequestInit | undefined;
     let url = "";

@@ -25047,6 +25047,7 @@ var require_model_policy = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.resolveModelGenerationPolicy = resolveModelGenerationPolicy;
+    exports2.resolveToolCallTimeoutMs = resolveToolCallTimeoutMs;
     var STANDARD_DEADLINE_MS = 15e3;
     var REASONING_DEADLINE_MS = 2e4;
     var SEED_MAX_TOKENS = 1024;
@@ -25056,7 +25057,24 @@ var require_model_policy = __commonJS({
     var EXTENDED_REASONING_MODEL = "openai/gpt-5.2";
     var EXTENDED_REASONING_DEADLINE_MS = 3e4;
     var EXTENDED_REASONING_MAX_TOKENS = 6144;
+    var QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
+    var QWEN_INSTRUCT_DEADLINE_MS = 45e3;
+    var DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
+    var DEEPSEEK_REASONING_DEADLINE_MS = 9e4;
+    var DEEPSEEK_REASONING_MAX_TOKENS = 8192;
+    var STANDARD_TOOL_CALL_TIMEOUT_MS = 6e4;
+    var EXTENDED_TOOL_COMPLETION_MARGIN_MS = 3e4;
     function resolveModelGenerationPolicy(model) {
+      if (model === DEEPSEEK_REASONING_MODEL) {
+        return {
+          deadlineMs: DEEPSEEK_REASONING_DEADLINE_MS,
+          maxTokens: {
+            seed: DEEPSEEK_REASONING_MAX_TOKENS,
+            foundations: DEEPSEEK_REASONING_MAX_TOKENS
+          },
+          requestParameters: { reasoning: { effort: "high", exclude: true } }
+        };
+      }
       if (model === EXTENDED_REASONING_MODEL) {
         return {
           deadlineMs: EXTENDED_REASONING_DEADLINE_MS,
@@ -25080,10 +25098,17 @@ var require_model_policy = __commonJS({
         };
       }
       return {
-        deadlineMs: STANDARD_DEADLINE_MS,
+        deadlineMs: model === QWEN_INSTRUCT_MODEL ? QWEN_INSTRUCT_DEADLINE_MS : STANDARD_DEADLINE_MS,
         maxTokens: { seed: SEED_MAX_TOKENS, foundations: FOUNDATION_MAX_TOKENS },
-        requestParameters: { temperature: 0 }
+        requestParameters: { temperature: 0 },
+        // Sorting changes preference only; privacy, price and fallback constraints
+        // remain enforced by the adapter and evaluation guard.
+        ...model === QWEN_INSTRUCT_MODEL ? { providerParameters: { sort: "throughput" } } : {}
       };
+    }
+    function resolveToolCallTimeoutMs(model) {
+      const { deadlineMs } = resolveModelGenerationPolicy(model);
+      return deadlineMs > STANDARD_TOOL_CALL_TIMEOUT_MS ? deadlineMs + EXTENDED_TOOL_COMPLETION_MARGIN_MS : STANDARD_TOOL_CALL_TIMEOUT_MS;
     }
   }
 });
@@ -25279,6 +25304,7 @@ var require_openrouter = __commonJS({
               ...policy.requestParameters,
               max_tokens: policy.maxTokens[purpose],
               provider: {
+                ...policy.providerParameters,
                 data_collection: "deny",
                 require_parameters: true,
                 allow_fallbacks: false,
