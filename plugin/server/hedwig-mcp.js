@@ -42715,10 +42715,17 @@ var require_expert_request = __commonJS({
     function object(value) {
       return value !== null && typeof value === "object" && !Array.isArray(value) ? value : void 0;
     }
-    function clarify() {
+    var CLARIFICATION_REASONS = {
+      missing_deployments: "",
+      unknown_deployment: "At least one supplied address does not resolve to a reviewed deployment for the supplied chainId. A caller-supplied protocol label does not establish that address's identity.",
+      chain_mismatch: "A supplied address is recorded on Ethereum mainnet (chainId 1), but its supplied chainId identifies a different chain. Ethereum mainnet and other chains, including Base, are distinct; the address cannot be relabeled as a reviewed deployment on another chain.",
+      duplicate_deployment: "Both supplied identifiers resolve to the same deployment. They do not identify two distinct deployments to compare.",
+      identity_conflict: "The question conflicts with the exact chain, version, market or address roles of the supported Ethereum mainnet deployment identities. Clarify the requested scope instead of relabeling or substituting those identities."
+    };
+    function clarify(reason = "missing_deployments") {
       return {
         status: "needs_clarification",
-        clarification: "Select two distinct supported deployments by exact chainId and address. This comparison covers repository snapshots on Ethereum mainnet only; it does not verify current deployment state.",
+        clarification: (CLARIFICATION_REASONS[reason] ? CLARIFICATION_REASONS[reason] + " " : "") + "Select two distinct supported deployments by exact chainId and address. This comparison covers repository snapshots on Ethereum mainnet only; it does not verify current deployment state.",
         supportedDeployments: exports2.SUPPORTED_DEPLOYMENTS.map((entry) => ({ ...entry }))
       };
     }
@@ -42880,12 +42887,16 @@ var require_expert_request = __commonJS({
           return { status: "invalid_question" };
         }
         const match = exports2.SUPPORTED_DEPLOYMENTS.find((entry) => entry.chainId === identity.chainId && entry.address.toLowerCase() === identity.address.toLowerCase());
-        if (!match || resolved.some((entry) => entry.id === match.id))
-          return clarify();
+        if (!match) {
+          const knownAddress = exports2.SUPPORTED_DEPLOYMENTS.some((entry) => entry.address.toLowerCase() === identity.address.toLowerCase());
+          return clarify(knownAddress ? "chain_mismatch" : "unknown_deployment");
+        }
+        if (resolved.some((entry) => entry.id === match.id))
+          return clarify("duplicate_deployment");
         resolved.push({ ...match });
       }
       if (hasKnownIdentityConflict(input.question, resolved))
-        return clarify();
+        return clarify("identity_conflict");
       return {
         status: "ready",
         mode,

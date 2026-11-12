@@ -66,10 +66,34 @@ function object(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function clarify(): ParsedExpertRequest {
+type ClarificationReason =
+  | "missing_deployments"
+  | "unknown_deployment"
+  | "chain_mismatch"
+  | "duplicate_deployment"
+  | "identity_conflict";
+
+const CLARIFICATION_REASONS: Readonly<Record<ClarificationReason, string>> = {
+  missing_deployments: "",
+  unknown_deployment:
+    "At least one supplied address does not resolve to a reviewed deployment for the supplied chainId. A caller-supplied protocol label does not establish that address's identity.",
+  chain_mismatch:
+    "A supplied address is recorded on Ethereum mainnet (chainId 1), but its supplied chainId identifies a different chain. Ethereum mainnet and other chains, including Base, are distinct; the address cannot be relabeled as a reviewed deployment on another chain.",
+  duplicate_deployment:
+    "Both supplied identifiers resolve to the same deployment. They do not identify two distinct deployments to compare.",
+  identity_conflict:
+    "The question conflicts with the exact chain, version, market or address roles of the supported Ethereum mainnet deployment identities. Clarify the requested scope instead of relabeling or substituting those identities.",
+};
+
+function clarify(
+  reason: ClarificationReason = "missing_deployments"
+): ParsedExpertRequest {
   return {
     status: "needs_clarification",
     clarification:
+      (CLARIFICATION_REASONS[reason]
+        ? CLARIFICATION_REASONS[reason] + " "
+        : "") +
       "Select two distinct supported deployments by exact chainId and address. This comparison covers repository snapshots on Ethereum mainnet only; it does not verify current deployment state.",
     supportedDeployments: SUPPORTED_DEPLOYMENTS.map((entry) => ({ ...entry })),
   };
@@ -394,11 +418,21 @@ export function parseExpertRequest(value: unknown): ParsedExpertRequest {
         entry.address.toLowerCase() ===
           (identity.address as string).toLowerCase()
     );
-    if (!match || resolved.some((entry) => entry.id === match.id))
-      return clarify();
+    if (!match) {
+      // The address table supplies this distinction; prose labels do not.
+      const knownAddress = SUPPORTED_DEPLOYMENTS.some(
+        (entry) =>
+          entry.address.toLowerCase() ===
+          (identity.address as string).toLowerCase()
+      );
+      return clarify(knownAddress ? "chain_mismatch" : "unknown_deployment");
+    }
+    if (resolved.some((entry) => entry.id === match.id))
+      return clarify("duplicate_deployment");
     resolved.push({ ...match });
   }
-  if (hasKnownIdentityConflict(input.question, resolved)) return clarify();
+  if (hasKnownIdentityConflict(input.question, resolved))
+    return clarify("identity_conflict");
   return {
     status: "ready",
     mode,

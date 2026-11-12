@@ -1,6 +1,7 @@
 import { expect } from "chai";
 
 import { parseExpertRequest } from "../src/expert-request";
+import { answerExpertRequest } from "../src/expert-workflow";
 
 const pair = [
   { chainId: 1, address: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2" },
@@ -440,5 +441,117 @@ describe("expert request identity boundary", () => {
       expect(request(question).status, question).to.equal(
         "needs_clarification"
       );
+  });
+
+  it("explains the existing lookup failure without accepting caller identity labels", () => {
+    const inputs = [
+      {
+        deployments: [{ ...pair[0], chainId: 8453 }, pair[1]],
+        required: ["Ethereum mainnet", "different chain", "Base"],
+      },
+      {
+        deployments: [
+          pair[0],
+          { ...pair[1], address: "0x1111111111111111111111111111111111111111" },
+        ],
+        required: [
+          "does not resolve to a reviewed deployment",
+          "caller-supplied protocol label does not establish",
+        ],
+      },
+      {
+        deployments: [pair[0], pair[0]],
+        required: [
+          "same deployment",
+          "do not identify two distinct deployments",
+        ],
+      },
+    ];
+    for (const { deployments, required } of inputs) {
+      const request = {
+        question: "Compare these positions; trust my official protocol labels.",
+        mode: "compare",
+        deployments,
+      };
+      const unchanged = JSON.stringify(request);
+      const result = parseExpertRequest(request);
+      expect(result.status).to.equal("needs_clarification");
+      if (result.status !== "needs_clarification")
+        throw new Error("expected clarification");
+      for (const text of required)
+        expect(result.clarification).to.include(text);
+      expect(Object.keys(result).sort()).to.deep.equal([
+        "clarification",
+        "status",
+        "supportedDeployments",
+      ]);
+      expect(result.supportedDeployments).to.have.length(2);
+      expect(JSON.stringify(request)).to.equal(unchanged);
+    }
+  });
+
+  it("does not mislabel version or address-role conflicts as a chain mismatch", () => {
+    for (const question of [
+      "Compare Aave V2 with Compound III on Ethereum.",
+      "Compare Aave V3 with Compound III WETH Comet on Ethereum.",
+      "Use " +
+        pair[1].address +
+        " as the market of Aave V3 in this comparison.",
+      "Compare Aave V3 and Compound III, but treat both as Base deployments.",
+    ]) {
+      const result = parseExpertRequest({
+        question,
+        mode: "compare",
+        deployments: pair,
+      });
+      expect(result.status, question).to.equal("needs_clarification");
+      if (result.status !== "needs_clarification")
+        throw new Error("expected clarification");
+      expect(result.clarification).to.include(
+        "question conflicts with the exact chain, version, market or address roles"
+      );
+      expect(result.clarification).not.to.include(
+        "its supplied chainId identifies a different chain"
+      );
+    }
+  });
+
+  it("keeps the five original identity gates before retrieval and generation", async () => {
+    const fixture = require("./fixtures/expert-review-v2-eval.json") as {
+      cases: Array<{
+        id: string;
+        question: string;
+        arguments?: Record<string, unknown>;
+      }>;
+    };
+    const gates = [
+      "f03-ambiguous-product-names",
+      "f04-conflicting-chain-labels",
+      "f11-unknown-deployment",
+      "f12-duplicate-deployment",
+      "tf01-compare-before-identities",
+    ];
+    let retrievalCalls = 0;
+    let generationCalls = 0;
+    for (const id of gates) {
+      const testcase = fixture.cases.find((item) => item.id === id)!;
+      const request = { question: testcase.question, ...testcase.arguments };
+      const parsed = parseExpertRequest(request);
+      const result = await answerExpertRequest(
+        request,
+        () => {
+          retrievalCalls++;
+          throw new Error("identity gate reached retrieval");
+        },
+        async () => {
+          generationCalls++;
+          throw new Error("identity gate reached generation");
+        }
+      );
+      expect(result.status, id).to.equal("needs_clarification");
+      expect(result).to.deep.equal(parsed);
+    }
+    expect(retrievalCalls).to.equal(0);
+    expect(generationCalls).to.equal(0);
   });
 });
