@@ -10,6 +10,9 @@ const path = require("node:path");
 const { createHash, randomUUID } = require("node:crypto");
 
 const MODEL = "openai/gpt-4.1-mini";
+const QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
+const QWEN_INSTRUCT_DEADLINE_MS = 45000;
+const QWEN_MAX_TOKENS = Object.freeze([1024, 2048]);
 const REASONING_PROFILES = new Map([
   [
     "openai/gpt-5.1",
@@ -31,18 +34,28 @@ const REASONING_PROFILES = new Map([
 const ALLOWED_MODELS = new Set([
   MODEL,
   "openai/gpt-4.1",
+  QWEN_INSTRUCT_MODEL,
   ...REASONING_PROFILES.keys(),
 ]);
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 // Explicitly reviewed public catalog identity, not a model-name heuristic.
 // Retain this historical binding when adding a separately reviewed identity.
-const RECONCILIATION_MODEL_IDENTITY = Object.freeze({
-  requestedModel: "openai/gpt-5.2",
-  canonicalModel: "openai/gpt-5.2-20251211",
-  catalogRetrievedAt: "2026-11-12T16:30:23.655Z",
-  catalogResponseSha256:
-    "43199a7f1e2e3aaac2e82c1e4d928671454ee8e620d5e53a9e3e1d9dd0886e1d",
-});
+const RECONCILIATION_MODEL_IDENTITIES = Object.freeze([
+  Object.freeze({
+    requestedModel: "openai/gpt-5.2",
+    canonicalModel: "openai/gpt-5.2-20251211",
+    catalogRetrievedAt: "2026-11-12T16:30:23.655Z",
+    catalogResponseSha256:
+      "43199a7f1e2e3aaac2e82c1e4d928671454ee8e620d5e53a9e3e1d9dd0886e1d",
+  }),
+  Object.freeze({
+    requestedModel: "qwen/qwen3-235b-a22b-2507",
+    canonicalModel: "qwen/qwen3-235b-a22b-07-25",
+    catalogRetrievedAt: "2026-11-12T21:01:58.699Z",
+    catalogResponseSha256:
+      "226558b53932c7585eb0a59920f234b3d5d806e5beb312848f183bd67353e4da",
+  }),
+]);
 const NANO_USD = 1e9;
 const MILLION = 1e6;
 const CAP_USD = 5;
@@ -136,7 +149,7 @@ function createBudgetPlan(catalog, model = MODEL, capUsd = CAP_USD) {
 
 function validatePlan(plan) {
   if (!object(plan)) fail("invalid_plan");
-  const extended = plan.schemaVersion === 2;
+  const extended = [2, 3].includes(plan.schemaVersion);
   if (
     extended &&
     (!integer(plan.capNanoUsd) ||
@@ -144,6 +157,8 @@ function validatePlan(plan) {
       !digest(plan.previousPlanHash) ||
       !digest(plan.capAuthorizationHash))
   )
+    fail("invalid_plan");
+  if (plan.schemaVersion === 3 && !digest(plan.modelAmendmentHash))
     fail("invalid_plan");
   let expected = createBudgetPlan(
     {
@@ -160,10 +175,13 @@ function validatePlan(plan) {
   if (extended)
     expected = planWithHash({
       ...expected,
-      schemaVersion: 2,
+      schemaVersion: plan.schemaVersion,
       capNanoUsd: plan.capNanoUsd,
       previousPlanHash: plan.previousPlanHash,
       capAuthorizationHash: plan.capAuthorizationHash,
+      ...(plan.schemaVersion === 3
+        ? { modelAmendmentHash: plan.modelAmendmentHash }
+        : {}),
     });
   if (hash(expected) !== hash(plan)) fail("invalid_plan");
   return expected;
@@ -173,8 +191,9 @@ function planWithHash(value) {
   return { ...content, planHash: hash(content) };
 }
 function extendedPlan(previous, authorization) {
+  const { modelAmendmentHash: _amendment, ...economics } = previous;
   return planWithHash({
-    ...previous,
+    ...economics,
     schemaVersion: 2,
     capNanoUsd: authorization.approvedTotalNanoUsd,
     previousPlanHash: previous.planHash,
@@ -352,7 +371,7 @@ function readLedger(filename, plan) {
   const { integrity, ...content } = ledger;
   if (
     integrity !== hash(content) ||
-    ![1, 2, 3].includes(ledger.schemaVersion) ||
+    ![1, 2, 3, 4].includes(ledger.schemaVersion) ||
     ledger.planHash !== plan.planHash ||
     ledger.capNanoUsd !== plan.capNanoUsd ||
     !Array.isArray(ledger.entries)
@@ -382,8 +401,10 @@ function readLedger(filename, plan) {
   } else if (ledger.planHistory !== undefined || plan.schemaVersion !== 1) {
     fail("invalid_ledger");
   }
-  if (ledger.schemaVersion === 3) validateCapHistory(content);
+  if (ledger.schemaVersion >= 3) validateCapHistory(content);
   else if (ledger.capAuthorizations !== undefined) fail("invalid_ledger");
+  if (ledger.schemaVersion !== 4 && ledger.modelAmendments !== undefined)
+    fail("invalid_ledger");
   const ids = new Set();
   let accounted = 0;
   for (const [entryIndex, entry] of ledger.entries.entries()) {
@@ -522,15 +543,18 @@ function qualifyExistingBudgetPlan(
   let fresh = createBudgetPlan(
     catalog,
     model,
-    plan.schemaVersion === 2 ? CAP_USD : plan.capNanoUsd / NANO_USD
+    plan.schemaVersion >= 2 ? CAP_USD : plan.capNanoUsd / NANO_USD
   );
-  if (plan.schemaVersion === 2)
+  if (plan.schemaVersion >= 2)
     fresh = planWithHash({
       ...fresh,
-      schemaVersion: 2,
+      schemaVersion: plan.schemaVersion,
       capNanoUsd: plan.capNanoUsd,
       previousPlanHash: plan.previousPlanHash,
       capAuthorizationHash: plan.capAuthorizationHash,
+      ...(plan.schemaVersion === 3
+        ? { modelAmendmentHash: plan.modelAmendmentHash }
+        : {}),
     });
   if (hash(fresh) !== hash(plan)) fail("catalog_plan_changed");
   return fresh;
@@ -746,47 +770,162 @@ function validExtensionRequest(request, previousCap) {
   );
 }
 
+function validModelAmendmentRequest(request) {
+  return (
+    object(request) &&
+    Object.keys(request).sort().join(",") ===
+      "amendedAt,amendmentId,approvalReference,expectedLedgerIntegrity,model" &&
+    reconciliationUuid(request.amendmentId) &&
+    timestamp(request.amendedAt) &&
+    typeof request.approvalReference === "string" &&
+    /^[A-Za-z0-9][A-Za-z0-9:/._# -]{0,199}$/.test(request.approvalReference) &&
+    digest(request.expectedLedgerIntegrity) &&
+    ALLOWED_MODELS.has(request.model)
+  );
+}
+function amendedModelPlan(previous, catalogPlan, amendment) {
+  return planWithHash({
+    ...catalogPlan,
+    schemaVersion: 3,
+    capNanoUsd: previous.capNanoUsd,
+    previousPlanHash: previous.planHash,
+    capAuthorizationHash: previous.capAuthorizationHash,
+    modelAmendmentHash: hash(amendment),
+  });
+}
+function historicalLedgerPrefix(
+  ledger,
+  planIndex,
+  entryCount,
+  authorizationCount,
+  amendmentCount
+) {
+  const previous = ledger.planHistory[planIndex - 1];
+  const prefix = {
+    ...ledger,
+    schemaVersion: amendmentCount ? 4 : authorizationCount ? 3 : 2,
+    planHash: previous.planHash,
+    capNanoUsd: previous.capNanoUsd,
+    planHistory: ledger.planHistory.slice(0, planIndex),
+    entries: ledger.entries.slice(0, entryCount),
+  };
+  if (authorizationCount)
+    prefix.capAuthorizations = ledger.capAuthorizations.slice(
+      0,
+      authorizationCount
+    );
+  else delete prefix.capAuthorizations;
+  if (amendmentCount)
+    prefix.modelAmendments = ledger.modelAmendments.slice(0, amendmentCount);
+  else delete prefix.modelAmendments;
+  return prefix;
+}
+/** Validate both explicit transition kinds without rewriting legacy history. */
 function validateCapHistory(ledger) {
   if (
     !Array.isArray(ledger.capAuthorizations) ||
     !ledger.capAuthorizations.length ||
-    ledger.planHistory[0].schemaVersion !== 1
+    ledger.planHistory[0].schemaVersion !== 1 ||
+    (ledger.schemaVersion === 4
+      ? !Array.isArray(ledger.modelAmendments) || !ledger.modelAmendments.length
+      : ledger.modelAmendments !== undefined)
   )
     fail("invalid_ledger");
-  let authorizationIndex = 0;
-  let previousEntryCount = 0;
-  const authorizationIds = new Set();
+  let authorizationIndex = 0,
+    amendmentIndex = 0,
+    previousEntryCount = 0;
+  const transitionIds = new Set();
   for (let index = 1; index < ledger.planHistory.length; index++) {
-    const previous = ledger.planHistory[index - 1];
-    const next = ledger.planHistory[index];
+    const previous = ledger.planHistory[index - 1],
+      next = ledger.planHistory[index];
     if (next.schemaVersion === 1) {
-      if (authorizationIndex || next.capNanoUsd !== previous.capNanoUsd)
+      if (
+        authorizationIndex ||
+        amendmentIndex ||
+        next.capNanoUsd !== previous.capNanoUsd
+      )
         fail("invalid_ledger");
       continue;
     }
-    const authorization = ledger.capAuthorizations[authorizationIndex];
-    if (!object(authorization)) fail("invalid_ledger");
+    const isAmendment = next.schemaVersion === 3;
+    const record = isAmendment
+      ? ledger.modelAmendments?.[amendmentIndex]
+      : ledger.capAuthorizations[authorizationIndex];
+    if (!object(record)) fail("invalid_ledger");
     const {
       previousPlanHash,
-      previousCapNanoUsd,
       previousLedgerIntegrity,
       entryCount,
       entryPrefixHash,
-      ...request
-    } = authorization;
+    } = record;
+    let transitionId;
+    if (isAmendment) {
+      const {
+        kind,
+        catalogPlanHash,
+        previousPlanHash: _plan,
+        previousLedgerIntegrity: _integrity,
+        entryCount: _count,
+        entryPrefixHash: _prefix,
+        ...request
+      } = record;
+      const catalogPlan = createBudgetPlan(
+        {
+          id: next.model,
+          context_length: next.contextLength,
+          top_provider: { max_completion_tokens: next.maxCompletionTokens },
+          pricing: next.catalogPricing,
+        },
+        next.model
+      );
+      if (
+        !authorizationIndex ||
+        kind !== "model_change" ||
+        !validModelAmendmentRequest({
+          ...request,
+          expectedLedgerIntegrity: previousLedgerIntegrity,
+        }) ||
+        request.model === previous.model ||
+        request.model !== next.model ||
+        catalogPlanHash !== catalogPlan.planHash ||
+        next.capNanoUsd !== previous.capNanoUsd ||
+        next.capAuthorizationHash !== previous.capAuthorizationHash ||
+        hash(amendedModelPlan(previous, catalogPlan, record)) !== hash(next)
+      )
+        fail("invalid_ledger");
+      transitionId = request.amendmentId;
+    } else {
+      const {
+        previousPlanHash: _plan,
+        previousCapNanoUsd,
+        previousLedgerIntegrity: _integrity,
+        entryCount: _count,
+        entryPrefixHash: _prefix,
+        ...request
+      } = record;
+      if (
+        next.schemaVersion !== 2 ||
+        !validExtensionRequest(
+          {
+            ...request,
+            expectedLedgerIntegrity: previousLedgerIntegrity,
+          },
+          previous.capNanoUsd
+        ) ||
+        previousCapNanoUsd !== previous.capNanoUsd ||
+        hash(extendedPlan(previous, record)) !== hash(next)
+      )
+        fail("invalid_ledger");
+      transitionId = request.authorizationId;
+    }
     if (
-      !validExtensionRequest(
-        { ...request, expectedLedgerIntegrity: previousLedgerIntegrity },
-        previous.capNanoUsd
-      ) ||
       previousPlanHash !== previous.planHash ||
-      previousCapNanoUsd !== previous.capNanoUsd ||
+      !digest(previousLedgerIntegrity) ||
       !integer(entryCount) ||
       entryCount < previousEntryCount ||
       entryCount > ledger.entries.length ||
       entryPrefixHash !== hash(ledger.entries.slice(0, entryCount)) ||
-      authorizationIds.has(authorization.authorizationId) ||
-      hash(extendedPlan(previous, authorization)) !== hash(next)
+      transitionIds.has(transitionId)
     )
       fail("invalid_ledger");
     const prefix = ledger.entries.slice(0, entryCount);
@@ -804,32 +943,95 @@ function validateCapHistory(ledger) {
         (entry) =>
           !priorPlanHashes.has(entry.planHash) ||
           (entry.status !== "settled" && !entry.recovery)
-      )
+      ) ||
+      hash(
+        historicalLedgerPrefix(
+          ledger,
+          index,
+          entryCount,
+          authorizationIndex,
+          amendmentIndex
+        )
+      ) !== previousLedgerIntegrity
     )
       fail("invalid_ledger");
-    // Reconstruct the exact predecessor content, including every old entry and
-    // earlier authorization. A recomputed outer checksum cannot hide a deletion.
-    const predecessor = {
-      ...ledger,
-      schemaVersion: authorizationIndex === 0 ? 2 : 3,
-      planHash: previous.planHash,
-      capNanoUsd: previous.capNanoUsd,
-      planHistory: ledger.planHistory.slice(0, index),
-      entries: prefix,
-    };
-    if (authorizationIndex === 0) delete predecessor.capAuthorizations;
-    else
-      predecessor.capAuthorizations = ledger.capAuthorizations.slice(
-        0,
-        authorizationIndex
-      );
-    if (hash(predecessor) !== previousLedgerIntegrity) fail("invalid_ledger");
-    authorizationIds.add(authorization.authorizationId);
+    transitionIds.add(transitionId);
     previousEntryCount = entryCount;
-    authorizationIndex++;
+    if (isAmendment) amendmentIndex++;
+    else authorizationIndex++;
   }
-  if (authorizationIndex !== ledger.capAuthorizations.length)
+  if (
+    authorizationIndex !== ledger.capAuthorizations.length ||
+    amendmentIndex !== (ledger.modelAmendments?.length ?? 0)
+  )
     fail("invalid_ledger");
+}
+
+/** One durable publication protocol shared by cap and model transitions. */
+function publishBudgetTransition(
+  location,
+  oldPlan,
+  plan,
+  ledger,
+  proposed,
+  descriptor,
+  publication
+) {
+  const before = fs.readFileSync(location);
+  const auditDirectory = path.join(
+    path.dirname(location),
+    "hedwig-budget-" + descriptor.label + "-" + descriptor.id
+  );
+  fs.mkdirSync(auditDirectory, { mode: 0o700 });
+  syncParentDirectory(auditDirectory);
+  durableExclusiveWrite(
+    path.join(auditDirectory, "ledger.before.json"),
+    before
+  );
+  durableExclusiveWrite(
+    path.join(auditDirectory, "plan.proposed.json"),
+    JSON.stringify(plan, null, 2) + "\n"
+  );
+  durableExclusiveWrite(
+    path.join(auditDirectory, descriptor.label + ".intent.json"),
+    JSON.stringify(
+      {
+        [descriptor.recordKey]: descriptor.record,
+        proposedLedgerIntegrity: hash(proposed),
+        proposedPlanHash: plan.planHash,
+      },
+      null,
+      2
+    ) + "\n"
+  );
+  if (
+    !fs.readFileSync(location).equals(before) ||
+    hash(readLedger(location, oldPlan)) !== hash(ledger)
+  )
+    fail(
+      descriptor.label === "extension"
+        ? "extension_state_changed"
+        : "amendment_state_changed"
+    );
+  publication.attempted = true;
+  writeLedger(location, proposed);
+  const applied = readLedger(location, plan),
+    result = summary(applied);
+  durableExclusiveWrite(
+    path.join(auditDirectory, descriptor.label + ".applied.json"),
+    JSON.stringify(
+      {
+        [descriptor.idKey]: descriptor.id,
+        ledgerIntegrity: hash(applied),
+        planHash: plan.planHash,
+        summary: result,
+      },
+      null,
+      2
+    ) + "\n"
+  );
+  publication.completed = true;
+  return { auditDirectory, plan, summary: result };
 }
 
 /** Operator-only total-cap increase. Approval metadata records, but cannot grant, consent. */
@@ -837,10 +1039,9 @@ function extendBudgetCap(filename, suppliedPlan, request) {
   const oldPlan = validatePlan(suppliedPlan);
   if (!validExtensionRequest(request, oldPlan.capNanoUsd))
     fail("invalid_extension_request");
-  const location = ledgerLocation(filename);
-  const unlock = lockLedger(location);
-  let commitAttempted = false;
-  let completed = false;
+  const location = ledgerLocation(filename),
+    unlock = lockLedger(location);
+  const publication = { attempted: false, completed: false };
   try {
     const ledger = readLedger(location, oldPlan);
     if (ledger.schemaVersion === 1) fail("legacy_ledger_extension_refused");
@@ -852,7 +1053,6 @@ function extendBudgetCap(filename, suppliedPlan, request) {
       earlier.some((item) => item.authorizationId === request.authorizationId)
     )
       fail("duplicate_authorization");
-    const before = fs.readFileSync(location);
     const { expectedLedgerIntegrity, ...approval } = request;
     const authorization = {
       ...approval,
@@ -865,67 +1065,118 @@ function extendBudgetCap(filename, suppliedPlan, request) {
     const plan = extendedPlan(oldPlan, authorization);
     const proposed = {
       ...ledger,
-      schemaVersion: 3,
+      schemaVersion: ledger.schemaVersion === 4 ? 4 : 3,
       planHash: plan.planHash,
       capNanoUsd: plan.capNanoUsd,
       planHistory: [...ledger.planHistory, plan],
       capAuthorizations: [...earlier, authorization],
     };
     validateCapHistory(proposed);
-    const auditDirectory = path.join(
-      path.dirname(location),
-      `hedwig-budget-extension-${request.authorizationId}`
+    return publishBudgetTransition(
+      location,
+      oldPlan,
+      plan,
+      ledger,
+      proposed,
+      {
+        label: "extension",
+        id: request.authorizationId,
+        idKey: "authorizationId",
+        recordKey: "authorization",
+        record: authorization,
+      },
+      publication
     );
-    fs.mkdirSync(auditDirectory, { mode: 0o700 });
-    syncParentDirectory(auditDirectory);
-    durableExclusiveWrite(
-      path.join(auditDirectory, "ledger.before.json"),
-      before
-    );
-    durableExclusiveWrite(
-      path.join(auditDirectory, "plan.proposed.json"),
-      JSON.stringify(plan, null, 2) + "\n"
-    );
-    durableExclusiveWrite(
-      path.join(auditDirectory, "extension.intent.json"),
-      JSON.stringify(
-        {
-          authorization,
-          proposedLedgerIntegrity: hash(proposed),
-          proposedPlanHash: plan.planHash,
-        },
-        null,
-        2
-      ) + "\n"
-    );
-    if (
-      !fs.readFileSync(location).equals(before) ||
-      hash(readLedger(location, oldPlan)) !== expectedLedgerIntegrity
-    )
-      fail("extension_state_changed");
-    commitAttempted = true;
-    writeLedger(location, proposed);
-    const applied = readLedger(location, plan);
-    const result = summary(applied);
-    durableExclusiveWrite(
-      path.join(auditDirectory, "extension.applied.json"),
-      JSON.stringify(
-        {
-          authorizationId: request.authorizationId,
-          ledgerIntegrity: hash(applied),
-          planHash: plan.planHash,
-          summary: result,
-        },
-        null,
-        2
-      ) + "\n"
-    );
-    completed = true;
-    return { auditDirectory, plan, summary: result };
   } finally {
-    // A failed commit/readback/applied-receipt write retains the exclusion lock.
-    // Recovery requires inspection of the audit files; rerunning is not recovery.
-    unlock({ preserveLock: commitAttempted && !completed });
+    unlock({ preserveLock: publication.attempted && !publication.completed });
+  }
+}
+function proposeBudgetModelAmendment(ledger, oldPlan, catalog, request) {
+  if (!validModelAmendmentRequest(request)) fail("invalid_model_amendment");
+  if (
+    ![3, 4].includes(ledger.schemaVersion) ||
+    ![2, 3].includes(oldPlan.schemaVersion) ||
+    request.model === oldPlan.model
+  )
+    fail("invalid_model_amendment");
+  if (hash(ledger) !== request.expectedLedgerIntegrity)
+    fail("amendment_state_changed");
+  if (summary(ledger).blocked) fail("unsettled_request");
+  const earlier = ledger.modelAmendments ?? [];
+  if (earlier.some((item) => item.amendmentId === request.amendmentId))
+    fail("duplicate_amendment");
+  const catalogPlan = createBudgetPlan(catalog, request.model);
+  const { expectedLedgerIntegrity, ...selection } = request;
+  const amendment = {
+    kind: "model_change",
+    ...selection,
+    previousPlanHash: oldPlan.planHash,
+    previousLedgerIntegrity: expectedLedgerIntegrity,
+    entryCount: ledger.entries.length,
+    entryPrefixHash: hash(ledger.entries),
+    catalogPlanHash: catalogPlan.planHash,
+  };
+  const plan = amendedModelPlan(oldPlan, catalogPlan, amendment);
+  const proposed = {
+    ...ledger,
+    schemaVersion: 4,
+    planHash: plan.planHash,
+    planHistory: [...ledger.planHistory, plan],
+    modelAmendments: [...earlier, amendment],
+  };
+  validateCapHistory(proposed);
+  return { plan, amendment, proposed };
+}
+/** Read-only preparation is not financial authority or execution. */
+function prepareBudgetModelAmendment(filename, suppliedPlan, catalog, request) {
+  const oldPlan = validatePlan(suppliedPlan),
+    location = ledgerLocation(filename);
+  const ledger = readLedger(location, oldPlan);
+  const { plan, amendment, proposed } = proposeBudgetModelAmendment(
+    ledger,
+    oldPlan,
+    catalog,
+    request
+  );
+  return {
+    plan,
+    amendment,
+    expectedLedgerIntegrity: hash(ledger),
+    proposedLedgerIntegrity: hash(proposed),
+    summary: summary(ledger),
+  };
+}
+/** Explicit model selection reuses existing cap authority and every old charge. */
+function applyBudgetModelAmendment(filename, suppliedPlan, catalog, request) {
+  const oldPlan = validatePlan(suppliedPlan),
+    location = ledgerLocation(filename);
+  const unlock = lockLedger(location);
+  const publication = { attempted: false, completed: false };
+  try {
+    const ledger = readLedger(location, oldPlan);
+    const { plan, amendment, proposed } = proposeBudgetModelAmendment(
+      ledger,
+      oldPlan,
+      catalog,
+      request
+    );
+    return publishBudgetTransition(
+      location,
+      oldPlan,
+      plan,
+      ledger,
+      proposed,
+      {
+        label: "model-amendment",
+        id: request.amendmentId,
+        idKey: "amendmentId",
+        recordKey: "amendment",
+        record: amendment,
+      },
+      publication
+    );
+  } finally {
+    unlock({ preserveLock: publication.attempted && !publication.completed });
   }
 }
 
@@ -969,7 +1220,13 @@ function reconciliationJson(text, expectedHash, limit) {
 }
 function reconciliationModelMatches(requestedModel, reportedModel, proof) {
   if (reportedModel === requestedModel) return proof === undefined;
+  const identity = RECONCILIATION_MODEL_IDENTITIES.find(
+    (candidate) =>
+      candidate.requestedModel === requestedModel &&
+      candidate.canonicalModel === reportedModel
+  );
   return (
+    identity !== undefined &&
     reconciliationKeys(proof, [
       "schemaVersion",
       "provider",
@@ -984,14 +1241,11 @@ function reconciliationModelMatches(requestedModel, reportedModel, proof) {
     proof.endpoint === "https://openrouter.ai/api/v1/models" &&
     proof.httpStatus === 200 &&
     timestamp(proof.retrievedAt) &&
-    proof.retrievedAt === RECONCILIATION_MODEL_IDENTITY.catalogRetrievedAt &&
-    proof.providerResponseSha256 ===
-      RECONCILIATION_MODEL_IDENTITY.catalogResponseSha256 &&
+    proof.retrievedAt === identity.catalogRetrievedAt &&
+    proof.providerResponseSha256 === identity.catalogResponseSha256 &&
     reconciliationKeys(proof.data, ["id", "canonical_slug"]) &&
     proof.data.id === requestedModel &&
-    proof.data.canonical_slug === reportedModel &&
-    requestedModel === RECONCILIATION_MODEL_IDENTITY.requestedModel &&
-    reportedModel === RECONCILIATION_MODEL_IDENTITY.canonicalModel
+    proof.data.canonical_slug === reportedModel
   );
 }
 function reconciliationEvidence(request, originalEntry, entryPlan) {
@@ -1173,12 +1427,28 @@ function reconciliationOriginal(entry, plan) {
       timestamp(entry.providerCreatedAt))
   );
 }
+function immutableHistoryPrefixCount(header) {
+  return Math.max(
+    header.capAuthorizations?.at(-1)?.entryCount ?? 0,
+    header.modelAmendments?.at(-1)?.entryCount ?? 0
+  );
+}
+function reconciliationHeaderKeys(header) {
+  return [
+    "schemaVersion",
+    "planHash",
+    "capNanoUsd",
+    "planHistory",
+    "capAuthorizations",
+    ...(header?.schemaVersion === 4 ? ["modelAmendments"] : []),
+  ];
+}
 function validateReconciliationRecord(ledger, entryIndex, entryPlan) {
   const entry = ledger.entries[entryIndex],
     record = entry.reconciliation,
     header = record?.previousLedgerHeader;
   if (
-    ledger.schemaVersion !== 3 ||
+    ![3, 4].includes(ledger.schemaVersion) ||
     !reconciliationKeys(record, [
       "reconciliationId",
       "previousLedgerIntegrity",
@@ -1199,18 +1469,20 @@ function validateReconciliationRecord(ledger, entryIndex, entryPlan) {
     !timestamp(record.reconciledAt) ||
     record.entryIndex !== entryIndex ||
     record.previousEntryCount !== entryIndex + 1 ||
-    !reconciliationKeys(header, [
-      "schemaVersion",
-      "planHash",
-      "capNanoUsd",
-      "planHistory",
-      "capAuthorizations",
-    ]) ||
-    header.schemaVersion !== 3 ||
+    !reconciliationKeys(header, reconciliationHeaderKeys(header)) ||
+    ![3, 4].includes(header.schemaVersion) ||
     !Array.isArray(header.planHistory) ||
     !header.planHistory.length ||
     !Array.isArray(header.capAuthorizations) ||
     !header.capAuthorizations.length ||
+    (header.schemaVersion === 4 &&
+      (ledger.schemaVersion !== 4 ||
+        !Array.isArray(header.modelAmendments) ||
+        !header.modelAmendments.length ||
+        hash(header.modelAmendments) !==
+          hash(
+            ledger.modelAmendments.slice(0, header.modelAmendments.length)
+          ))) ||
     hash(header.planHistory) !==
       hash(ledger.planHistory.slice(0, header.planHistory.length)) ||
     hash(header.capAuthorizations) !==
@@ -1219,8 +1491,7 @@ function validateReconciliationRecord(ledger, entryIndex, entryPlan) {
       ) ||
     header.planHash !== header.planHistory.at(-1).planHash ||
     header.capNanoUsd !== header.planHistory.at(-1).capNanoUsd ||
-    record.immutablePrefixCount !==
-      header.capAuthorizations.at(-1).entryCount ||
+    record.immutablePrefixCount !== immutableHistoryPrefixCount(header) ||
     entryIndex < record.immutablePrefixCount ||
     !reconciliationOriginal(record.originalEntry, entryPlan) ||
     record.originalEntrySha256 !== hash(record.originalEntry)
@@ -1303,22 +1574,19 @@ function reconcileBudgetEntry(filename, suppliedPlan, request) {
     const entryPlan = ledger.planHistory?.find(
       (item) => item.planHash === entry?.planHash
     );
-    const immutablePrefixCount = ledger.capAuthorizations?.at(-1)?.entryCount;
+    const immutablePrefixCount = immutableHistoryPrefixCount(ledger);
     const { entries: _entries, ...previousLedgerHeader } = ledger;
     if (
-      ledger.schemaVersion !== 3 ||
+      ![3, 4].includes(ledger.schemaVersion) ||
       !entryPlan ||
       entryIndex !== ledger.entries.length - 1 ||
       !integer(immutablePrefixCount) ||
       entryIndex < immutablePrefixCount ||
       !reconciliationOriginal(entry, entryPlan) ||
-      !reconciliationKeys(previousLedgerHeader, [
-        "schemaVersion",
-        "planHash",
-        "capNanoUsd",
-        "planHistory",
-        "capAuthorizations",
-      ])
+      !reconciliationKeys(
+        previousLedgerHeader,
+        reconciliationHeaderKeys(previousLedgerHeader)
+      )
     )
       fail("ineligible_reconciliation");
     if (entry.reservedNanoUsd !== request.expectedReservationNanoUsd)
@@ -1479,12 +1747,18 @@ function boundedRequest(init, plan, reasoningProfile) {
   } else if (body.reasoning !== undefined) {
     fail("request_rejected");
   }
+  if (
+    plan.model === QWEN_INSTRUCT_MODEL &&
+    (body.temperature !== 0 || !QWEN_MAX_TOKENS.includes(body.max_tokens))
+  )
+    fail("request_rejected");
   const provider = body.provider;
   const policy = {
     data_collection: "deny",
     require_parameters: true,
     allow_fallbacks: false,
     zdr: true,
+    ...(plan.model === QWEN_INSTRUCT_MODEL ? { sort: "throughput" } : {}),
   };
   if (
     !object(provider) ||
@@ -1649,7 +1923,10 @@ function installBudgetGuard({
       writeLedger(filename, ledger);
       const receipt = await responseReceipt(
         response,
-        reasoningProfile?.deadlineMs ?? RESPONSE_DEADLINE_MS,
+        reasoningProfile?.deadlineMs ??
+          (plan.model === QWEN_INSTRUCT_MODEL
+            ? QWEN_INSTRUCT_DEADLINE_MS
+            : RESPONSE_DEADLINE_MS),
         entry.generationId
       );
       entry.completedAt = new Date().toISOString();
@@ -1711,6 +1988,8 @@ module.exports = {
   createBudgetPlan,
   initializeBudgetLedger,
   amendBudgetPlan,
+  prepareBudgetModelAmendment,
+  applyBudgetModelAmendment,
   extendBudgetCap,
   reconcileBudgetEntry,
   qualifyExistingBudgetPlan,

@@ -294,6 +294,8 @@ describe("provider failure diagnosis (no live inference)", () => {
   for (const { model, deadlineMs } of [
     { model: "openai/gpt-5.1", deadlineMs: 20_000 },
     { model: "openai/gpt-5.2", deadlineMs: 30_000 },
+    { model: "qwen/qwen3-235b-a22b-2507", deadlineMs: 45_000 },
+    { model: "qwen/qwen3-235b-a22b-2507:free", deadlineMs: 15_000 },
   ]) {
     it(`applies ${model}'s deadline and still aborts the request`, async () => {
       const nativeSetTimeout = globalThis.setTimeout;

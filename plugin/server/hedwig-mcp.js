@@ -25056,6 +25056,8 @@ var require_model_policy = __commonJS({
     var EXTENDED_REASONING_MODEL = "openai/gpt-5.2";
     var EXTENDED_REASONING_DEADLINE_MS = 3e4;
     var EXTENDED_REASONING_MAX_TOKENS = 6144;
+    var QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
+    var QWEN_INSTRUCT_DEADLINE_MS = 45e3;
     function resolveModelGenerationPolicy(model) {
       if (model === EXTENDED_REASONING_MODEL) {
         return {
@@ -25080,9 +25082,12 @@ var require_model_policy = __commonJS({
         };
       }
       return {
-        deadlineMs: STANDARD_DEADLINE_MS,
+        deadlineMs: model === QWEN_INSTRUCT_MODEL ? QWEN_INSTRUCT_DEADLINE_MS : STANDARD_DEADLINE_MS,
         maxTokens: { seed: SEED_MAX_TOKENS, foundations: FOUNDATION_MAX_TOKENS },
-        requestParameters: { temperature: 0 }
+        requestParameters: { temperature: 0 },
+        // Sorting changes preference only; privacy, price and fallback constraints
+        // remain enforced by the adapter and evaluation guard.
+        ...model === QWEN_INSTRUCT_MODEL ? { providerParameters: { sort: "throughput" } } : {}
       };
     }
   }
@@ -25279,6 +25284,7 @@ var require_openrouter = __commonJS({
               ...policy.requestParameters,
               max_tokens: policy.maxTokens[purpose],
               provider: {
+                ...policy.providerParameters,
                 data_collection: "deny",
                 require_parameters: true,
                 allow_fallbacks: false,

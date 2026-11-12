@@ -35,11 +35,11 @@ PASS. See the [payment-check guide](../consult/README.md) for shapes and limits.
 
 The default seed profile recognizes four reviewed questions about ERC-4626 shares and x402 facilitator roles. It is not yet a general DeFi knowledge base. Other wording and unsupported questions return insufficient evidence; current yields, deployment safety and deposit recommendations are outside this source pack.
 
-| HEDWIG_MODE | Exposed tools | Payment policy |
-| --- | --- | --- |
-| unset or consult | consult | Required and pinned at startup |
-| education | ask_hedwig | Not required; consult calls rejected |
-| both | consult and ask_hedwig | Required and pinned at startup |
+| HEDWIG_MODE      | Exposed tools          | Payment policy                       |
+| ---------------- | ---------------------- | ------------------------------------ |
+| unset or consult | consult                | Required and pinned at startup       |
+| education        | ask_hedwig             | Not required; consult calls rejected |
+| both             | consult and ask_hedwig | Required and pinned at startup       |
 
 A learning call has this shape:
 
@@ -51,7 +51,9 @@ The other reviewed questions are “What do ERC-4626 vault shares represent?”,
 
 The operator configures `OPENROUTER_API_KEY` and `HEDWIG_OPENROUTER_MODEL` in the server process. Use a scoped key with an approved spending cap. Never put credentials in tool arguments or commit them. No model is selected automatically, and no fallback model is configured. Without both values, supported learning requests return unavailable. In the seed profile, unsupported questions stop before generation. In the foundations profile, the model assesses whether retrieved summaries support the question.
 
-The adapter uses structured output and a bounded response. The standard generation policy has a 15-second deadline and completion limits of 1,024 tokens for the seed profile or 2,048 for foundations. An operator explicitly selecting `openai/gpt-5.1` gets low-effort reasoning, a 20-second deadline and a shared reasoning/output limit of 4,096 tokens. Selecting `openai/gpt-5.2` uses medium effort, a 30-second deadline and 6,144 shared tokens. Hidden reasoning is excluded from either response. These policies do not select or fall back to a model. A truncated completion returns unavailable. The adapter sends data-collection denial and requires zero-retention routing for non-free models. Free models may only receive public test inputs. This is an operator requirement: the server does not detect private content in a question. The question and retrieved summaries are sent to the configured provider. The reviewed questions and source notes are public; qualify provider retention and access before exposing the service to non-public inputs.
+The adapter uses structured output and a bounded response. The standard generation policy has a 15-second deadline and completion limits of 1,024 tokens for the seed profile or 2,048 for foundations. An operator explicitly selecting `openai/gpt-5.1` gets low-effort reasoning, a 20-second deadline and a shared reasoning/output limit of 4,096 tokens. Selecting `openai/gpt-5.2` uses medium effort, a 30-second deadline and 6,144 shared tokens. Hidden reasoning is excluded from either response. Selecting the exact `qwen/qwen3-235b-a22b-2507` model keeps the standard token limits and temperature zero, uses a 45-second deadline, and asks OpenRouter to prefer provider throughput. This preference retains data-collection denial, zero-retention routing, required parameter support and disabled fallbacks; the evaluation guard also retains its price ceilings. The deadline bounds waiting and does not guarantee completion within that time.
+
+These policies do not select or fall back to a model. A truncated completion returns unavailable. The adapter sends data-collection denial and requires zero-retention routing for non-free models. Free models may only receive public test inputs. This is an operator requirement: the server does not detect private content in a question. The question and retrieved summaries are sent to the configured provider. The reviewed questions and source notes are public; qualify provider retention and access before exposing the service to non-public inputs.
 
 Before sending a request, the adapter measures the complete serialized UTF-8 body, including messages and output schema, and refuses requests above 65,536 bytes. It preserves whole selected evidence units and rejects overflow instead of silently truncating them. This is a request-byte budget, not a token estimate or a claim to meet a 12,000-token budget. The local profile deliberately uses this measured transport bound together with question/unit limits, the model's output cap and deadline. The evaluation spending guard separately reserves the selected model's full input-context cost; bytes do not replace that financial boundary.
 
@@ -71,14 +73,14 @@ BM25 ranks up to nine matching chunks for a learning question. Comparison mode f
 
 An explicitly unasked comparison side has an empty section, while both selected deployment identities remain in the response metadata. Comparison mode requires both explanations unless a recognized direct instruction asks only about one selected protocol. If the model omits a required side, the application preserves the supported explanation as partial and names the missing explanation. Generated content about an explicitly unasked side is rejected. This bounded scope check still needs independent answer review for requested facts and source support. A token address clearly mentioned as an asset is distinct from a conflicting Pool or Comet selection; explicit network declarations and protocol labels attached to addresses must agree with the selected identities.
 
-| Status | Meaning |
-| --- | --- |
-| answered | The model supplied an answer and retrieved citations. |
-| partial | The answer addresses supported parts; unsupportedParts lists remaining gaps. |
-| insufficient_evidence | No answer is returned. Evidence was absent or the proposed answer failed validation. |
-| needs_clarification | Comparison identities are missing, duplicated, unsupported or in recognized conflict with the question. |
-| unavailable | Generation failed, the provider refused, the call was cancelled or no model was configured. |
-| invalid_question | The input was empty, oversized or had unexpected arguments. |
+| Status                | Meaning                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| answered              | The model supplied an answer and retrieved citations.                                                   |
+| partial               | The answer addresses supported parts; unsupportedParts lists remaining gaps.                            |
+| insufficient_evidence | No answer is returned. Evidence was absent or the proposed answer failed validation.                    |
+| needs_clarification   | Comparison identities are missing, duplicated, unsupported or in recognized conflict with the question. |
+| unavailable           | Generation failed, the provider refused, the call was cancelled or no model was configured.             |
+| invalid_question      | The input was empty, oversized or had unexpected arguments.                                             |
 
 For an answered or partial result, sources include id, title, URL, pinned revision and source-file URL. When generation is unavailable, availableSources retains reference metadata without claiming an answer. Structural validation checks citation membership and rejects unknown bracketed source IDs. It does not prove semantic support. This corpus has no current balances, yields, live endpoint status or verified current deployment state. Comparison metadata explicitly records repository snapshots and liveStateVerified=false. Mechanism code or an address-book record does not prove the implementation currently running behind a proxy, current configuration, or deposit safety.
 
@@ -91,7 +93,9 @@ The public contract retains per-source revisions and comparison snapshot metadat
 Example call:
 
 ```json
-{ "question": "Compare redeem and withdraw for someone leaving an ERC-4626 vault." }
+{
+  "question": "Compare redeem and withdraw for someone leaving an ERC-4626 vault."
+}
 ```
 
 On 2026-11-11, a repaired evaluation sample through the built stdio server produced nine answered, five insufficient-evidence and two partial results using a verified zero-price model route. Independent review found no material unsupported claims in those sixteen outputs. Earlier attempts returned unavailable on an account question, and a diagnostic answer had an invented inline citation and imprecise hash wording. The prompt and citation validation were repaired; the earlier availability failures remain unexplained. A further six questions were written before their outputs, including Portuguese explanations and an instruction-injection attempt. All six passed independent source review after an initial HTTP 429 and one cooldown retry. Across both successful samples, twelve answers, seven declines, and three partial responses matched expectations. Reported usage did not increase. These observations are small evaluation samples, not a reliability estimate or a host-app installation check.
@@ -141,7 +145,9 @@ The spending guard now saves a valid `X-Generation-Id` header before reading the
 
 A later explicit spending authorization can raise the existing total cap through the evaluation-only `extendBudgetCap` operation. It preserves every historical plan, charge and recovered unknown reservation, records the approval reference and predecessor integrity, and saves the original ledger plus intent and application receipts. The returned plan works only with that existing ledger; ordinary initialization retains its original ceiling. Old plans and stale callers stop after an extension. Catalog requalification validates the active ledger and authorization history without creating another allowance. Approval metadata records the operator's authorization evidence; the helper cannot grant consent. A failed commit or final receipt keeps the exclusion lock for inspection rather than enabling further calls.
 
-The operator-only `reconcileBudgetEntry` helper can settle a uniquely matched, latest uncertain entry after the immutable cap-history prefix. It requires reviewed final provider metadata, exact receipt and attribution hashes, the expected ledger integrity and a customer charge no greater than the reservation. Receipt projections must use normalized JSON; unknown fields, duplicate keys, conflicting IDs, earlier recovered entries and repeated reconciliation are rejected. The helper preserves the original entry, predecessor integrity, audit backup and every other charge or reservation. It cannot authenticate a provider record or establish a unique match: the operator must verify those facts before invoking it. It makes no provider calls, changes no spending cap and retains the exclusion lock if commit completion is uncertain.
+To change the explicitly selected evaluation model after a cap extension, use `prepareBudgetModelAmendment` for read-only preparation and `applyBudgetModelAmendment` for the reviewed transition. Both require the exact current ledger integrity and fresh catalog economics for an allowed model. The transition appends a model-selection record, inherits the existing cap authorization and total, and preserves every historical entry and reserve. It accepts no replacement cap. Returning to an earlier model creates a new plan; stale guards remain invalid. The new plan requires the existing ledger and cannot initialize another allowance. Locked application uses the same audited publication protocol as cap extensions. Unresolved charges block a model change.
+
+The operator-only `reconcileBudgetEntry` helper can settle a uniquely matched, latest uncertain entry after the immutable cap and model-history prefixes. It requires reviewed final provider metadata, exact receipt and attribution hashes, the expected ledger integrity and a customer charge no greater than the reservation. Receipt projections must use normalized JSON; unknown fields, duplicate keys, conflicting IDs, earlier recovered entries and repeated reconciliation are rejected. A provider's canonical model identifier is accepted only with the exact reviewed catalog binding for that requested model; arbitrary aliases and date stripping are refused. The helper preserves the original entry, predecessor integrity, audit backup and every other charge or reservation. It cannot authenticate a provider record or establish a unique match: the operator must verify those facts before invoking it. It makes no provider calls, changes no spending cap and retains the exclusion lock if commit completion is uncertain.
 
 ## Policy file
 
@@ -149,12 +155,12 @@ The policy must be a regular JSON file of at most 256 KB (262,144 bytes).
 Duplicate keys use the last value. At startup, the server pins a SHA-256 hash
 of the file's bytes and compares every later read against it.
 
-| File state | Result |
-| --- | --- |
-| Bytes changed by an edit, replacement or symlink swap | `UNKNOWN` with `ADAPTER_POLICY_CHANGED`. |
-| Deleted, unreadable, oversized, a directory or a FIFO | `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`. |
-| Unreadable at startup | Every call in that process stays `ADAPTER_POLICY_UNREADABLE`, even after a repair. |
-| Identical bytes, still readable | The policy is checked normally. |
+| File state                                            | Result                                                                             |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Bytes changed by an edit, replacement or symlink swap | `UNKNOWN` with `ADAPTER_POLICY_CHANGED`.                                           |
+| Deleted, unreadable, oversized, a directory or a FIFO | `UNKNOWN` with `ADAPTER_POLICY_UNREADABLE`.                                        |
+| Unreadable at startup                                 | Every call in that process stays `ADAPTER_POLICY_UNREADABLE`, even after a repair. |
+| Identical bytes, still readable                       | The policy is checked normally.                                                    |
 
 A changed file also produces a stderr message naming `HEDWIG_POLICY_FILE`.
 Every restart pins the file's current bytes without warning. Review the file
@@ -176,11 +182,11 @@ collect unknown-token market signals or supply their thresholds.
 
 The registry configuration is reserved for a release with usable signing keys:
 
-| Variable | Purpose |
-| --- | --- |
-| `HEDWIG_REGISTRY_URL` | Host serving signed registry entries. |
-| `HEDWIG_EVM_RPC_URL_<chain number>` | RPC used to confirm contract code on that EVM chain. |
-| `HEDWIG_REGISTRY_RATCHET_FILE` | Saved highest sequence per entry, defaulting to `~/.hedwig/registry-ratchet.json`. |
+| Variable                            | Purpose                                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| `HEDWIG_REGISTRY_URL`               | Host serving signed registry entries.                                              |
+| `HEDWIG_EVM_RPC_URL_<chain number>` | RPC used to confirm contract code on that EVM chain.                               |
+| `HEDWIG_REGISTRY_RATCHET_FILE`      | Saved highest sequence per entry, defaulting to `~/.hedwig/registry-ratchet.json`. |
 
 An unconfirmed contract code hash cannot pass. The sequence file appends one
 JSON line per increase so processes can share it. If writing fails, the
