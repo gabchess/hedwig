@@ -42703,18 +42703,53 @@ var require_expert_request = __commonJS({
       const namesDeployment = new RegExp(`\\b${deployment}(?:\\s+(?:ethereum|mainnet|usdc|pool|comet|market|deployment|address|at|is))*\\s*[([:=]?\\s*$`, "i");
       const directTarget = /\b(?:compare|against|versus|vs)\s*[([:=]?\s*$/i;
       const comparedTarget = new RegExp(`^(?:against|versus|vs|with)\\s+(?:the\\s+)?(?:${deployment}|0x[a-z0-9]+)\\b`, "i");
-      const assertedRole = suffix.match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1].split(/\b(?:in|within|for|of|at|on)\b/i)[0];
-      if (namesDeployment.test(prefix) || directTarget.test(prefix) || comparedTarget.test(suffix) || assertedRole && /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(assertedRole))
-        return "deployment";
+      const assertedRole = suffix.match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1].split(/\b(?:in|within|for|of|at|on|and|with|against|versus|vs)\b/i)[0];
+      const namedRole = prefix.match(namesDeployment)?.[0];
+      const parenthetical = suffix.match(/^\(\s*([^()]+?)\s*\)/)?.[1];
+      const parentheticalRole = parenthetical && new RegExp(`^${deployment}(?:\\s+(?:ethereum|mainnet|usdc|pool|comet|market|deployment))*$`, "i").test(parenthetical) ? parenthetical : void 0;
+      const roleLabels = [
+        namedRole,
+        parentheticalRole,
+        assertedRole && !/^not\b/i.test(assertedRole) ? assertedRole : void 0
+      ].filter((label) => !!label);
+      const assertedDeploymentIds = [];
+      if (roleLabels.some((label) => /\baave\b/i.test(label)))
+        assertedDeploymentIds.push("aave-v3-ethereum");
+      if (roleLabels.some((label) => /\b(?:compound|comet)\b/i.test(label)))
+        assertedDeploymentIds.push("compound-iii-ethereum-usdc");
+      if (namedRole || parentheticalRole || directTarget.test(prefix) || comparedTarget.test(suffix) || assertedRole && /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(assertedRole))
+        return { kind: "deployment", assertedDeploymentIds };
       if (/\b(?:(?:roles?|function|purpose)\s+of|asset|token|collateral|underlying)\b[^.;,!?\n]*$/i.test(prefix) || /^(?:as|is)\s+(?:(?:an?|the)\s+)?(?:asset|token|collateral|underlying)\b/i.test(suffix))
-        return "reference";
-      return "ambiguous";
+        return { kind: "reference", assertedDeploymentIds };
+      return { kind: "ambiguous", assertedDeploymentIds };
+    }
+    function normalizeBaseAssetRoles(text) {
+      return text.replace(/\bbase\s+(?:assets?|tokens?)\b/gi, (phrase, offset) => {
+        const explicitChainModifier = /\b(?:chain|network|rede)\s+(?:the\s+)?$/i.test(text.slice(0, offset)) || /^\s+(?:chain|network|deployments?|mainnet)\b/i.test(text.slice(offset + phrase.length));
+        return explicitChainModifier ? "Base" : "asset";
+      });
+    }
+    function hasExplicitChainDeclarationConflict(text) {
+      const names = [];
+      for (const match of text.matchAll(/\b(?:chain|network|rede)\s*(?::|=|\bnamed\b|\bcalled\b)\s*([a-z][\w-]*(?:\s+(?:mainnet|testnet))?)\b/gi))
+        names.push(match[1]);
+      for (const match of text.matchAll(/\b(?:on|em|na)\s+(?:the\s+)?([a-z][\w-]*)\s+(chain|network|mainnet|testnet)\b/gi))
+        names.push(/^(?:mainnet|testnet)$/i.test(match[2]) ? `${match[1]} ${match[2]}` : match[1]);
+      for (const match of text.matchAll(/\b(?:on|em|na)\s+(?:the\s+)?(?:chain|network|rede)\s+([a-z][\w-]*(?:\s+(?:mainnet|testnet))?)\b/gi))
+        if (/^[A-Z]/.test(match[1]))
+          names.push(match[1]);
+      for (const match of text.matchAll(/\b(?:[Oo][Nn]|[Ee][Mm]|[Nn][Aa])\s+(?:the\s+)?([A-Z][A-Za-z0-9-]*)\b/g)) {
+        const prefix = text.slice(0, match.index);
+        if (/\b(?:compare|both|deployments?|protocols?|pools?|markets?|comet|aave(?:\s+v\s*\d+)?|compound(?:\s+(?:iii|v\s*\d+))?)(?:\s+(?:(?:are|is)\s+)?(?:running|deployed))?\s*$/i.test(prefix))
+          names.push(match[1]);
+      }
+      return names.some((name) => !/^(?:ethereum(?:\s+mainnet)?|mainnet)$/i.test(name));
     }
     function hasKnownIdentityConflict(question, deployments) {
       const chainNames = "base|arbitrum|optimism|polygon|solana|avalanche|sepolia|testnet|bnb(?:\\s+chain)?";
-      const chainContext = question.replace(new RegExp(`\\b(?:excluding|except|not on|exceto)\\s+(?:the\\s+)?(?:${chainNames})\\b`, "gi"), "").replace(/\bas\s+(?:the\s+)?base\s+assets?\b/gi, "");
+      const chainContext = normalizeBaseAssetRoles(question.replace(/\b(?:excluding|except|not on|exceto)\s+(?:the\s+)?(?:(?:chain|network|rede)\s+)?[a-z][\w-]*(?:\s+(?:chain|network|mainnet|testnet))?\b/gi, ""));
       const explicitChain = new RegExp(`\\b(?:(?:on|em|na|as|rede|chain|network)\\s+(?:the\\s+)?(?:${chainNames})|(?:${chainNames})\\s+(?:chain|network|deployments?|mainnet))\\b`, "i");
-      if (explicitChain.test(chainContext))
+      if (explicitChain.test(chainContext) || hasExplicitChainDeclarationConflict(chainContext))
         return true;
       const chainIds = [
         ...chainContext.matchAll(/\b(?:chain\s*(?:id)?|eip155)\s*[:=]?\s*(\d+)\b/gi)
@@ -42736,14 +42771,16 @@ var require_expert_request = __commonJS({
       const addresses = [...question.matchAll(/\b0x[a-z0-9]+\b/gi)];
       return addresses.some((mention, index) => {
         const address = mention[0];
-        if (deployments.some((entry) => entry.address.toLowerCase() === address.toLowerCase()))
-          return false;
         if (!/^0x[a-f0-9]{40}$/i.test(address))
           return true;
         const previous = addresses[index - 1];
         const before = question.slice(previous ? previous.index + previous[0].length : 0, mention.index);
-        const after = question.slice(mention.index + address.length);
-        return addressRole(before, after) !== "reference";
+        const after = question.slice(mention.index + address.length, addresses[index + 1]?.index);
+        const role = addressRole(before, after);
+        const matchedDeployment = deployments.find((entry) => entry.address.toLowerCase() === address.toLowerCase());
+        if (matchedDeployment)
+          return role.assertedDeploymentIds.some((id) => id !== matchedDeployment.id);
+        return role.kind !== "reference";
       });
     }
     function parseExpertRequest(value) {
@@ -42815,6 +42852,53 @@ var require_comparison_answer = __commonJS({
         }
       };
     }
+    function scopeText(text) {
+      return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+    function escapePattern(text) {
+      return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    function requestedDeploymentIds(question, deployments) {
+      const all = new Set(deployments.map(({ id }) => id));
+      const text = scopeText(question);
+      if (/\b(?:compare|contrast|comparar|comparando|contraste)\b/.test(text))
+        return all;
+      if (/\b(?:both|each|two|ambos|ambas|cada|dois|duas)\s+(?:(?:selected|supplied|selecionados|informados)\s+)?(?:deployments?|protocols?|mechanisms?|protocolos?|mecanismos?)\b(?!\s+identit(?:y|ies)\b)/.test(text))
+        return all;
+      const names = deployments.map((deployment) => {
+        const aliases = [
+          deployment.id,
+          deployment.name,
+          deployment.address,
+          ...deployment.name.match(/\b(?:Aave|Compound|Comet)\b/gi) ?? []
+        ];
+        return {
+          id: deployment.id,
+          pattern: aliases.map((alias) => escapePattern(scopeText(alias))).join("|")
+        };
+      });
+      const action = "(?:explain|answer|describe|discuss|focus|cover|explique|responda|descreva|discuta|aborde|fale)";
+      const instructions = new RegExp(`\\b(?:${action}\\s+(?:only|apenas|somente)|(?:only|apenas|somente)\\s+${action})\\s+(?:(?:about|for|on|the|sobre|o|a)\\s+)*([^.;:!?\\n]+)`, "g");
+      const excluded = new RegExp(`\\b(?:not|except|excluding|nao|exceto)\\s+(?:(?:the|o|a)\\s+)?(?:${names.map(({ pattern }) => pattern).join("|")})\\b`, "g");
+      const selected = /* @__PURE__ */ new Set();
+      for (const instruction of text.matchAll(instructions)) {
+        const prefix = text.slice(0, instruction.index);
+        if (!/^(?:(?:please|por favor)\s+)?$/.test(prefix) && !/[.;!?\n]\s*(?:(?:but|instead|please|por favor|mas)\s+)*$/.test(prefix) && !/,\s*(?:but|mas)\s+$/.test(prefix))
+          return all;
+        const clause = instruction[1].replace(excluded, "");
+        const matching = names.filter(({ pattern }) => new RegExp(`\\b(?:${pattern})\\b`).test(clause));
+        if (matching.length !== 1 || !new RegExp(`^(?:${matching[0].pattern})\\b`).test(clause))
+          return all;
+        selected.add(matching[0].id);
+      }
+      if (selected.size !== 1)
+        return all;
+      const other = names.find(({ id }) => !selected.has(id));
+      const excludedOther = new RegExp(`\\b(?:not|never|don't|dont|nao|except|excluding|exceto)\\s+(?:(?:${action}|about|for|on|the|sobre|o|a)\\s+)*(?:${other.pattern})\\b`, "g");
+      if (new RegExp(`\\b(?:${other.pattern})\\b`).test(text.replace(excludedOther, "")))
+        return all;
+      return selected;
+    }
     function validateComparisonSection(raw, sources) {
       if (!exactObject(raw, SECTION_FIELDS) || typeof raw.requested !== "boolean")
         return void 0;
@@ -42839,6 +42923,7 @@ var require_comparison_answer = __commonJS({
         ...trusted.evidence.sharedSourceIds
       ].some((id) => !sourceIds.has(id)))
         return { status: "insufficient_evidence" };
+      const requestedIds = requestedDeploymentIds(question, trusted.deployments);
       try {
         const raw = await generate({
           question,
@@ -42861,8 +42946,15 @@ var require_comparison_answer = __commonJS({
           const section = validateComparisonSection(raw.sections[deployment.id], trustedSources.filter((source) => allowed.has(source.id)));
           if (!section)
             return { status: "insufficient_evidence" };
-          if (!section.requested)
+          if (!requestedIds.has(deployment.id)) {
+            if (section.requested)
+              return { status: "insufficient_evidence" };
             continue;
+          }
+          if (!section.requested) {
+            unsupportedParts.push(`${deployment.name}: Requested explanation was not provided.`);
+            continue;
+          }
           const content = section.content;
           if (content.answer)
             sections.push(`${deployment.name}:
@@ -50387,7 +50479,15 @@ var require_server_core = __commonJS({
       if (hasConsult && (!config.policyPath || !config.policyPin)) {
         throw new Error("consult mode requires a pinned policy file");
       }
-      const retrieveFoundations = hasEducation && config.knowledgeMode === "foundations" ? require_knowledge().retrieveFoundationSources : void 0;
+      let retrieveFoundations;
+      if (hasEducation && config.knowledgeMode === "foundations") {
+        try {
+          retrieveFoundations = require_knowledge().retrieveFoundationSources;
+        } catch (error) {
+          if (!hasConsult)
+            throw error;
+        }
+      }
       const server = new index_js_1.Server({ name: "hedwig-mcp", version: "0.5.1" }, { capabilities: { tools: {} } });
       server.setRequestHandler(types_js_1.ListToolsRequestSchema, async () => ({
         tools: [
@@ -50464,6 +50564,10 @@ var require_server_core = __commonJS({
           return toolResult(result);
         }
         if (name === LEARNING_TOOL_NAME && hasEducation) {
+          if (config.knowledgeMode === "foundations" && !retrieveFoundations) {
+            console.error("ask_hedwig: status=unavailable sources=0");
+            return toolResult({ status: "unavailable" });
+          }
           if (config.knowledgeMode !== "foundations" && invalidLearningArguments(args)) {
             const result2 = { status: "invalid_question" };
             console.error("ask_hedwig: status=invalid_question");

@@ -221,28 +221,57 @@ function syncParentDirectory(filename) {
 }
 function exclusiveLock(filename) {
   let fd;
+  let fileIdentity;
   const identity = JSON.stringify({ pid: process.pid, nonce: randomUUID() });
+  function ownsPath() {
+    const current = fs.lstatSync(filename, { bigint: true });
+    return (
+      fileIdentity &&
+      current.isFile() &&
+      !current.isSymbolicLink() &&
+      current.dev === fileIdentity.dev &&
+      current.ino === fileIdentity.ino
+    );
+  }
   try {
     fd = fs.openSync(filename, "wx", 0o600);
+    fileIdentity = fs.fstatSync(fd, { bigint: true });
     fs.writeFileSync(fd, identity);
     fs.fsyncSync(fd);
     syncParentDirectory(filename);
   } catch {
-    if (fd !== undefined) fs.closeSync(fd);
+    if (fd !== undefined) {
+      try {
+        // A partial identity is not yet a recoverable owner record. Remove only
+        // the inode we exclusively created, never a replacement at its path.
+        if (ownsPath()) {
+          fs.unlinkSync(filename);
+          syncParentDirectory(filename);
+        }
+      } catch {
+        /* Preserve an unremovable lock and fail closed. */
+      } finally {
+        fs.closeSync(fd);
+      }
+    }
     fail("ledger_busy");
   }
   return {
     identity,
     release({ preserveLock = false } = {}) {
-      fs.closeSync(fd);
       // A failed or interrupted cap commit is operator-recoverable evidence,
       // never permission for the next request to assume the commit succeeded.
-      if (preserveLock) return;
-      // A recovery or failed contender must never remove another owner's lock.
-      if (fs.readFileSync(filename, "utf8") !== identity)
-        fail("lock_identity_changed");
-      fs.unlinkSync(filename);
-      syncParentDirectory(filename);
+      try {
+        if (preserveLock) return;
+        // Keep the descriptor open so its inode cannot be reused during cleanup.
+        // A recovery or failed contender must never remove another owner's lock.
+        if (!ownsPath() || fs.readFileSync(filename, "utf8") !== identity)
+          fail("lock_identity_changed");
+        fs.unlinkSync(filename);
+        syncParentDirectory(filename);
+      } finally {
+        fs.closeSync(fd);
+      }
     },
   };
 }
@@ -556,6 +585,8 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
     fail("invalid_recovery_request");
   const gate = exclusiveLock(`${location}.recovery.lock`);
   let unlock;
+  let retiredLock;
+  let recoveryRecorded = false;
   try {
     const before = fs.readFileSync(location);
     const lockPath = `${location}.lock`;
@@ -571,7 +602,6 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
       rawHash(beforeLock) !== expected.expectedLockSha256 ||
       lockOwner(beforeLock) !== expected.expectedOwnerPid ||
       !entry ||
-      entry.recovery ||
       !["reserved", "uncertain"].includes(entry.status) ||
       ledger.entries.some(
         (item) => item !== entry && item.status !== "settled" && !item.recovery
@@ -579,10 +609,12 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
     )
       fail("recovery_state_changed");
     requireDeadOwner(expected.expectedOwnerPid);
-    const recoveryId = randomUUID();
+    // A prior attempt may have published this exact quarantine before failing
+    // directory or audit synchronization. Keep its original authority intact.
+    const recoveryId = entry.recovery?.recoveryId ?? randomUUID();
     const auditDirectory = path.join(
       path.dirname(location),
-      `hedwig-budget-recovery-${recoveryId}`
+      `hedwig-budget-recovery-${entry.recovery ? randomUUID() : recoveryId}`
     );
     fs.mkdirSync(auditDirectory, { mode: 0o700 });
     syncParentDirectory(auditDirectory);
@@ -594,7 +626,7 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
       path.join(auditDirectory, "ledger.lock.before"),
       beforeLock
     );
-    const recovery = {
+    const recovery = entry.recovery ?? {
       disposition: "full_reservation_accounted",
       recoveryId,
       entryId: entry.id,
@@ -621,6 +653,7 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
     )
       fail("recovery_state_changed");
     requireDeadOwner(expected.expectedOwnerPid);
+    retiredLock = { path: lockPath, bytes: beforeLock };
     fs.renameSync(lockPath, path.join(auditDirectory, "ledger.lock.retired"));
     syncParentDirectory(lockPath);
     syncParentDirectory(path.join(auditDirectory, "ledger.lock.retired"));
@@ -644,10 +677,16 @@ function recoverInterruptedReservation(filename, suppliedPlan, expected) {
         2
       ) + "\n"
     );
+    recoveryRecorded = true;
     return { auditDirectory, recoveryId, summary: recoveredSummary };
   } finally {
     try {
-      unlock?.();
+      if (unlock) unlock({ preserveLock: !recoveryRecorded });
+      else if (retiredLock && !fs.existsSync(retiredLock.path)) {
+        // A failed takeover must leave a dead-owner record for a later attempt.
+        // Exclusive creation cannot replace a contender in the takeover gap.
+        durableExclusiveWrite(retiredLock.path, retiredLock.bytes);
+      }
     } finally {
       gate.release();
     }
@@ -1564,6 +1603,7 @@ function installBudgetGuard({
     const unlock = lockLedger(filename);
     let dispatched = false;
     let outcomeRecorded = false;
+    let reservationBaseline;
     try {
       const ledger = readLedger(filename, plan);
       if (summary(ledger).blocked) fail("unsettled_request");
@@ -1574,6 +1614,7 @@ function installBudgetGuard({
       );
       if (reservedNanoUsd > plan.capNanoUsd - accountedNanoUsd)
         fail("cap_exhausted");
+      reservationBaseline = hash(ledger);
       const entry = {
         id: randomUUID(),
         ...(ledger.schemaVersion >= 2 ? { planHash: plan.planHash } : {}),
@@ -1638,9 +1679,18 @@ function installBudgetGuard({
       outcomeRecorded = true;
       return response;
     } finally {
-      // A post-dispatch storage failure may leave only the durable reservation.
-      // Keep its owner lock so reviewed interruption recovery remains possible.
-      unlock({ preserveLock: dispatched && !outcomeRecorded });
+      let preserveLock = reservationBaseline !== undefined && !outcomeRecorded;
+      if (preserveLock && !dispatched) {
+        try {
+          // A failed temp write or rename can prove no reservation appeared.
+          // Any changed or unreadable state retains exclusion for recovery.
+          preserveLock =
+            hash(readLedger(filename, plan)) !== reservationBaseline;
+        } catch {
+          /* Ambiguous publication must retain the owner lock. */
+        }
+      }
+      unlock({ preserveLock });
     }
   };
   return async (input, init) => {

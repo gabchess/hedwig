@@ -66,6 +66,18 @@ function createReportWriter(filename, repoRoot, initialReport) {
   };
   try {
     write(initialReport);
+    // A synced new file can still disappear after power loss unless its parent
+    // directory entry is synced before the runner admits provider calls. Node
+    // cannot portably sync directory handles on Windows; file sync still applies.
+    if (process.platform !== "win32") {
+      const directoryFd = fs.openSync(parent, "r");
+      try {
+        fs.fsyncSync(directoryFd);
+      } finally {
+        fs.closeSync(directoryFd);
+      }
+      assertOwnership();
+    }
   } catch (error) {
     write.close();
     throw error;

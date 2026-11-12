@@ -93,15 +93,38 @@ function addressRole(before: string, after: string) {
   );
   const assertedRole = suffix
     .match(/^(?:as|is)\s+([^.;,!?\n]+)/i)?.[1]
-    .split(/\b(?:in|within|for|of|at|on)\b/i)[0];
+    .split(/\b(?:in|within|for|of|at|on|and|with|against|versus|vs)\b/i)[0];
+  const namedRole = prefix.match(namesDeployment)?.[0];
+  const parenthetical = suffix.match(/^\(\s*([^()]+?)\s*\)/)?.[1];
+  const parentheticalRole =
+    parenthetical &&
+    new RegExp(
+      `^${deployment}(?:\\s+(?:ethereum|mainnet|usdc|pool|comet|market|deployment))*$`,
+      "i"
+    ).test(parenthetical)
+      ? parenthetical
+      : undefined;
+  const roleLabels = [
+    namedRole,
+    parentheticalRole,
+    assertedRole && !/^not\b/i.test(assertedRole) ? assertedRole : undefined,
+  ].filter((label): label is string => !!label);
+  const assertedDeploymentIds: string[] = [];
+  // "Pool" can be a generic description; only a named protocol or the
+  // specific Comet component establishes a protocol assertion here.
+  if (roleLabels.some((label) => /\baave\b/i.test(label)))
+    assertedDeploymentIds.push("aave-v3-ethereum");
+  if (roleLabels.some((label) => /\b(?:compound|comet)\b/i.test(label)))
+    assertedDeploymentIds.push("compound-iii-ethereum-usdc");
   if (
-    namesDeployment.test(prefix) ||
+    namedRole ||
+    parentheticalRole ||
     directTarget.test(prefix) ||
     comparedTarget.test(suffix) ||
     (assertedRole &&
       /\b(?:pool|comet|market|deployment|aave|compound)\b/i.test(assertedRole))
   )
-    return "deployment";
+    return { kind: "deployment", assertedDeploymentIds };
   if (
     /\b(?:(?:roles?|function|purpose)\s+of|asset|token|collateral|underlying)\b[^.;,!?\n]*$/i.test(
       prefix
@@ -110,8 +133,68 @@ function addressRole(before: string, after: string) {
       suffix
     )
   )
-    return "reference";
-  return "ambiguous";
+    return { kind: "reference", assertedDeploymentIds };
+  return { kind: "ambiguous", assertedDeploymentIds };
+}
+
+/** Normalize asset-role nouns only for the temporary chain-conflict check. */
+function normalizeBaseAssetRoles(text: string): string {
+  return text.replace(
+    /\bbase\s+(?:assets?|tokens?)\b/gi,
+    (phrase: string, offset: number) => {
+      // Explicit identity modifiers still win: "chain Base tokens" and
+      // "Base token deployment" must retain the Base chain marker.
+      const explicitChainModifier =
+        /\b(?:chain|network|rede)\s+(?:the\s+)?$/i.test(
+          text.slice(0, offset)
+        ) ||
+        /^\s+(?:chain|network|deployments?|mainnet)\b/i.test(
+          text.slice(offset + phrase.length)
+        );
+      return explicitChainModifier ? "Base" : "asset";
+    }
+  );
+}
+
+/** Bounded declarations, not a classifier for arbitrary prose about networks. */
+function hasExplicitChainDeclarationConflict(text: string): boolean {
+  const names: string[] = [];
+  // Typed declarations admit unknown names and do not depend on a chain list.
+  for (const match of text.matchAll(
+    /\b(?:chain|network|rede)\s*(?::|=|\bnamed\b|\bcalled\b)\s*([a-z][\w-]*(?:\s+(?:mainnet|testnet))?)\b/gi
+  ))
+    names.push(match[1]);
+  for (const match of text.matchAll(
+    /\b(?:on|em|na)\s+(?:the\s+)?([a-z][\w-]*)\s+(chain|network|mainnet|testnet)\b/gi
+  ))
+    names.push(
+      /^(?:mainnet|testnet)$/i.test(match[2])
+        ? `${match[1]} ${match[2]}`
+        : match[1]
+    );
+  // A lowercase noun in "on network security" is topic prose, not a named
+  // network. Lowercase identifiers remain explicit in "network: gnosis" or
+  // "on gnosis network"; arbitrary untyped lowercase names are not inferred.
+  for (const match of text.matchAll(
+    /\b(?:on|em|na)\s+(?:the\s+)?(?:chain|network|rede)\s+([a-z][\w-]*(?:\s+(?:mainnet|testnet))?)\b/gi
+  ))
+    if (/^[A-Z]/.test(match[1])) names.push(match[1]);
+  // Untyped "on Name" is recognized only as a proper named scope attached
+  // to a comparison/deployment target, not "interest on Aave" or topic prose.
+  for (const match of text.matchAll(
+    /\b(?:[Oo][Nn]|[Ee][Mm]|[Nn][Aa])\s+(?:the\s+)?([A-Z][A-Za-z0-9-]*)\b/g
+  )) {
+    const prefix = text.slice(0, match.index);
+    if (
+      /\b(?:compare|both|deployments?|protocols?|pools?|markets?|comet|aave(?:\s+v\s*\d+)?|compound(?:\s+(?:iii|v\s*\d+))?)(?:\s+(?:(?:are|is)\s+)?(?:running|deployed))?\s*$/i.test(
+        prefix
+      )
+    )
+      names.push(match[1]);
+  }
+  return names.some(
+    (name) => !/^(?:ethereum(?:\s+mainnet)?|mainnet)$/i.test(name)
+  );
 }
 
 /** Detect known contradictions, not arbitrary natural-language identities. */
@@ -121,22 +204,21 @@ function hasKnownIdentityConflict(
 ): boolean {
   const chainNames =
     "base|arbitrum|optimism|polygon|solana|avalanche|sepolia|testnet|bnb(?:\\s+chain)?";
-  const chainContext = question
-    .replace(
-      new RegExp(
-        `\\b(?:excluding|except|not on|exceto)\\s+(?:the\\s+)?(?:${chainNames})\\b`,
-        "gi"
-      ),
+  const chainContext = normalizeBaseAssetRoles(
+    question.replace(
+      /\b(?:excluding|except|not on|exceto)\s+(?:the\s+)?(?:(?:chain|network|rede)\s+)?[a-z][\w-]*(?:\s+(?:chain|network|mainnet|testnet))?\b/gi,
       ""
     )
-    // An asset's role is not a chain name. Remove only that role phrase so
-    // a separate "on Base" or "as Base deployments" still conflicts.
-    .replace(/\bas\s+(?:the\s+)?base\s+assets?\b/gi, "");
+  );
   const explicitChain = new RegExp(
     `\\b(?:(?:on|em|na|as|rede|chain|network)\\s+(?:the\\s+)?(?:${chainNames})|(?:${chainNames})\\s+(?:chain|network|deployments?|mainnet))\\b`,
     "i"
   );
-  if (explicitChain.test(chainContext)) return true;
+  if (
+    explicitChain.test(chainContext) ||
+    hasExplicitChainDeclarationConflict(chainContext)
+  )
+    return true;
   const chainIds = [
     ...chainContext.matchAll(
       /\b(?:chain\s*(?:id)?|eip155)\s*[:=]?\s*(\d+)\b/gi
@@ -167,20 +249,25 @@ function hasKnownIdentityConflict(
   const addresses = [...question.matchAll(/\b0x[a-z0-9]+\b/gi)];
   return addresses.some((mention, index) => {
     const address = mention[0];
-    if (
-      deployments.some(
-        (entry) => entry.address.toLowerCase() === address.toLowerCase()
-      )
-    )
-      return false;
     if (!/^0x[a-f0-9]{40}$/i.test(address)) return true;
     const previous = addresses[index - 1];
     const before = question.slice(
       previous ? previous.index! + previous[0].length : 0,
       mention.index
     );
-    const after = question.slice(mention.index! + address.length);
-    return addressRole(before, after) !== "reference";
+    const after = question.slice(
+      mention.index! + address.length,
+      addresses[index + 1]?.index
+    );
+    const role = addressRole(before, after);
+    const matchedDeployment = deployments.find(
+      (entry) => entry.address.toLowerCase() === address.toLowerCase()
+    );
+    if (matchedDeployment)
+      return role.assertedDeploymentIds.some(
+        (id) => id !== matchedDeployment.id
+      );
+    return role.kind !== "reference";
   });
 }
 

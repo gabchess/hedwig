@@ -1,8 +1,11 @@
 import { expect } from "chai";
 import { join } from "node:path";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { assertBuiltinFoundationPack } from "../src/foundation-pack-integrity";
 import foundationPack from "../src/knowledge/foundations.json";
+import consultRequest from "./fixtures/request.json";
 import { pinPolicyFile } from "../src/policy";
 import { createHedwigServer } from "../src/server-core";
 
@@ -130,5 +133,56 @@ describe("built-in foundation pack integrity", () => {
       })
     );
     await server.close();
+  });
+
+  it("keeps consult callable in both mode while a broken corpus fails education closed", async () => {
+    const altered = structuredClone(foundationPack);
+    altered.sources[0].chunks[0].text += " Changed after source review.";
+    const policyPath = join(__dirname, "fixtures", "policy.json");
+    let generations = 0;
+    const server = withBuiltinPack(altered, () =>
+      createHedwigServer({
+        mode: "both",
+        knowledgeMode: "foundations",
+        policyPath,
+        policyPin: pinPolicyFile(policyPath),
+        generateFoundations: async () => {
+          generations++;
+          throw new Error("corrupt corpus must never reach generation");
+        },
+      })
+    );
+    const client = new Client({ name: "corpus-isolation", version: "0" });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    try {
+      await Promise.all([
+        client.connect(clientTransport),
+        server.connect(serverTransport),
+      ]);
+      expect(
+        (await client.listTools()).tools.map((tool) => tool.name)
+      ).to.deep.equal(["consult", "ask_hedwig"]);
+      const education = await client.callTool({
+        name: "ask_hedwig",
+        arguments: { question: "Explain Ethereum accounts." },
+      });
+      expect(education.structuredContent).to.deep.equal({
+        status: "unavailable",
+      });
+      expect(generations).to.equal(0);
+      const consult = await client.callTool({
+        name: "consult",
+        arguments: { request: consultRequest },
+      });
+      expect(consult.structuredContent).to.include({
+        verdict: "ALLOW_UNDER_POLICY",
+        proceed: true,
+      });
+      expect(consult.isError).to.equal(false);
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 });

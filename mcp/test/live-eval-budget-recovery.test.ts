@@ -367,6 +367,154 @@ describe("explicit conservative budget crash recovery", () => {
     expect(readFileSync(ledgerPath)).to.deep.equal(before);
   });
 
+  for (const stage of [
+    "retirement-rename",
+    "retirement-directory-sync",
+    "replacement-write",
+    "replacement-file-sync",
+    "replacement-directory-sync",
+    "replaced-write",
+    "write",
+    "file-sync",
+    "rename",
+    "published",
+    "directory-sync",
+    "audit-write",
+  ]) {
+    it(`retries recovery after ${stage} failure without losing full accounting or the recovery authority`, () => {
+      crashAfterReservation(ledgerPath);
+      const before = JSON.parse(readFileSync(ledgerPath, "utf8"));
+      const child = spawnSync(
+        process.execPath,
+        [
+          "-e",
+          `
+        const fs=require('node:fs'), path=require('node:path'), budget=require(process.argv[1]);
+        const filename=process.argv[2], plan=JSON.parse(process.argv[3]), expected=JSON.parse(process.argv[4]), stage=process.argv[5];
+        const nativePlatform=process.platform;
+        Object.defineProperty(process,'platform',{value:'linux'});
+        const original={open:fs.openSync,close:fs.closeSync,sync:fs.fsyncSync,write:fs.writeFileSync,rename:fs.renameSync};
+        const descriptors=new Map(),virtual=new Set(); let nextFd=1000000,injected=false,published=false,retired=false,replacementCreated=false;
+        fs.openSync=(name,flags,...args)=>{
+          const directory=flags==='r' && fs.statSync(name).isDirectory();
+          const fd=directory&&nativePlatform==='win32'?nextFd++:original.open(name,flags,...args);
+          if(directory&&nativePlatform==='win32')virtual.add(fd);
+          if(String(name)===filename+'.lock'&&flags==='wx'&&retired)replacementCreated=true;
+          descriptors.set(fd,{name:String(name),directory});return fd;
+        };
+        fs.closeSync=fd=>{descriptors.delete(fd);if(virtual.delete(fd))return;return original.close(fd);};
+        const fail=()=>{injected=true;throw new Error('injected recovery '+stage);};
+        fs.writeFileSync=(fd,data,...args)=>{
+          const name=descriptors.get(fd)?.name;
+          if(!injected&&stage==='replacement-write'&&name===filename+'.lock'&&retired)fail();
+          if(!injected&&stage==='replaced-write'&&name?.endsWith('.tmp')) {
+            original.rename(filename+'.lock',filename+'.lock.replaced');
+            original.write(filename+'.lock',JSON.stringify({pid:process.pid,nonce:'replacement-owner'}),{flag:'wx'});fail();
+          }
+          if(!injected&&((stage==='write'&&name?.endsWith('.tmp'))||(stage==='audit-write'&&name?.endsWith('recovery.applied.json'))))fail();
+          return original.write(fd,data,...args);
+        };
+        fs.fsyncSync=fd=>{
+          const descriptor=descriptors.get(fd);
+          if(!injected&&((stage==='replacement-file-sync'&&descriptor?.name===filename+'.lock'&&retired)||
+             (stage==='retirement-directory-sync'&&retired&&descriptor?.directory)||
+             (stage==='replacement-directory-sync'&&replacementCreated&&descriptor?.directory)))fail();
+          if(!injected&&((stage==='file-sync'&&descriptor?.name.endsWith('.tmp'))||(stage==='directory-sync'&&published&&descriptor?.directory)))fail();
+          if(!virtual.has(fd))return original.sync(fd);
+        };
+        fs.renameSync=(from,to)=>{
+          if(to===filename&&stage==='rename'&&!injected)fail();
+          const result=original.rename(from,to);
+          if(from===filename+'.lock') {retired=true;if(stage==='retirement-rename'&&!injected)fail();}
+          if(to===filename){published=true;if(stage==='published'&&!injected)fail();}
+          return result;
+        };
+        let error;try{budget.recoverInterruptedReservation(filename,plan,expected);}catch(e){error=e.message;}
+        const ledger=JSON.parse(fs.readFileSync(filename,'utf8'));
+        const lockBytes=fs.existsSync(filename+'.lock')?fs.readFileSync(filename+'.lock'):null;
+        const owner=lockBytes?JSON.parse(lockBytes):null;let liveOwnerError;
+        if(owner?.pid===process.pid) {
+          try {budget.recoverInterruptedReservation(filename,plan,{expectedLedgerIntegrity:ledger.integrity,expectedEntryId:ledger.entries[0].id,
+            expectedLockSha256:require('node:crypto').createHash('sha256').update(lockBytes).digest('hex'),expectedOwnerPid:owner.pid});}
+          catch(e){liveOwnerError=e.message;}
+        }
+        console.log(JSON.stringify({error,injected,ledger,owner,liveOwnerError,lock:!!lockBytes,gate:fs.existsSync(filename+'.recovery.lock')}));
+      `,
+          helper,
+          ledgerPath,
+          JSON.stringify(plan),
+          JSON.stringify(expectations(ledgerPath)),
+          stage,
+        ],
+        { encoding: "utf8", timeout: 5000 }
+      );
+      expect(child.status, child.stderr).to.equal(0);
+      const failed = JSON.parse(child.stdout.trim());
+      expect(failed.error).to.contain(
+        stage.startsWith("replacement-") ? "ledger_busy" : "injected recovery"
+      );
+      expect(failed.injected).to.equal(true);
+      expect(failed.lock).to.equal(true);
+      expect(failed.gate).to.equal(false);
+      if (failed.liveOwnerError)
+        expect(failed.liveOwnerError).to.contain("owner_not_confirmed_dead");
+      if (stage === "replaced-write")
+        expect(failed.owner.nonce).to.equal("replacement-owner");
+      expect(failed.ledger.entries[0].reservedNanoUsd).to.equal(
+        before.entries[0].reservedNanoUsd
+      );
+      const recoveryBefore = failed.ledger.entries[0].recovery;
+      const resumed = budget.recoverInterruptedReservation(
+        ledgerPath,
+        plan,
+        expectations(ledgerPath)
+      );
+      expect(resumed.summary).to.include({
+        spentUsd: 0,
+        reservedUsd: 0.4223072,
+        recoveredReservedUsd: 0.4223072,
+        requestCount: 1,
+        blocked: false,
+      });
+      const after = JSON.parse(readFileSync(ledgerPath, "utf8"));
+      expect(after.planHistory).to.deep.equal(before.planHistory);
+      if (recoveryBefore)
+        expect(after.entries[0].recovery).to.deep.equal(recoveryBefore);
+      expect(after.entries[0]).not.to.have.property("costNanoUsd");
+      expect(existsSync(`${ledgerPath}.lock`)).to.equal(false);
+      expect(
+        existsSync(join(resumed.auditDirectory, "recovery.applied.json"))
+      ).to.equal(true);
+    });
+  }
+
+  it("does not unlink a different inode that copies the held lock identity", async () => {
+    const fsModule = require("node:fs");
+    let error: unknown;
+    try {
+      await budget.installBudgetGuard({
+        ledgerPath,
+        plan,
+        fetch: async () => {
+          const lock = readFileSync(`${ledgerPath}.lock`);
+          fsModule.renameSync(
+            `${ledgerPath}.lock`,
+            `${ledgerPath}.lock.retired`
+          );
+          writeFileSync(`${ledgerPath}.lock`, lock, { flag: "wx" });
+          return new Response(JSON.stringify({ usage: { cost: 0.01 } }));
+        },
+      })(endpoint, request);
+    } catch (caught) {
+      error = caught;
+    }
+    expect(String(error)).to.contain("lock_identity_changed");
+    expect(readFileSync(`${ledgerPath}.lock`)).to.deep.equal(
+      readFileSync(`${ledgerPath}.lock.retired`)
+    );
+    expect(budget.readBudgetSummary(ledgerPath, plan).spentUsd).to.equal(0.01);
+  });
+
   for (const stage of ["lock-renamed", "ledger-committed"]) {
     it(`fails closed if recovery itself stops after ${stage}`, async () => {
       crashAfterReservation(ledgerPath);

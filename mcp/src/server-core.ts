@@ -111,10 +111,16 @@ export function createHedwigServer(config: HedwigServerConfig): Server {
 
   // Corpus loading and validation belong to the selected education profile.
   // A missing or invalid foundation pack must not disable consult or seed.
-  const retrieveFoundations: FoundationRetriever | undefined =
-    hasEducation && config.knowledgeMode === "foundations"
-      ? require("./knowledge").retrieveFoundationSources
-      : undefined;
+  let retrieveFoundations: FoundationRetriever | undefined;
+  if (hasEducation && config.knowledgeMode === "foundations") {
+    try {
+      retrieveFoundations = require("./knowledge").retrieveFoundationSources;
+    } catch (error) {
+      // Education-only startup still rejects a broken pack. In both mode,
+      // retain the independent pinned-policy tool and disable education.
+      if (!hasConsult) throw error;
+    }
+  }
 
   const server = new Server(
     { name: "hedwig-mcp", version: "0.5.1" },
@@ -217,6 +223,10 @@ export function createHedwigServer(config: HedwigServerConfig): Server {
     }
 
     if (name === LEARNING_TOOL_NAME && hasEducation) {
+      if (config.knowledgeMode === "foundations" && !retrieveFoundations) {
+        console.error("ask_hedwig: status=unavailable sources=0");
+        return toolResult({ status: "unavailable" });
+      }
       if (
         config.knowledgeMode !== "foundations" &&
         invalidLearningArguments(args)

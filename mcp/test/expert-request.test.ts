@@ -147,6 +147,38 @@ describe("expert request identity boundary", () => {
       );
   });
 
+  it("separates base asset and token nouns from explicit chain modifiers", () => {
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      "Compare interest earned on base assets in Compound III with interest on Aave V3 supply balances.",
+      "Compare interest earned by supplying the base asset in Compound III with Aave V3 supply balances.",
+      "Compare USDC as base token in Compound III with Aave V3 supply balances.",
+      "Compare interest on the base token in Compound III with Aave V3.",
+      "Compare interest on BASE TOKENS in Compound III with Aave V3.",
+    ]) {
+      const result = request(question);
+      expect(result.status, question).to.equal("ready");
+      if (result.status !== "ready") throw new Error("expected ready");
+      // Lexical role normalization must not rewrite the retrieval/model input.
+      expect(result.question).to.equal(question);
+    }
+    for (const question of [
+      "Compare USDC as base token on Base with Aave V3.",
+      "Compare interest earned on base assets on the Base network.",
+      "Compare the Base mainnet USDC market, which uses USDC as base asset.",
+      "Compare the Base token deployment with Aave V3.",
+      "Compare the Base asset deployments with Aave V3.",
+      "Compare tokens on network Base with Aave V3.",
+      "Compare interest on chain Base tokens with Aave V3.",
+      "Compare USDC as base token in Compound III with Aave V2.",
+      "Compare interest on base assets; use chainId 8453.",
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+  });
+
   it("separates subordinate address references from deployment selections", () => {
     const usdc = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
     const other = "0x1111111111111111111111111111111111111111";
@@ -189,5 +221,80 @@ describe("expert request identity boundary", () => {
       expect(request(question).status, question).to.equal(
         "needs_clarification"
       );
+  });
+
+  it("checks explicit network declarations beyond recognized chain aliases", () => {
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      "Compare Aave V3 and Compound III on Gnosis.",
+      "Compare Aave V3 with Compound III, both running on Gnosis.",
+      "Compare these deployments; both are deployed on UnlistedChain.",
+      "Compare these deployments on UnlistedChain.",
+      "Compare these deployments on gnosis network.",
+      "Compare these deployments on network Cosmos.",
+      "Compare these deployments; network: UnlistedChain.",
+      "Compare these deployments; network: gnosis.",
+      "Compare these deployments na rede Gnosis.",
+      "Compare these deployments on Ethereum testnet.",
+      "Compare USDC as base token on Gnosis network with Aave V3.",
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+    for (const question of [
+      "Compare Aave V3 and Compound III on Ethereum mainnet.",
+      "Compare Aave V3 with Compound III, both running on Ethereum.",
+      "Compare these deployments on mainnet.",
+      "Compare these deployments on network ethereum.",
+      "Compare these deployments; network: mainnet.",
+      "Compare these deployments on Ethereum, not on Gnosis.",
+      "Compare these deployments on Ethereum, excluding Gnosis network.",
+      "Compare these deployments on Ethereum, except UnlistedChain.",
+      "Compare these mechanisms on interest and on withdrawals.",
+      "Compare these deployments on network security.",
+      "Compare these as documented deployments; the network is decentralized.",
+      "Compare interest on Aave V3 with interest on Compound III.",
+      "Compare interest earned on USDC in these deployments.",
+    ])
+      expect(request(question).status, question).to.equal("ready");
+  });
+
+  it("validates explicit protocol labels even for recognized deployment addresses", () => {
+    const [aave, comet] = pair.map(({ address }) => address);
+    const request = (question: string) =>
+      parseExpertRequest({ question, mode: "compare", deployments: pair });
+    for (const question of [
+      `Compare Aave V3 Pool at ${comet} with Compound III Comet at ${aave}.`,
+      `Compare ${comet} as Aave V3 Pool with ${aave} as Compound III Comet.`,
+      `Compare ${comet} (Aave V3 Pool) with ${aave} (Compound III Comet).`,
+      `The Aave V3 Pool is ${comet}. Compare it with the other deployment.`,
+      `Treat ${aave} as the Compound III Comet for this comparison.`,
+      `Compare Aave V3 Pool at ${aave} as the Compound III deployment.`,
+    ])
+      expect(request(question).status, question).to.equal(
+        "needs_clarification"
+      );
+    for (const question of [
+      `Compare Aave V3 Pool at ${aave} with Compound III Comet at ${comet}.`,
+      `Compare ${aave} as Aave V3 Pool with ${comet} as Compound III Comet.`,
+      `Compare ${aave} (Aave V3 Pool) with ${comet} (Compound III Comet).`,
+      `Compare ${comet} (mentioned in Aave documentation) with ${aave}.`,
+      `Compare Compound III Comet (${comet}) against Aave V3 Pool (${aave}).`,
+      `Compare the Compound III pool at ${comet} with the Aave V3 pool at ${aave}.`,
+      `Compare the pool at ${comet} against the pool at ${aave}.`,
+      `Compare ${aave} against Compound III Comet (${comet}).`,
+      `Compare ${comet} against ${aave}.`,
+      `Compare ${aave} with ${comet}. Aave V3 and Compound III are the selected deployments.`,
+    ]) {
+      const result = request(question);
+      expect(result.status, question).to.equal("ready");
+      if (result.status !== "ready" || result.mode !== "compare")
+        throw new Error("expected comparison");
+      expect(result.question).to.equal(question);
+      expect(
+        result.deployments.map(({ chainId, address }) => ({ chainId, address }))
+      ).to.deep.equal(pair);
+    }
   });
 });

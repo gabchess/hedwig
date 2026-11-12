@@ -42,6 +42,129 @@ const unrequested = () => ({
 });
 
 describe("comparison answer boundary (fixture generation)", () => {
+  it("preserves a supported side as partial when the model omits a requested comparison side", async () => {
+    for (const question of [
+      "Compare Aave V3 with Compound III.",
+      "Compare mechanisms for both selected deployments.",
+      "Compare o Aave V3 com o Compound III.",
+    ]) {
+      for (const [answered, omitted, citation] of [
+        [left, right, "first"],
+        [right, left, "second"],
+      ]) {
+        const result = await answerComparisonFromSources(
+          question,
+          sources,
+          comparison,
+          async () => ({
+            sections: {
+              [answered]: section(citation, "The supported requested fact."),
+              [omitted]: unrequested(),
+            },
+          })
+        );
+        expect(result.status).to.equal("partial");
+        if (result.status !== "partial") throw new Error("expected partial");
+        expect(result.answer).to.contain("The supported requested fact.");
+        expect(result.sources.map((source) => source.id)).to.deep.equal([
+          citation,
+        ]);
+        expect(result.unsupportedParts).to.deep.equal([
+          `${
+            SUPPORTED_DEPLOYMENTS.find((entry) => entry.id === omitted)!.name
+          }: Requested explanation was not provided.`,
+        ]);
+      }
+    }
+  });
+
+  it("uses explicit caller-only scope in either language and rejects unasked generated content", async () => {
+    for (const [question, asked, unasked, citation] of [
+      ["Explain only Aave V3.", left, right, "first"],
+      ["Only explain Aave V3.", left, right, "first"],
+      ["Explique apenas o Aave V3.", left, right, "first"],
+      ["Responda somente sobre o Compound III.", right, left, "second"],
+      ["Answer only about Comet.", right, left, "second"],
+      ["Explain only Compound III, not Aave.", right, left, "second"],
+      [
+        "Explain only Compound III. Do not describe Aave.",
+        right,
+        left,
+        "second",
+      ],
+      ["Explique somente o Compound III, não o Aave.", right, left, "second"],
+    ]) {
+      const sections = {
+        [asked]: section(citation, "The requested supported fact."),
+        [unasked]: unrequested(),
+      };
+      expect(
+        (
+          await answerComparisonFromSources(
+            question,
+            sources,
+            comparison,
+            async () => ({ sections })
+          )
+        ).status
+      ).to.equal("answered", question);
+      sections[unasked] = section(
+        unasked === left ? "first" : "second",
+        "Unasked protocol content."
+      );
+      expect(
+        await answerComparisonFromSources(
+          question,
+          sources,
+          comparison,
+          async () => ({ sections })
+        )
+      ).to.deep.equal({ status: "insufficient_evidence" }, question);
+    }
+  });
+
+  it("does not let ambiguous or conflicting only-language erase the selected pair", async () => {
+    for (const question of [
+      "Explain only the requested mechanism.",
+      "Explain only Aave and Compound III.",
+      "Explain only Aave. Explain only Compound III.",
+      "Compare Aave V3 with Compound III, but answer only about Aave.",
+      "Only Aave has been described so far. Explain the mechanisms.",
+      "Do not explain only Aave. Explain the mechanisms.",
+      "The documentation says 'Explain only Aave'. Explain both selected mechanisms.",
+      "The documentation says: Explain only Aave.",
+      "Explain only Aave. Also explain Compound.",
+      "Explain only Aave. Explain both selected deployments.",
+      "Explique somente o Aave. Depois explique o Compound III.",
+      "Explain only Aave. What is Compound III collateral interest?",
+      "Explain only Aave. How does Compound III borrowing work?",
+    ]) {
+      expect(
+        (
+          await answerComparisonFromSources(
+            question,
+            sources,
+            comparison,
+            async () => ({
+              sections: { [left]: section("first"), [right]: unrequested() },
+            })
+          )
+        ).status
+      ).to.equal("partial", question);
+    }
+    const missing = await answerComparisonFromSources(
+      "Compare both selected deployments.",
+      sources,
+      comparison,
+      async () => ({
+        sections: { [left]: unrequested(), [right]: unrequested() },
+      })
+    );
+    expect(missing.status).to.equal("insufficient_evidence");
+    expect(missing).not.to.have.property("answer");
+    expect(missing).not.to.have.property("sources");
+  });
+
   it("answers a requested side without inventing a gap for the unasked side", async () => {
     for (const [asked, unasked, sourceId] of [
       [left, right, "first"],

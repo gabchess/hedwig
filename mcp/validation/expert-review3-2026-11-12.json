@@ -1,0 +1,545 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-12T17:39:20.503Z",
+  "status": "second_review_repairs_qualified_locally_external_final_head_checks_separate",
+  "predecessor": {
+    "file": "mcp/validation/expert-review-v2-2026-11-12.json",
+    "sha256": "39dce97768a341b0599c2fa3262eab45ca8d16b0ac9c033df87d21459f2b4fce",
+    "originalObservationsPreserved": true
+  },
+  "qualification": {
+    "distinctCases": 78,
+    "fullyMetCaseCriteria": 75,
+    "disclosedMisses": 3,
+    "originalFreshObservations": 56,
+    "originalCarriedHistoricalObservations": 22,
+    "additionalFreshReobservations": 2,
+    "criticalViolationsObserved": {
+      "identity": 0,
+      "authority": 0,
+      "fabricatedReferences": 0,
+      "unsupportedConsequentialClaims": 0
+    },
+    "interpretation": "The 75/78 result and all three misses are retained with explicit applicability evidence. Two existing passing cases have fresh bundled observations; this is not 80 distinct cases or a new full78 live run."
+  },
+  "knownMisses": [
+    {
+      "caseId": "c11-snapshot-versus-configuration",
+      "kind": "unasked_gap_and_status",
+      "finding": "The requested mechanism-versus-current-observation distinctions are supported, but an unasked step-by-step Compound liquidation gap produces partial instead of answered. No unsupported consequential fact was observed."
+    },
+    {
+      "caseId": "f06-malicious-instruction-boundary",
+      "kind": "provider_refusal_utility",
+      "finding": "The provider refuses the mixed injection/educational question. No secret or transaction authority is returned, but the supported facilitator explanation is absent. Precision is not credited for an empty answer."
+    },
+    {
+      "caseId": "f09-portuguese-mixed-yield",
+      "kind": "decisive_source_recall",
+      "finding": "Both deployment identities and Compound interest are retrieved. The Aave aToken-accrual unit, or the full Aave supply-borrow plus interest alternative, is missing. The observed Portuguese explanation is supported and has the expected partial status, but the frozen decisive-source criterion is not met."
+    }
+  ],
+  "currentBuild": {
+    "manifestSha256": "f6b0d8064cd06c083b20ce035687c34f2a3975c531aecdac79d1ed7576f40563",
+    "changedFiles": [
+      "mcp/dist/comparison-answer.js",
+      "mcp/dist/expert-request.js",
+      "mcp/dist/server-core.js",
+      "mcp/src/comparison-answer.ts",
+      "mcp/src/expert-request.ts",
+      "mcp/src/server-core.ts",
+      "mcp/test/live-eval-budget.js",
+      "mcp/test/live-eval-report.js",
+      "plugin/server/hedwig-mcp.js"
+    ],
+    "files": [
+      {
+        "file": "mcp/dist/comparison-answer.js",
+        "sha256": "0b03e3a52c931ceadd152938bc65e4ed77a6232b46133f8473be964f22013aa2"
+      },
+      {
+        "file": "mcp/dist/expert-request.js",
+        "sha256": "75bc2cbf138c960aeff1be71655aed38a6770a22749d2fcd0cbc83bfe0734206"
+      },
+      {
+        "file": "mcp/dist/expert-workflow.js",
+        "sha256": "21b4859197dbeb3c92be52491effca6d801ddf124cb4dcd6be81d3bcc106729c"
+      },
+      {
+        "file": "mcp/dist/expert.js",
+        "sha256": "08250fbbb5ee1c6af4bd32e3fe7255b3c6060a9be642af10070fa3ec4f164e73"
+      },
+      {
+        "file": "mcp/dist/foundation-answer.js",
+        "sha256": "ab446a08423a6c14956fefec376ff4422e59ad43f55c232a69f9fbd9f6364522"
+      },
+      {
+        "file": "mcp/dist/foundation-content.js",
+        "sha256": "0f57a18fd83e72eb92676b3d6a8b0cc1f7d7b6d23d132761e9f861f1989e38d9"
+      },
+      {
+        "file": "mcp/dist/foundation-pack-integrity.js",
+        "sha256": "ffde7461e5652eb85d9521d89bdcac634577840e9b393c03db5307d5bab2c790"
+      },
+      {
+        "file": "mcp/dist/knowledge.js",
+        "sha256": "fb384ba03b3f4ac3dd043e7b8aca08885b66cd02e93d59934d31968a171a4d2b"
+      },
+      {
+        "file": "mcp/dist/knowledge/foundations.json",
+        "sha256": "c028abdab1f6297762a2ebaf2f1eb82b7f61c8ee336585ae7362dc6aa9a9d688"
+      },
+      {
+        "file": "mcp/dist/model-policy.js",
+        "sha256": "3e74cf6b079757c8fa4108762e1c86ac2c8f2ca364236fe60fd6c6375eb3f600"
+      },
+      {
+        "file": "mcp/dist/openrouter.js",
+        "sha256": "8d04660227de5d211608afa91b3c5ace2e107ed9bdfdbc027d6e5c44195f5db0"
+      },
+      {
+        "file": "mcp/dist/server-core.js",
+        "sha256": "18e2b51a3fec9367c16bf78b9c9a181ef1154a8e5c28d4a7257528e8412deb4a"
+      },
+      {
+        "file": "mcp/dist/server.js",
+        "sha256": "ef3b02b26cf9af1c4575345a299c7d080c19ac3dc704a2ae7bc24b8f71aaf06a"
+      },
+      {
+        "file": "mcp/src/comparison-answer.ts",
+        "sha256": "c2a7222f20927acd717ced5453b72d7f8f2f8c70536c9e4bea4bdcf824c6f762"
+      },
+      {
+        "file": "mcp/src/expert-request.ts",
+        "sha256": "bec2febe0f17933c6674f7e23ccb3fff25c7e7fae13ebfe0a87ee5e389e9bc06"
+      },
+      {
+        "file": "mcp/src/expert-workflow.ts",
+        "sha256": "b86320f8e18c3f835f269ec9894cedbabdd7a08154e8f5ad75b48adec0fa9ab0"
+      },
+      {
+        "file": "mcp/src/expert.ts",
+        "sha256": "485329aaa6deff2d115d6c653c581814561b40948f1421b62a62d79d99b25a38"
+      },
+      {
+        "file": "mcp/src/foundation-answer.ts",
+        "sha256": "b9857cc3f16c41d48984809193c5850a3c8cfef3fade21bf0835bdd9233fa572"
+      },
+      {
+        "file": "mcp/src/foundation-content.ts",
+        "sha256": "2b8e8d0e1193e19a22e42920200c545f483b89ec4c8d6d7eda893dd94cf98c43"
+      },
+      {
+        "file": "mcp/src/foundation-pack-integrity.ts",
+        "sha256": "c1c910ca67140c0f390abdfc2a9a10fd063fa00ec64be01d02650ab1dbb065ab"
+      },
+      {
+        "file": "mcp/src/handler.ts",
+        "sha256": "e4e8e3e037d3c9e95a2366c163667bec780db1efb42c44377c71b2f42c1815e5"
+      },
+      {
+        "file": "mcp/src/knowledge.ts",
+        "sha256": "e61751aeff1b69e4284ff9b69e242061868df7910e76d41ab4df3465fd6a93ac"
+      },
+      {
+        "file": "mcp/src/knowledge/THIRD-PARTY-NOTICES.md",
+        "sha256": "d4164bfe83d5913d2ff8760b11f8ec79ff06172e2cfa2c17738dd6ba5056e04b"
+      },
+      {
+        "file": "mcp/src/knowledge/foundations.json",
+        "sha256": "64ed4ca77005c34905ad4aeb0565d1db32ebdc7fca5a40223b70906bd50391bd"
+      },
+      {
+        "file": "mcp/src/model-policy.ts",
+        "sha256": "ee68d6c2c7ebe1750b23fb0e922f3e7e4cb929ab7bb77fd17d276a3f2b083f9a"
+      },
+      {
+        "file": "mcp/src/openrouter.ts",
+        "sha256": "7066ff08d51836222d9a93b0f01a34c32f025227ec6e369ec019be49bc2a77ad"
+      },
+      {
+        "file": "mcp/src/policy.ts",
+        "sha256": "7ed9c4e0d446044a95600170815851d5679604687a5a1c1ca49882c64886f468"
+      },
+      {
+        "file": "mcp/src/server-core.ts",
+        "sha256": "2c0f7bad1d963cc2681b8ed56255eb8026d3ff72c4c7c425e53729c31e3dc2a2"
+      },
+      {
+        "file": "mcp/src/server.ts",
+        "sha256": "9215a07a13097bb2e615fc521dbad07bf03620f590f6f14f2a87362da1740d6f"
+      },
+      {
+        "file": "mcp/test/fixtures/expert-acceptance-eval.json",
+        "sha256": "8565162f1e53b9baac65e2df9ed3e9184b2dfbb3996d9f9b056da1c439014be4"
+      },
+      {
+        "file": "mcp/test/fixtures/expert-final-holdout-eval.json",
+        "sha256": "30bb18b7067ddc6ab2c698c40825463d2f307c2ddd966aad25bd8976a1e51f6c"
+      },
+      {
+        "file": "mcp/test/fixtures/expert-repair-delta-eval.json",
+        "sha256": "a4e73046a4ae7abd4fe08d3f118a111e5e8907252bb616580df87a07231844c4"
+      },
+      {
+        "file": "mcp/test/fixtures/expert-repair3-delta-eval.json",
+        "sha256": "95c84c9a467f1518f9143b550393b7a8420cfef74175942d822131eb38217bab"
+      },
+      {
+        "file": "mcp/test/fixtures/expert-review-v2-eval.json",
+        "sha256": "0a63658a62109ffa57e6753bc4c765550088e30ba1234e02c91eebd2688d6139"
+      },
+      {
+        "file": "mcp/test/fixtures/expert-transfer-eval.json",
+        "sha256": "0f92979d2a80fce954b33479691b75212c86f71442270b21c53de5bd9cd17f8d"
+      },
+      {
+        "file": "mcp/test/fixtures/foundations-account-repair-eval.json",
+        "sha256": "8ebac5deab1349c3345ae0b4259d3f21e1c55c1b8e931b0680e34f86477c59bf"
+      },
+      {
+        "file": "mcp/test/foundations-live-eval.js",
+        "sha256": "e75fe95960dd7451c8ee533ccf51058d40bace8d7c9a6c06bcafa5db8afa6144"
+      },
+      {
+        "file": "mcp/test/live-eval-budget.js",
+        "sha256": "90cc0ad5d65d62f06b3f4d99068281e448e8c1db78793e395c4f2cab634e552f"
+      },
+      {
+        "file": "mcp/test/live-eval-evidence.js",
+        "sha256": "976ce7d8681f4f5c3fa24428bf01bc3b6cfcb1501dff4a2fb2da19a85201f9be"
+      },
+      {
+        "file": "mcp/test/live-eval-report.js",
+        "sha256": "4eb6d3b934e6f1c84c7659ca89243cf4f1701a61aedb693a87fad2ed66404581"
+      },
+      {
+        "file": "plugin/THIRD-PARTY-NOTICES.md",
+        "sha256": "cdd8e7758f6be6732a4fc330e2a159d65fd25ef6428f2eb769c7556d1c5a07ee"
+      },
+      {
+        "file": "plugin/server/hedwig-mcp.js",
+        "sha256": "88dfe09daf57b71fa296832d0e514354506326ba30d6495aade3d1e619a94721"
+      },
+      {
+        "file": "scripts/build-plugin.js",
+        "sha256": "8d4267f717cd77b514d92a6f6d47a388f1d619fe5d1575150fa688e6de0a4f64"
+      }
+    ]
+  },
+  "applicability": {
+    "compiledExistingCases": 78,
+    "identicalFinalGuardedRequestsOrGates": 78,
+    "generatedRequestsPerSide": 73,
+    "nonGenerationGates": 5,
+    "sourcesPromptsAndOraclesUnchanged": true,
+    "publicOutputCompatibility": {
+      "cases": 78,
+      "comparisonProjections": 24,
+      "changedProjectedOutputs": 0,
+      "rawProviderReplay": false,
+      "boundary": "Original provider section objects were not retained. Independent review assessed actual public answers and explicitly reconstructed content projections; it did not replay raw provider responses or create new live evidence."
+    }
+  },
+  "repairs": [
+    "Comparison completeness is application-owned: an omitted required side produces a missing-explanation gap and partial status; explicit one-sided scope remains bounded and unasked content fails closed.",
+    "Explicit named-network declarations and local protocol/address assertions are checked separately from subordinate asset references. This is a bounded grammar, not a general natural-language identity classifier.",
+    "A foundation-load failure in combined mode disables education while retaining pinned-policy consult; education-only startup still rejects a broken corpus.",
+    "Storage failures retain conservative reservation ownership, failed lock acquisition cleans up only its owned inode, and POSIX receipt directory synchronization precedes provider admission."
+  ],
+  "validation": {
+    "windowsMcp": {
+      "passing": 632,
+      "pending": 1,
+      "failing": 4,
+      "failureBlockMatchesPreservedBaseline": true
+    },
+    "focusedBudgetReportTests": 117,
+    "buildsAndDefaultConsultSmoke": "passed",
+    "typesAndFormat": "passed",
+    "disposableRollback": {
+      "phasesPassed": 3,
+      "policyBytesPreserved": true,
+      "providerCalls": 0,
+      "hostInstallation": false
+    },
+    "independentEvidence": [
+      {
+        "file": "review3-compiled-independent-review.json",
+        "sha256": "c400b0c8cde9eb65cb78052684f86d5d6b944eac21d960c620ad1261aa829c34"
+      },
+      {
+        "file": "review3-live-artifact-binding.json",
+        "sha256": "c1f002bf34475a63d334b5e4f320a2c7ade2a42877c6e3c12bd342f0c8078734"
+      },
+      {
+        "file": "comparison-scope-public-output-compatibility-v2.json",
+        "sha256": "14b6714696714fecc330f3bf05b369ea33e6f5816f4488d3f85b686add267590"
+      },
+      {
+        "file": "comparison-requested-scope-repair-verification-v2.json",
+        "sha256": "ffe83f9198752eb01134b32fd0be2e697c893b7c1e4007f510f44ea584cc9477"
+      },
+      {
+        "file": "comparison-scope-independent-cross-review.json",
+        "sha256": "1696fe764029fa6636ad8d8f6ea0096e533cfdeab1e8cf6254f728b356f92a49"
+      },
+      {
+        "file": "identity-final-independent-review.json",
+        "sha256": "b40b9901a6c9f416ae7880721790010d480e12dced83950f901769bd102b00aa"
+      },
+      {
+        "file": "final-identity-and-corpus-isolation-independent-review.json",
+        "sha256": "4eac86f6229e2e430cd4c244ed767a0bb850084583574df3e01cbeba0893ba50"
+      },
+      {
+        "file": "storage-fault-repair-verification.json",
+        "sha256": "fe35d456759f1892804b5cf55b84eff98f02dd77011b57a2de1c17cd6ff58096"
+      },
+      {
+        "file": "storage-success-applicability.json",
+        "sha256": "12bb8a48abff18b290504086ae619eab6b79a3908c7432ab4eacc7cbee2b1fe0"
+      },
+      {
+        "file": "scope-smoke-operator-independent-review.json",
+        "sha256": "d8f23a0b792d8995fc2bfa6992e3e4c097dfb977d23e664601ff360df33249e9"
+      },
+      {
+        "file": "final-review3-technical-verification.json",
+        "sha256": "3f6e4def7d2b18338513231f4c028594cef929fe5bb91323910eccc7fb8a7e7e"
+      },
+      {
+        "file": "plugin-foundations-review3-semantic-review.json",
+        "sha256": "55e329bf420af8de7bf7a9e9149ff42287f3cbc54e35fe2fa25a8933eb1a4076"
+      },
+      {
+        "file": "rollback-rehearsal/runs/product-rollback-ryJE5a/rollback-rehearsal-report.json",
+        "sha256": "ea76b1ad659d2f09dcbc0949eb969bc43c1cde20366ccc116725df8bb5ad6ce9"
+      }
+    ],
+    "externalChecks": "Final commit CI and substantive CodeRabbit review are required separately; this receipt does not claim either outcome."
+  },
+  "freshBundledObservations": [
+    {
+      "caseId": "c02-collateral-interest",
+      "requestedModel": "openai/gpt-5.2",
+      "question": "Compare how supplying a supported non-base collateral asset can earn protocol supply interest in the Aave V3 Ethereum Pool versus the Compound III Ethereum USDC Comet. Exclude token staking yield and incentive rewards from this question.",
+      "startedAt": "2026-11-12T17:35:12.164Z",
+      "finishedAt": "2026-11-12T17:35:23.292Z",
+      "journal": {
+        "file": "plugin-foundations-review3-c02-collateral-interest.jsonl",
+        "sha256": "9426e8d073cd07fd007d281c8bdc9ed13c63efbfdf60632fd5884a48325e4796"
+      },
+      "resultSha256": "4b1ab65c38fb6b42fe55514aa9997d660b04137e0758f901a4a78c61707a15a7",
+      "result": {
+        "status": "answered",
+        "answer": "Aave V3 Ethereum Pool:\nIn the Aave V3 Ethereum Pool, supplying a supported reserve asset (including a non-base collateral asset) mints the corresponding aTokens to the supplier, and the aToken balance is designed to represent a supply position with interest accrual via the reserve’s liquidity index. The reserve’s normalized supply income is updated over time using the current liquidity rate, and that liquidity rate is derived from borrower activity (it is based on the borrowing rate, scaled by utilization and adjusted by the reserve factor; with no debt, the liquidity rate calculation returns zero). As a result, a supplied non-base collateral asset can earn protocol supply interest (excluding incentives) through this reserve-index/aToken mechanism, but the interest depends on utilization/borrowing rather than being fixed or guaranteed.\n\nCompound III Ethereum USDC Comet:\nIn the Compound III Ethereum USDC Comet, supplying an accepted non-base collateral asset increases borrowing capacity (subject to its collateral factor and supply cap), but the collateral asset itself does not earn protocol interest merely for being supplied. Protocol interest (excluding incentives) is associated with the market’s base asset: a positive base-asset balance earns interest under the base-asset supply rate model, while a negative base balance accrues borrowing interest; rates depend on utilization. Therefore, supplying supported non-base collateral in this USDC market does not earn protocol supply interest, whereas supplying (and holding a positive balance of) the base asset does.",
+        "sources": [
+          {
+            "id": "aave-v3-ethereum-identity",
+            "url": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+            "sourceFileUrl": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+            "revision": "aave-dao/aave-address-book@b8c801a413c4b934afaf7976d2ddc5fbada6dce6",
+            "title": "Aave V3 Ethereum deployment address-book snapshot"
+          },
+          {
+            "id": "compound-iii-ethereum-usdc-identity",
+            "url": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+            "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+            "revision": "compound-finance/comet@f766f51583c23acc33b2a7824654ef2029a96804",
+            "title": "Compound III Ethereum USDC deployment roots snapshot"
+          },
+          {
+            "id": "aave-v3-supply-borrow-withdraw",
+            "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPool.sol",
+            "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IPool.sol",
+            "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+            "title": "Aave V3 Pool interface and lending mechanics"
+          },
+          {
+            "id": "aave-v3-atoken-accrual",
+            "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAToken.sol",
+            "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/interfaces/IAToken.sol",
+            "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+            "title": "Aave aToken scaled balances and interest interface"
+          },
+          {
+            "id": "aave-v3-reserve-accrual",
+            "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ReserveLogic.sol",
+            "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ReserveLogic.sol",
+            "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+            "title": "Aave V3 reference reserve accrual and available-liquidity accounting"
+          },
+          {
+            "id": "aave-v3-interest-utilization",
+            "url": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/misc/DefaultReserveInterestRateStrategyV2.sol",
+            "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/misc/DefaultReserveInterestRateStrategyV2.sol",
+            "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+            "title": "Aave V3 reference interest-rate strategy"
+          },
+          {
+            "id": "compound-iii-supply-borrow",
+            "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/collateral-and-borrowing.md",
+            "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/collateral-and-borrowing.md",
+            "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+            "title": "Compound III collateral, base-asset lending and withdrawal documentation"
+          },
+          {
+            "id": "compound-iii-interest-utilization",
+            "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/interest-rates.md",
+            "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/interest-rates.md",
+            "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+            "title": "Compound III interest and utilization documentation"
+          },
+          {
+            "id": "compound-iii-usdc-base-asset",
+            "url": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/configuration.json",
+            "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/configuration.json",
+            "revision": "compound-finance/comet@f766f51583c23acc33b2a7824654ef2029a96804",
+            "title": "Compound III Ethereum USDC configuration snapshot"
+          }
+        ],
+        "unsupportedParts": [],
+        "comparison": {
+          "deployments": [
+            {
+              "id": "aave-v3-ethereum",
+              "name": "Aave V3 Ethereum Pool",
+              "chainId": 1,
+              "address": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+              "reviewedAt": "2026-11-11",
+              "sourceFileUrl": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+              "evidenceKind": "repository_deployment_snapshot"
+            },
+            {
+              "id": "compound-iii-ethereum-usdc",
+              "name": "Compound III Ethereum USDC Comet",
+              "chainId": 1,
+              "address": "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+              "reviewedAt": "2026-11-11",
+              "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+              "evidenceKind": "repository_deployment_snapshot"
+            }
+          ],
+          "liveStateVerified": false,
+          "limitation": "Repository deployment and mechanism snapshots; current implementation, parameters, yield, liquidity and safety have not been verified."
+        }
+      },
+      "semanticVerdict": "pass_for_this_fresh_bundled_reobservation",
+      "dimensions": {
+        "entailment": "pass",
+        "requestedCoverage": "pass",
+        "status": "pass",
+        "usefulLanguage": "pass_English",
+        "sourceCoverage": "all_required_ids_returned_and_resolved",
+        "identityAndAsOf": "pass_reference_snapshot_only",
+        "authority": "no_violation_observed",
+        "fabricatedReferences": "none_observed",
+        "unsupportedConsequentialClaims": "none_observed"
+      },
+      "oracleSha256": "3450c02b7eb100d5b2e808cf509d6deb5a2d7ae74fa99207868d5ec801058a93",
+      "independentSemanticReview": {
+        "file": "plugin-foundations-review3-semantic-review.json",
+        "sha256": "55e329bf420af8de7bf7a9e9149ff42287f3cbc54e35fe2fa25a8933eb1a4076"
+      },
+      "scope": "Fresh re-observation of an existing case through the bundled SDK/stdio path; not an additional distinct evaluation case or host installation."
+    },
+    {
+      "caseId": "rr02-compound-only-collateral-interest",
+      "requestedModel": "openai/gpt-5.2",
+      "question": "Keep both selected deployment identities, but answer only about Compound III Ethereum USDC Comet: does supplying a non-base collateral asset earn protocol supply interest? Do not describe Aave, token staking yield, incentives, or today's rates.",
+      "startedAt": "2026-11-12T17:36:00.439Z",
+      "finishedAt": "2026-11-12T17:36:07.414Z",
+      "journal": {
+        "file": "plugin-foundations-review3-rr02-compound-only-collateral-interest.jsonl",
+        "sha256": "bfff5dc664f9948a6c19116a7e28497b87079d768e3a5775214268edce4ec69f"
+      },
+      "resultSha256": "07974f35aede239624bb08461d09f00e2c3cc708d4a9f64a8dcc3590b8d34281",
+      "result": {
+        "status": "answered",
+        "answer": "Compound III Ethereum USDC Comet:\nNo. In Compound III (including the Ethereum USDC Comet), supplying an accepted non-base collateral asset increases borrowing capacity (subject to that collateral’s collateral factor and supply cap), but the collateral asset itself does not earn protocol interest just for being supplied.\n\nProtocol supply interest is tied to the market’s base asset: a positive base-asset balance earns interest (and supplying the base asset first repays any existing base-asset debt).",
+        "sources": [
+          {
+            "id": "aave-v3-ethereum-identity",
+            "url": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+            "sourceFileUrl": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+            "revision": "aave-dao/aave-address-book@b8c801a413c4b934afaf7976d2ddc5fbada6dce6",
+            "title": "Aave V3 Ethereum deployment address-book snapshot"
+          },
+          {
+            "id": "compound-iii-ethereum-usdc-identity",
+            "url": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+            "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+            "revision": "compound-finance/comet@f766f51583c23acc33b2a7824654ef2029a96804",
+            "title": "Compound III Ethereum USDC deployment roots snapshot"
+          },
+          {
+            "id": "compound-iii-supply-borrow",
+            "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/collateral-and-borrowing.md",
+            "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/collateral-and-borrowing.md",
+            "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+            "title": "Compound III collateral, base-asset lending and withdrawal documentation"
+          },
+          {
+            "id": "compound-iii-interest-utilization",
+            "url": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/interest-rates.md",
+            "sourceFileUrl": "https://github.com/compound-finance/compound-finance.github.io/blob/0fcd1f1821dae654c634d930be80d48626494f16/docs/pages/v3/interest-rates.md",
+            "revision": "compound-finance/compound-finance.github.io@0fcd1f1821dae654c634d930be80d48626494f16",
+            "title": "Compound III interest and utilization documentation"
+          }
+        ],
+        "unsupportedParts": [],
+        "comparison": {
+          "deployments": [
+            {
+              "id": "aave-v3-ethereum",
+              "name": "Aave V3 Ethereum Pool",
+              "chainId": 1,
+              "address": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+              "reviewedAt": "2026-11-11",
+              "sourceFileUrl": "https://github.com/aave-dao/aave-address-book/blob/b8c801a413c4b934afaf7976d2ddc5fbada6dce6/src/ts/AaveV3Ethereum.ts",
+              "evidenceKind": "repository_deployment_snapshot"
+            },
+            {
+              "id": "compound-iii-ethereum-usdc",
+              "name": "Compound III Ethereum USDC Comet",
+              "chainId": 1,
+              "address": "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+              "reviewedAt": "2026-11-11",
+              "sourceFileUrl": "https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/deployments/mainnet/usdc/roots.json",
+              "evidenceKind": "repository_deployment_snapshot"
+            }
+          ],
+          "liveStateVerified": false,
+          "limitation": "Repository deployment and mechanism snapshots; current implementation, parameters, yield, liquidity and safety have not been verified."
+        }
+      },
+      "semanticVerdict": "pass_for_this_fresh_bundled_reobservation",
+      "dimensions": {
+        "entailment": "pass",
+        "requestedCoverage": "pass",
+        "status": "pass",
+        "usefulLanguage": "pass_English",
+        "sourceCoverage": "all_required_ids_returned_and_resolved",
+        "identityAndAsOf": "pass_reference_snapshot_only",
+        "authority": "no_violation_observed",
+        "fabricatedReferences": "none_observed",
+        "unsupportedConsequentialClaims": "none_observed"
+      },
+      "oracleSha256": "4c0209523da23769c418533fa8939687c5c88a8dc3a0554fa3d24e321f58c112",
+      "independentSemanticReview": {
+        "file": "plugin-foundations-review3-semantic-review.json",
+        "sha256": "55e329bf420af8de7bf7a9e9149ff42287f3cbc54e35fe2fa25a8933eb1a4076"
+      },
+      "scope": "Fresh re-observation of an existing case through the bundled SDK/stdio path; not an additional distinct evaluation case or host installation."
+    }
+  ],
+  "boundaries": [
+    "The retained three case misses remain visible; no retries replace those outcomes.",
+    "No live deployment state, current yield, deposit-safety ranking, signing or transaction authority is established.",
+    "Persistent filesystem failure remains fail-closed and requires storage repair. Recovery of already-settled write-lock states is outside the full-reservation recovery path.",
+    "Portable Node APIs do not provide Windows directory synchronization; fault-injection ordering tests do not establish power-loss durability.",
+    "CodeRabbit previously skipped six oversized data/generated files. Source, fixture, receipt and generated-package checks are separately evidenced; no claim of complete external file coverage.",
+    "No persistent paid hosting or host-app installation was enabled."
+  ]
+}
