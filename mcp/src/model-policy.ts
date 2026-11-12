@@ -8,7 +8,7 @@ type GenerationPolicy = {
     | { readonly temperature: 0 }
     | {
         readonly reasoning: {
-          readonly effort: "low" | "medium";
+          readonly effort: "low" | "medium" | "high";
           readonly exclude: true;
         };
       };
@@ -25,9 +25,22 @@ const EXTENDED_REASONING_DEADLINE_MS = 30_000;
 const EXTENDED_REASONING_MAX_TOKENS = 6144;
 const QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
 const QWEN_INSTRUCT_DEADLINE_MS = 45_000;
+const DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
+const DEEPSEEK_REASONING_DEADLINE_MS = 45_000;
+const DEEPSEEK_REASONING_MAX_TOKENS = 8192;
 
 /** Only the operator-selected model determines the generation policy. */
 export function resolveModelGenerationPolicy(model: string): GenerationPolicy {
+  if (model === DEEPSEEK_REASONING_MODEL) {
+    return {
+      deadlineMs: DEEPSEEK_REASONING_DEADLINE_MS,
+      maxTokens: {
+        seed: DEEPSEEK_REASONING_MAX_TOKENS,
+        foundations: DEEPSEEK_REASONING_MAX_TOKENS,
+      },
+      requestParameters: { reasoning: { effort: "high", exclude: true } },
+    };
+  }
   if (model === EXTENDED_REASONING_MODEL) {
     return {
       deadlineMs: EXTENDED_REASONING_DEADLINE_MS,

@@ -15,6 +15,14 @@ const QWEN_INSTRUCT_DEADLINE_MS = 45000;
 const QWEN_MAX_TOKENS = Object.freeze([1024, 2048]);
 const REASONING_PROFILES = new Map([
   [
+    "deepseek/deepseek-v4-flash-0731",
+    {
+      maxTokens: 8192,
+      deadlineMs: 45000,
+      reasoning: { effort: "high", exclude: true },
+    },
+  ],
+  [
     "openai/gpt-5.1",
     {
       maxTokens: 4096,
@@ -41,6 +49,13 @@ const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 // Explicitly reviewed public catalog identity, not a model-name heuristic.
 // Retain this historical binding when adding a separately reviewed identity.
 const RECONCILIATION_MODEL_IDENTITIES = Object.freeze([
+  Object.freeze({
+    requestedModel: "deepseek/deepseek-v4-flash-0731",
+    canonicalModel: "deepseek/deepseek-v4-flash-20260731",
+    catalogRetrievedAt: "2026-11-12T21:20:46.611Z",
+    catalogResponseSha256:
+      "9b2a13b2d8ba140a4331ba70692043345c9bc638fed6b5d766c4c34bcea9064b",
+  }),
   Object.freeze({
     requestedModel: "openai/gpt-5.2",
     canonicalModel: "openai/gpt-5.2-20251211",

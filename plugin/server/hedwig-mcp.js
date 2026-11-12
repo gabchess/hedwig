@@ -25058,7 +25058,20 @@ var require_model_policy = __commonJS({
     var EXTENDED_REASONING_MAX_TOKENS = 6144;
     var QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
     var QWEN_INSTRUCT_DEADLINE_MS = 45e3;
+    var DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
+    var DEEPSEEK_REASONING_DEADLINE_MS = 45e3;
+    var DEEPSEEK_REASONING_MAX_TOKENS = 8192;
     function resolveModelGenerationPolicy(model) {
+      if (model === DEEPSEEK_REASONING_MODEL) {
+        return {
+          deadlineMs: DEEPSEEK_REASONING_DEADLINE_MS,
+          maxTokens: {
+            seed: DEEPSEEK_REASONING_MAX_TOKENS,
+            foundations: DEEPSEEK_REASONING_MAX_TOKENS
+          },
+          requestParameters: { reasoning: { effort: "high", exclude: true } }
+        };
+      }
       if (model === EXTENDED_REASONING_MODEL) {
         return {
           deadlineMs: EXTENDED_REASONING_DEADLINE_MS,
