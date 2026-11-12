@@ -61,6 +61,27 @@ const sha = (value: string | Buffer) =>
 const current = JSON.parse(
   read("expert-review-v2-eval.json").toString("utf8")
 ) as Current;
+const runBinding = JSON.parse(
+  read("expert-review-v3-binding.json").toString("utf8")
+) as {
+  schemaVersion: number;
+  kind: string;
+  qualificationState: string;
+  caseFixture: { file: string; sha256: string; expectedCaseCount: number };
+  historicalSourcePackBinding: Current["sourcePackBinding"];
+  sourcePackBinding: Current["sourcePackBinding"];
+  addedEvidenceUnits: Array<{
+    id: string;
+    sourceId: string;
+    summarySha256: string;
+    unitSha256: string;
+    sourceFileUrl: string;
+    revision: string;
+    gitBlobSha1: string;
+    contentSha256: string;
+    sections: Array<{ heading: string; lineStart: number; lineEnd: number }>;
+  }>;
+};
 const originalHashes: Record<string, string> = {
   "expert-acceptance-eval.json":
     "8565162f1e53b9baac65e2df9ed3e9184b2dfbb3996d9f9b056da1c439014be4",
@@ -182,15 +203,36 @@ describe("versioned current review qualification fixture", () => {
         contentSha256: string;
         blobSha: string;
         sourceFileUrl: string;
-        chunks: Array<{ id: string; text: string }>;
+        revision: string;
+        chunks: Array<{ id: string; text: string; sections: unknown[] }>;
       }>;
     };
-    expect(sha(corpusBytes)).to.equal(current.sourcePackBinding.sha256);
+    expect(runBinding).to.include({
+      schemaVersion: 1,
+      kind: "source_pack_run_binding",
+      qualificationState: "not_live_qualified",
+    });
+    expect(runBinding.caseFixture).to.deep.equal({
+      file: "mcp/test/fixtures/expert-review-v2-eval.json",
+      sha256:
+        "0a63658a62109ffa57e6753bc4c765550088e30ba1234e02c91eebd2688d6139",
+      expectedCaseCount: 78,
+    });
+    expect(sha(read("expert-review-v2-eval.json"))).to.equal(
+      runBinding.caseFixture.sha256
+    );
+    expect(current.cases).to.have.length(
+      runBinding.caseFixture.expectedCaseCount
+    );
+    expect(runBinding.historicalSourcePackBinding).to.deep.equal(
+      current.sourcePackBinding
+    );
+    expect(sha(corpusBytes)).to.equal(runBinding.sourcePackBinding.sha256);
     expect(corpus.sources).to.have.length(
-      current.sourcePackBinding.sourceCount
+      runBinding.sourcePackBinding.sourceCount
     );
     expect(corpus.sources.flatMap((source) => source.chunks)).to.have.length(
-      current.sourcePackBinding.evidenceUnitCount
+      runBinding.sourcePackBinding.evidenceUnitCount
     );
     expect(current.primaryEvidence).to.have.length(8);
     for (const evidence of current.primaryEvidence) {
@@ -212,6 +254,32 @@ describe("versioned current review qualification fixture", () => {
     }
     expect(current.evidenceUnits.map((unit) => unit.id)).to.include.members(
       addedEvidence
+    );
+    expect(runBinding.addedEvidenceUnits.map((unit) => unit.id)).to.deep.equal([
+      "aave-v3-reserve-borrow-eligibility",
+    ]);
+    for (const evidence of runBinding.addedEvidenceUnits) {
+      const source = corpus.sources.find(
+        (item) => item.sourceId === evidence.sourceId
+      )!;
+      const matches = source.chunks.filter((item) => item.id === evidence.id);
+      expect(matches).to.have.length(1);
+      const chunk = matches[0];
+      expect(source).to.include({
+        sourceFileUrl: evidence.sourceFileUrl,
+        revision: evidence.revision,
+        blobSha: evidence.gitBlobSha1,
+        contentSha256: evidence.contentSha256,
+      });
+      expect(sha(chunk.text)).to.equal(evidence.summarySha256);
+      expect(sha(JSON.stringify(chunk))).to.equal(evidence.unitSha256);
+      expect(chunk.sections).to.deep.equal(evidence.sections);
+      source.chunks = source.chunks.filter((item) => item.id !== evidence.id);
+    }
+    // Removing only the declared addition must reproduce every historical
+    // source, unit and metadata field, in their original order and formatting.
+    expect(sha(JSON.stringify(corpus, null, 2) + "\n")).to.equal(
+      current.sourcePackBinding.sha256
     );
   });
 

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "source_pack_run_binding",
+  "purpose": "Bind the repaired source pack to the unchanged, previously exposed review-v2 questions and oracles. This companion is not a new suite or a live qualification receipt.",
+  "qualificationState": "not_live_qualified",
+  "caseFixture": {
+    "file": "mcp/test/fixtures/expert-review-v2-eval.json",
+    "sha256": "0a63658a62109ffa57e6753bc4c765550088e30ba1234e02c91eebd2688d6139",
+    "expectedCaseCount": 78
+  },
+  "historicalSourcePackBinding": {
+    "file": "mcp/src/knowledge/foundations.json",
+    "sha256": "64ed4ca77005c34905ad4aeb0565d1db32ebdc7fca5a40223b70906bd50391bd",
+    "sourceCount": 38,
+    "evidenceUnitCount": 56
+  },
+  "sourcePackBinding": {
+    "file": "mcp/src/knowledge/foundations.json",
+    "sha256": "5fb1666873ee1ebb32f661fff4b96484ee90e05f76faaf30bc43a6e9b7a70c3c",
+    "sourceCount": 38,
+    "evidenceUnitCount": 57
+  },
+  "addedEvidenceUnits": [
+    {
+      "id": "aave-v3-reserve-borrow-eligibility",
+      "sourceId": "aave-validation-logic",
+      "summarySha256": "7abb63b69ed9af79bf8343cf7e7771fd8b9f6b5efc349fdfdc819b939642075d",
+      "unitSha256": "88001424c203c2a1254ca8be111d2cdedf9e782d7ca4f3b45774d33293ff22f2",
+      "sourceFileUrl": "https://github.com/aave-dao/aave-v3-origin/blob/8305565ae342f1773c42cd2e4593f175fe5968a0/src/contracts/protocol/libraries/logic/ValidationLogic.sol",
+      "revision": "aave-dao/aave-v3-origin@8305565ae342f1773c42cd2e4593f175fe5968a0",
+      "gitBlobSha1": "985978099465a3f3058d62263767b8de33d4fbfb",
+      "contentSha256": "0bfb51e54f0a8589fbf24bbc03046b12ee6f189641b7a2a6f1b2874acbb2bb45",
+      "sections": [
+        {
+          "heading": "Separate supply validation",
+          "lineStart": 34,
+          "lineEnd": 64
+        },
+        {
+          "heading": "Reserve borrow eligibility and eMode branch",
+          "lineStart": 97,
+          "lineEnd": 131
+        }
+      ]
+    }
+  ]
+}

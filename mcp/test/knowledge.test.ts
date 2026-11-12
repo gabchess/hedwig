@@ -164,6 +164,40 @@ describe("foundation BM25 retrieval", () => {
     }
   });
 
+  it("preserves eMode identity across case variants without matching an ordinary mode", () => {
+    const retrieve = buildFoundationRetriever(
+      fixturePack([
+        { id: "efficiency-category", text: "An eMode category." },
+        { id: "ordinary-mode", text: "An ordinary operating mode." },
+      ])
+    );
+    for (const term of ["eMode", "emode", "EMode", "EMODE", "EmOdE"]) {
+      expect(
+        retrieve(term).map(({ id }) => id),
+        term
+      ).to.deep.equal(["efficiency-category"]);
+    }
+    expect(retrieve("mode").map(({ id }) => id)).to.deep.equal([
+      "ordinary-mode",
+    ]);
+    expect(retrieve("demode")).to.deep.equal([]);
+  });
+
+  it("does not match eMode evidence through the Portuguese conjunction e", () => {
+    const retrieve = buildFoundationRetriever(
+      fixturePack([
+        { id: "efficiency-category", text: "An eMode category." },
+        { id: "portuguese-balance", text: "balance e unidade" },
+      ])
+    );
+    for (const question of ["e", "balance e unidade"]) {
+      expect(
+        retrieve(question).map(({ id }) => id),
+        question
+      ).to.deep.equal(["portuguese-balance"]);
+    }
+  });
+
   it("meets the unchanged mixed-yield evidence contract within nine sources", () => {
     const regression = expertReview.cases.find(
       ({ id }) => id === "f09-portuguese-mixed-yield"

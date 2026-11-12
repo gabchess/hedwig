@@ -2308,6 +2308,40 @@
             }
           ],
           "text": "The pinned Aave validateHFAndLtv routine computes collateral value, debt value, current LTV and health factor for its supplied user account. It requires a nonzero current LTV, health factor at least the liquidation threshold of 1, and collateral value sufficient to cover the debt at that LTV, using ceiling division. These are account capacity checks; authorization to act for an account does not itself establish that they pass. The BorrowLogic call site determines which account is checked during borrowing. This reference does not supply current prices, account balances, parameters or an assurance that every other transaction condition is satisfied."
+        },
+        {
+          "id": "aave-v3-reserve-borrow-eligibility",
+          "topics": [
+            "Aave V3",
+            "borrowable assets",
+            "reserve configuration"
+          ],
+          "keywords": [
+            "Aave",
+            "reserve",
+            "asset",
+            "borrowable",
+            "borrowingEnabled",
+            "eMode",
+            "borrowableBitmap",
+            "supply",
+            "market",
+            "empréstimo",
+            "reserva"
+          ],
+          "sections": [
+            {
+              "heading": "Separate supply validation",
+              "lineStart": 34,
+              "lineEnd": 64
+            },
+            {
+              "heading": "Reserve borrow eligibility and eMode branch",
+              "lineStart": 97,
+              "lineEnd": 131
+            }
+          ],
+          "text": "Borrowing an Aave V3 reserve asset is conditional, not implied by supporting that asset for supply. In the pinned validateBorrow code, the reserve must be active, unpaused and unfrozen. When the user has an eMode category, the reserve must be enabled in that category's borrowable bitmap; outside eMode, the reserve's borrowingEnabled flag must be true. The separate validateSupply routine does not check this borrowing permission. Consequently, a multi-reserve market does not make every supplied reserve asset borrowable. These are asset-eligibility prerequisites, separate from the account's collateral capacity and other borrow checks. They do not assert today's reserve or mode configuration, active implementation or permission to execute a borrow."
         }
       ],
       "scope": "Pinned reference-code mechanism. This is not an attestation of the currently active implementation at the Ethereum Pool proxy, current parameter values or current APY.",
