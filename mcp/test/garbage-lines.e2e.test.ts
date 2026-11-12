@@ -10,6 +10,17 @@ import { SERVER_PATH, VALID_POLICY, assertServerBuilt } from "./e2e-helpers";
 // bad line, so a longer marker would never appear whole.
 const CANARY = "CANARY9";
 
+function isolatedConsultEnvironment(policyPath: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    HEDWIG_MODE: "consult",
+    HEDWIG_POLICY_FILE: policyPath,
+  };
+  delete env.OPENROUTER_API_KEY;
+  delete env.HEDWIG_OPENROUTER_MODEL;
+  return env;
+}
+
 // Lines no client library would send, written straight onto the server's
 // stdin: each is one message a caller can produce with a single write.
 const GARBAGE_LINES = [
@@ -34,7 +45,7 @@ interface Outcome {
 function driveServer(policyPath: string, request: unknown): Promise<Outcome> {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [SERVER_PATH], {
-      env: { ...process.env, HEDWIG_POLICY_FILE: policyPath },
+      env: isolatedConsultEnvironment(policyPath),
     });
     let stdout = "";
     let stderr = "";
@@ -125,7 +136,7 @@ describe("malformed lines written straight onto stdin", function () {
 
   it("a message over the transport limit exits non-zero with one fixed line", async () => {
     const child = spawn(process.execPath, [SERVER_PATH], {
-      env: { ...process.env, HEDWIG_POLICY_FILE: policyPath },
+      env: isolatedConsultEnvironment(policyPath),
     });
     let stderr = "";
     child.stderr.on("data", (chunk: Buffer) => {
