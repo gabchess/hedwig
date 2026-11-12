@@ -46,11 +46,17 @@ async function main() {
       : "(no license file)";
     return `## ${name} ${pkg.version} (${pkg.license})\n\n${text}\n`;
   });
+  const corpusNotices = fs
+    .readFileSync(
+      path.join(root, "mcp/src/knowledge/THIRD-PARTY-NOTICES.md"),
+      "utf8"
+    )
+    .trim();
   fs.writeFileSync(
     path.join(root, "plugin/THIRD-PARTY-NOTICES.md"),
     `# Third-party notices\n\nThe bundled server contains these packages.\n\n${sections.join(
       "\n"
-    )}`
+    )}\n## Reference corpus notices\n\n${corpusNotices}\n`
   );
 }
 

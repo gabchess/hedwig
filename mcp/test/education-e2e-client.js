@@ -7,11 +7,12 @@ const {
 } = require("@modelcontextprotocol/sdk/client/stdio.js");
 const { isolatedServerEnvironment } = require("./isolated-env.js");
 
-const [, , serverPath] = process.argv;
+const [, , serverPath, knowledgeMode = "seed"] = process.argv;
 
 async function main() {
   const env = isolatedServerEnvironment(getDefaultEnvironment(), "education");
   delete env.HEDWIG_POLICY_FILE;
+  env.HEDWIG_KNOWLEDGE_MODE = knowledgeMode;
 
   const stderr = [];
   const transport = new StdioClientTransport({
@@ -26,7 +27,12 @@ async function main() {
   const tools = await client.listTools();
   const supported = await client.callTool({
     name: "ask_hedwig",
-    arguments: { question: "What are ERC-4626 vault shares?" },
+    arguments: {
+      question:
+        knowledgeMode === "foundations"
+          ? "What does the balance field of an Ethereum account mean?"
+          : "What are ERC-4626 vault shares?",
+    },
   });
   const unsupported = await client.callTool({
     name: "ask_hedwig",

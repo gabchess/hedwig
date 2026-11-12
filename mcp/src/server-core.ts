@@ -13,6 +13,11 @@ import {
   MAX_LEARNING_QUESTION_CHARS,
   type GenerateAnswer,
 } from "./expert";
+import {
+  answerFromFoundationSources,
+  type GenerateFoundationAnswer,
+} from "./foundation-answer";
+import { retrieveFoundationSources } from "./knowledge";
 import { handleConsult, unknownAdapterResponse } from "./handler";
 import type { PolicyPin } from "./policy";
 
@@ -27,6 +32,16 @@ const LEARNING_TOOL_DESCRIPTION =
     .join("; ") +
   ". Case, whitespace and final question marks may vary. Other wording returns insufficient_evidence.";
 
+const FOUNDATIONS_TOOL_DESCRIPTION =
+  "Ask Hedwig educational questions about Ethereum accounts and transactions, ERC-4626 vault mechanics, and x402 v2 payments. Answers use retrieved, versioned reference summaries with source links. A response may answer part of a question or report insufficient evidence. This corpus does not establish current balances, yields, deployment safety, or permission to transact.";
+
+export type KnowledgeMode = "seed" | "foundations";
+export function resolveKnowledgeMode(value: string | undefined): KnowledgeMode {
+  const mode = value === undefined ? "seed" : value.trim();
+  if (mode === "seed" || mode === "foundations") return mode;
+  throw new Error("HEDWIG_KNOWLEDGE_MODE must be seed or foundations");
+}
+
 export type HedwigMode = "consult" | "education" | "both";
 
 export type HedwigServerConfig = {
@@ -34,6 +49,8 @@ export type HedwigServerConfig = {
   policyPath?: string;
   policyPin?: PolicyPin;
   generate?: GenerateAnswer;
+  knowledgeMode?: KnowledgeMode;
+  generateFoundations?: GenerateFoundationAnswer;
 };
 
 export function resolveHedwigMode(value: string | undefined): HedwigMode {
@@ -117,7 +134,10 @@ export function createHedwigServer(config: HedwigServerConfig): Server {
         ? [
             {
               name: LEARNING_TOOL_NAME,
-              description: LEARNING_TOOL_DESCRIPTION,
+              description:
+                config.knowledgeMode === "foundations"
+                  ? FOUNDATIONS_TOOL_DESCRIPTION
+                  : LEARNING_TOOL_DESCRIPTION,
               inputSchema: {
                 type: "object" as const,
                 properties: {
@@ -139,6 +159,8 @@ export function createHedwigServer(config: HedwigServerConfig): Server {
     throw new Error("learning generator is not configured");
   };
   const generate = config.generate ?? unavailableGenerator;
+  const generateFoundations: GenerateFoundationAnswer =
+    config.generateFoundations ?? unavailableGenerator;
 
   server.fallbackRequestHandler = async (request) => {
     if (request.method !== "tools/call") {
@@ -171,9 +193,18 @@ export function createHedwigServer(config: HedwigServerConfig): Server {
         return toolResult(result);
       }
       const question = (args as { question: string }).question;
-      const result = await answerLearningQuestion(question, generate);
+      const result =
+        config.knowledgeMode === "foundations"
+          ? await answerFromFoundationSources(
+              question,
+              retrieveFoundationSources(question),
+              generateFoundations
+            )
+          : await answerLearningQuestion(question, generate);
       const sourceCount =
-        result.status === "answered" ? result.sources.length : 0;
+        result.status === "answered" || result.status === "partial"
+          ? result.sources.length
+          : 0;
       console.error(
         `ask_hedwig: status=${result.status} sources=${sourceCount}`
       );

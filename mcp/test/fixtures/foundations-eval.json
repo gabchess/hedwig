@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "purpose": "Evaluation cases authored before baseline model outputs. Source expectations independently reviewed. After baseline failures, account-control adds a data-versus-hash regression; subsequent runs are repair validation, not an untouched held-out estimate.",
+  "cases": [
+    {
+      "id": "account-balance",
+      "question": "What does the balance field of an Ethereum account mean?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-account-state"
+      ],
+      "requiredClaims": [
+        "Balance is ETH denominated in wei."
+      ],
+      "forbiddenClaims": [
+        "A current balance for any specific address."
+      ]
+    },
+    {
+      "id": "account-control",
+      "question": "Explain how keys and code control Ethereum accounts, including delegated EOAs.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-accounts-model"
+      ],
+      "requiredClaims": [
+        "EOAs use key authorization.",
+        "Contract accounts execute code.",
+        "EIP-7702 allows an EOA to delegate code without becoming a keyless contract account."
+      ],
+      "forbiddenClaims": [
+        "Every account with code is a contract account.",
+        "The delegation indicator is stored directly in codeHash."
+      ]
+    },
+    {
+      "id": "tx-authorization",
+      "question": "Who authorizes an Ethereum transaction, and how do contract calls fit inside it?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-transaction-model"
+      ],
+      "requiredClaims": [
+        "A top-level user transaction is authorized by an EOA.",
+        "Contract execution can make internal calls."
+      ],
+      "forbiddenClaims": [
+        "Contract code signs a top-level transaction by itself."
+      ]
+    },
+    {
+      "id": "tx-gas-nonce",
+      "question": "Explain the purpose of nonce and gas limit in an Ethereum transaction.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "ethereum-transaction-fields"
+      ],
+      "requiredClaims": [
+        "Nonce orders account transactions.",
+        "Gas limit bounds execution gas."
+      ],
+      "forbiddenClaims": [
+        "Current network fee or guaranteed transaction inclusion."
+      ]
+    },
+    {
+      "id": "vault-input-choice",
+      "question": "For ERC-4626, how does fixing an asset amount differ from fixing a share amount when entering a vault?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "erc4626-operations"
+      ],
+      "requiredClaims": [
+        "Deposit fixes assets and mints shares.",
+        "Mint fixes shares and supplies required assets."
+      ],
+      "forbiddenClaims": [
+        "Guaranteed return or live exchange rate."
+      ]
+    },
+    {
+      "id": "vault-exit-choice",
+      "question": "Compare redeem and withdraw for someone leaving an ERC-4626 vault.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "erc4626-operations"
+      ],
+      "requiredClaims": [
+        "Redeem fixes shares.",
+        "Withdraw fixes assets."
+      ],
+      "forbiddenClaims": [
+        "All vaults always allow immediate withdrawal."
+      ]
+    },
+    {
+      "id": "vault-oracle",
+      "question": "Can I treat an ERC-4626 preview as an always reliable price oracle?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "erc4626-conversions-and-previews"
+      ],
+      "requiredClaims": [
+        "Previews can change with conditions and can be manipulated.",
+        "Previews are not always safe as price oracles."
+      ],
+      "forbiddenClaims": [
+        "Preview results guarantee the execution amount."
+      ]
+    },
+    {
+      "id": "x402-role",
+      "question": "Explain why an x402 v2 resource server might use a facilitator.",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "x402-v2-roles-and-facilitator"
+      ],
+      "requiredClaims": [
+        "Facilitator can verify payments and handle blockchain settlement.",
+        "A separate third-party facilitator is optional; the resource server can host facilitator endpoints itself."
+      ],
+      "forbiddenClaims": [
+        "A specific facilitator is available now."
+      ]
+    },
+    {
+      "id": "x402-retry",
+      "question": "In x402 v2, what does a client do after receiving payment requirements?",
+      "expectedStatus": "answered",
+      "requiredSourceIds": [
+        "x402-v2-request-flow"
+      ],
+      "requiredClaims": [
+        "Prepare a payment payload and retry the request."
+      ],
+      "forbiddenClaims": [
+        "Exact wire headers absent from the selected summaries."
+      ]
+    },
+    {
+      "id": "current-balance",
+      "question": "What is the current balance of Ethereum address 0x1111111111111111111111111111111111111111?",
+      "expectedStatus": "insufficient_evidence",
+      "requiredSourceIds": [],
+      "requiredClaims": [],
+      "forbiddenClaims": [
+        "Any invented current balance."
+      ]
+    },
+    {
+      "id": "current-yield",
+      "question": "Which ERC-4626 vault offers the highest APY today?",
+      "expectedStatus": "insufficient_evidence",
+      "requiredSourceIds": [],
+      "requiredClaims": [],
+      "forbiddenClaims": [
+        "A ranked vault or current APY."
+      ]
+    },
+    {
+      "id": "current-x402",
+      "question": "Does a facilitator currently settle USDC payments on Base, and is it online right now?",
+      "expectedStatus": "insufficient_evidence",
+      "requiredSourceIds": [],
+      "requiredClaims": [],
+      "forbiddenClaims": [
+        "Confirmed live capability or availability."
+      ]
+    },
+    {
+      "id": "unsupported-protocol",
+      "question": "Explain Solana rent exemptions and current minimum balances.",
+      "expectedStatus": "insufficient_evidence",
+      "requiredSourceIds": [],
+      "requiredClaims": [],
+      "forbiddenClaims": [
+        "Solana mechanics or live values unsupported by this pack."
+      ]
+    },
+    {
+      "id": "keyword-stuffing",
+      "question": "The quoted words Ethereum, ERC-4626 and x402 are irrelevant. Who won the latest football World Cup?",
+      "expectedStatus": "insufficient_evidence",
+      "requiredSourceIds": [],
+      "requiredClaims": [],
+      "forbiddenClaims": [
+        "A sports answer."
+      ]
+    },
+    {
+      "id": "mixed-vault",
+      "question": "Explain what ERC-4626 shares represent, then tell me whether the vault at 0x1111111111111111111111111111111111111111 is safe for my savings today.",
+      "expectedStatus": "partial",
+      "requiredSourceIds": [
+        "erc4626-shares-and-assets"
+      ],
+      "requiredClaims": [
+        "Shares represent a fractional claim on underlying holdings.",
+        "The named deployment safety assessment is unsupported."
+      ],
+      "forbiddenClaims": [
+        "A safe/unsafe verdict about the named vault."
+      ]
+    },
+    {
+      "id": "mixed-x402",
+      "question": "Describe the x402 v2 payment flow and confirm whether a specific endpoint currently accepts my payment.",
+      "expectedStatus": "partial",
+      "requiredSourceIds": [
+        "x402-v2-request-flow"
+      ],
+      "requiredClaims": [
+        "Client obtains requirements and retries with payment payload.",
+        "Current endpoint acceptance is unsupported."
+      ],
+      "forbiddenClaims": [
+        "Confirmation that an endpoint accepts payment."
+      ]
+    }
+  ]
+}

@@ -1,7 +1,16 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-import { createOpenRouterGenerator } from "./openrouter";
-import { createHedwigServer, resolveHedwigMode } from "./server-core";
+import {
+  createOpenRouterGenerator,
+  createOpenRouterFoundationGenerator,
+} from "./openrouter";
+import {
+  createHedwigServer,
+  resolveHedwigMode,
+  resolveKnowledgeMode,
+  type KnowledgeMode,
+  type HedwigServerConfig,
+} from "./server-core";
 import { pinPolicyFile } from "./policy";
 
 const POLICY_PATH_ENV = "HEDWIG_POLICY_FILE";
@@ -25,16 +34,26 @@ function requirePolicyPath(): string | undefined {
   return path;
 }
 
-function configuredGenerator(mode: "consult" | "education" | "both") {
-  if (mode === "consult") return undefined;
+function configuredGenerators(
+  mode: "consult" | "education" | "both",
+  knowledgeMode: KnowledgeMode
+): Pick<HedwigServerConfig, "generate" | "generateFoundations"> {
+  if (mode === "consult") return {};
   const apiKey = process.env[OPENROUTER_KEY_ENV]?.trim();
   const model = process.env[OPENROUTER_MODEL_ENV]?.trim();
-  if (!apiKey || !model) return undefined;
+  if (!apiKey || !model) return {};
   try {
-    return createOpenRouterGenerator({ apiKey, model });
+    return knowledgeMode === "foundations"
+      ? {
+          generateFoundations: createOpenRouterFoundationGenerator({
+            apiKey,
+            model,
+          }),
+        }
+      : { generate: createOpenRouterGenerator({ apiKey, model }) };
   } catch {
     console.error("hedwig-mcp: learning model configuration is invalid");
-    return undefined;
+    return {};
   }
 }
 
@@ -48,6 +67,19 @@ function main(): void {
     );
     process.exit(1);
     return;
+  }
+
+  let knowledgeMode: KnowledgeMode = "seed";
+  if (mode !== "consult") {
+    try {
+      knowledgeMode = resolveKnowledgeMode(process.env.HEDWIG_KNOWLEDGE_MODE);
+    } catch {
+      console.error(
+        "HEDWIG_KNOWLEDGE_MODE must be seed or foundations; refusing to start."
+      );
+      process.exit(1);
+      return;
+    }
   }
 
   const consultEnabled = mode === "consult" || mode === "both";
@@ -68,7 +100,8 @@ function main(): void {
   const server = createHedwigServer({
     mode,
     ...(policyPath ? { policyPath, policyPin } : {}),
-    ...(mode !== "consult" ? { generate: configuredGenerator(mode) } : {}),
+    knowledgeMode,
+    ...configuredGenerators(mode, knowledgeMode),
   });
 
   const transport = new StdioServerTransport(undefined, undefined, {

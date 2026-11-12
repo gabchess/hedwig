@@ -1,0 +1,411 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed_for_foundations_profile",
+  "retrievedAt": "2026-11-11",
+  "description": "Small, reviewed, source-derived educational summaries for the first Hedwig retrieval slice. These are paraphrases, not full source text. Current-state, safety, and implementation claims require other evidence.",
+  "sources": [
+    {
+      "sourceId": "ethereum-org-accounts",
+      "title": "Ethereum accounts",
+      "url": "https://ethereum.org/developers/docs/accounts/",
+      "sourceFileUrl": "https://github.com/ethereum/ethereum-org-website/blob/07fde37b857dfb3439fdfe1a299ab6f37ed46b6f/public/content/developers/docs/accounts/index.md",
+      "revision": "ethereum/ethereum-org-website@07fde37b857dfb3439fdfe1a299ab6f37ed46b6f",
+      "blobSha": "e8979d0f59d27ab8520a2d8d2f280f85fb604a68",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ethereum/ethereum-org-website/blob/07fde37b857dfb3439fdfe1a299ab6f37ed46b6f/LICENSE",
+      "licenseBlobSha": "0199ecaceaa0751fd1269559e9a6d0adcecdf41e",
+      "licenseEvidence": "Repository-root MIT license was fetched at the same commit. The Markdown page has no separate license header; evidence is repository-level.",
+      "retrievedAt": "2026-11-11",
+      "chunks": [
+        {
+          "id": "ethereum-accounts-model",
+          "topics": [
+            "Ethereum accounts",
+            "account control",
+            "EIP-7702"
+          ],
+          "keywords": [
+            "EOA",
+            "externally owned account",
+            "contract account",
+            "private key",
+            "delegated code",
+            "7702"
+          ],
+          "sections": [
+            {
+              "heading": "Account types / Key differences",
+              "anchor": "#types-of-account",
+              "lineStart": 13,
+              "lineEnd": 39
+            },
+            {
+              "heading": "An account examined",
+              "anchor": "#an-account-examined",
+              "lineStart": 41,
+              "lineEnd": 50
+            }
+          ],
+          "text": "Ethereum distinguishes externally owned accounts (EOAs), controlled by cryptographic keys, from contract accounts, controlled by deployed code. Both can hold and transfer assets and interact with contracts. The account guide describes EOAs as transaction initiators and contract code as executing in response to a transaction or message. EIP-7702 lets an EOA authorize a delegation indicator to contract code while preserving the account as an EOA and keeping transaction authorization with that account. The page explains that codeHash hashes account code, which may be an EIP-7702 delegation indicator for an EOA."
+        },
+        {
+          "id": "ethereum-account-state",
+          "topics": [
+            "Ethereum account fields",
+            "account state",
+            "EIP-7702 nonce"
+          ],
+          "keywords": [
+            "nonce",
+            "balance",
+            "codeHash",
+            "storageRoot",
+            "account state",
+            "wei",
+            "EIP-7702 authorization"
+          ],
+          "sections": [
+            {
+              "heading": "An account examined",
+              "anchor": "#an-account-examined",
+              "lineStart": 41,
+              "lineEnd": 50
+            }
+          ],
+          "text": "The account guide describes four state fields: nonce, balance, codeHash, and storageRoot. Nonce is an ordering and replay-protection counter, with account-specific rules. Balance is the ETH held by the address, expressed in wei. codeHash identifies code; an EOA normally has the empty-code hash, while EIP-7702 delegation is represented by a delegation indicator. storageRoot commits to the account’s storage. The guide notes that applying an EIP-7702 authorization also increments the authorizing EOA’s nonce."
+        }
+      ]
+    },
+    {
+      "sourceId": "ethereum-org-transactions",
+      "title": "Ethereum transactions",
+      "url": "https://ethereum.org/developers/docs/transactions/",
+      "sourceFileUrl": "https://github.com/ethereum/ethereum-org-website/blob/23c0a0d3408eab7dea7ae9ed6b8f510f7eea7dd2/public/content/developers/docs/transactions/index.md",
+      "revision": "ethereum/ethereum-org-website@23c0a0d3408eab7dea7ae9ed6b8f510f7eea7dd2",
+      "blobSha": "04b754d55427f8884eadef25ebe6977c48bb16ff",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ethereum/ethereum-org-website/blob/23c0a0d3408eab7dea7ae9ed6b8f510f7eea7dd2/LICENSE",
+      "licenseBlobSha": "0199ecaceaa0751fd1269559e9a6d0adcecdf41e",
+      "licenseEvidence": "Repository-root MIT license was fetched at the same commit. The Markdown page has no separate license header; evidence is repository-level.",
+      "retrievedAt": "2026-11-11",
+      "chunks": [
+        {
+          "id": "ethereum-transaction-model",
+          "topics": [
+            "Ethereum transactions",
+            "state transition",
+            "contract execution"
+          ],
+          "keywords": [
+            "signed transaction",
+            "state change",
+            "validator",
+            "block",
+            "contract call",
+            "message"
+          ],
+          "sections": [
+            {
+              "heading": "What's a transaction?",
+              "anchor": "#whats-a-transaction",
+              "lineStart": 13,
+              "lineEnd": 41
+            },
+            {
+              "heading": "Transaction lifecycle",
+              "anchor": "#transaction-lifecycle",
+              "lineStart": 183,
+              "lineEnd": 194
+            },
+            {
+              "heading": "Smart contract interactions",
+              "anchor": "#smart-contract-interactions",
+              "lineStart": 175,
+              "lineEnd": 181
+            }
+          ],
+          "text": "An Ethereum transaction is a signed request that can change network state. A user-originated transaction is authorized by an EOA; nodes propagate it and validators execute it for inclusion in a validated block. A transaction directed to a contract invokes its code, which may in turn make internal calls. Keep the top-level signed transaction distinct from messages and calls that occur during contract execution."
+        },
+        {
+          "id": "ethereum-transaction-fields",
+          "topics": [
+            "Ethereum transaction fields",
+            "signatures",
+            "fees",
+            "nonce"
+          ],
+          "keywords": [
+            "from",
+            "to",
+            "signature",
+            "nonce",
+            "value",
+            "input data",
+            "gasLimit",
+            "maxFeePerGas",
+            "priority fee"
+          ],
+          "sections": [
+            {
+              "heading": "What's a transaction? / submitted transaction fields",
+              "anchor": "#whats-a-transaction",
+              "lineStart": 23,
+              "lineEnd": 35
+            },
+            {
+              "heading": "Transaction lifecycle",
+              "anchor": "#transaction-lifecycle",
+              "lineStart": 183,
+              "lineEnd": 194
+            },
+            {
+              "heading": "Smart contract interactions",
+              "anchor": "#smart-contract-interactions",
+              "lineStart": 175,
+              "lineEnd": 181
+            }
+          ],
+          "text": "The overview lists sender (from), recipient (to), signature, nonce, ETH value, optional input data, gas limit, and EIP-1559 fee caps. The signature shows sender authorization; the nonce orders an account’s transactions; to selects a recipient or contract; input data carries call data; gasLimit sets the maximum gas units the transaction may consume. maxFeePerGas caps the fee per gas, while maxPriorityFeePerGas caps the validator tip per gas. These fields describe a request, not proof of its later inclusion, success, or current status."
+        }
+      ]
+    },
+    {
+      "sourceId": "ethereum-erc-4626",
+      "title": "ERC-4626: Tokenized Vaults",
+      "standardStatus": "Final",
+      "url": "https://eips.ethereum.org/EIPS/eip-4626",
+      "sourceFileUrl": "https://github.com/ethereum/ERCs/blob/cf8bff877b00d56cec0c60007a25bae0937d0d03/ERCS/erc-4626.md",
+      "revision": "ethereum/ERCs@cf8bff877b00d56cec0c60007a25bae0937d0d03",
+      "blobSha": "41de5ab9c01119d0c2f6700860d1cc25a278cf06",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://github.com/ethereum/ERCs/blob/cf8bff877b00d56cec0c60007a25bae0937d0d03/LICENSE.md",
+      "licenseBlobSha": "0e259d42c996742e9e3cba14c677129b2c1b6311",
+      "licenseEvidence": "The pinned standard Copyright section explicitly waives copyright and related rights via CC0; the same-revision repository LICENSE.md contains CC0 1.0 Universal. The former EIPS/eip-4626.md file is marked Moved; this pinned ERCs file is its current repository source.",
+      "retrievedAt": "2026-11-11",
+      "chunks": [
+        {
+          "id": "erc4626-shares-and-assets",
+          "topics": [
+            "ERC-4626",
+            "vault shares",
+            "underlying asset"
+          ],
+          "keywords": [
+            "share token",
+            "fractional claim",
+            "asset",
+            "totalAssets",
+            "vault"
+          ],
+          "sections": [
+            {
+              "heading": "Abstract",
+              "anchor": "#abstract",
+              "lineStart": 14,
+              "lineEnd": 19
+            },
+            {
+              "heading": "Specification / Definitions / asset / totalAssets",
+              "anchor": "#specification",
+              "lineStart": 29,
+              "lineEnd": 95
+            }
+          ],
+          "text": "ERC-4626 standardizes a vault with one underlying token and represents vault shares as an ERC-20 token. A share is a claim to a fraction of the vault’s underlying holdings. asset() identifies the managed token; totalAssets() reports the assets managed by the vault. The standard defines an interface and expected behavior, not the quality, strategy, solvency, or live share price of a particular vault."
+        },
+        {
+          "id": "erc4626-operations",
+          "topics": [
+            "ERC-4626 operations",
+            "deposit",
+            "mint",
+            "withdraw",
+            "redeem"
+          ],
+          "keywords": [
+            "assets in",
+            "shares out",
+            "shares in",
+            "assets out",
+            "deposit",
+            "mint",
+            "withdraw",
+            "redeem"
+          ],
+          "sections": [
+            {
+              "heading": "deposit",
+              "anchor": "#deposit",
+              "lineStart": 210,
+              "lineEnd": 238
+            },
+            {
+              "heading": "mint",
+              "anchor": "#mint",
+              "lineStart": 293,
+              "lineEnd": 321
+            },
+            {
+              "heading": "withdraw",
+              "anchor": "#withdraw",
+              "lineStart": 374,
+              "lineEnd": 409
+            },
+            {
+              "heading": "redeem",
+              "anchor": "#redeem",
+              "lineStart": 462,
+              "lineEnd": 497
+            }
+          ],
+          "text": "The four state-changing methods differ by which amount the caller fixes. deposit supplies an exact asset amount and mints shares; mint requests an exact share amount and deposits the required assets. withdraw requests an exact asset amount and burns the needed shares; redeem supplies an exact share amount and returns the corresponding assets. Limits, fees, available balances, and on-chain conditions can affect whether an operation succeeds and its resulting amounts."
+        },
+        {
+          "id": "erc4626-conversions-and-previews",
+          "topics": [
+            "ERC-4626 conversions",
+            "previews",
+            "rounding",
+            "limits"
+          ],
+          "keywords": [
+            "convertToShares",
+            "convertToAssets",
+            "previewDeposit",
+            "previewMint",
+            "previewWithdraw",
+            "previewRedeem",
+            "round down",
+            "slippage",
+            "oracle"
+          ],
+          "sections": [
+            {
+              "heading": "convertToShares / convertToAssets",
+              "lineStart": 96,
+              "lineEnd": 155
+            },
+            {
+              "heading": "previewDeposit / previewMint",
+              "lineStart": 182,
+              "lineEnd": 292
+            },
+            {
+              "heading": "previewWithdraw / previewRedeem",
+              "lineStart": 346,
+              "lineEnd": 460
+            },
+            {
+              "heading": "Security Considerations",
+              "anchor": "#security-considerations",
+              "lineStart": 585,
+              "lineEnd": 608
+            }
+          ],
+          "text": "The convertTo methods give idealized asset/share conversions. The standard requires these conversions to exclude fees and slippage effects and round down. Preview methods estimate the corresponding operation more closely, but their results can move with on-chain conditions, can be manipulated, and do not replace operation-specific maximum-limit checks. The EIP warns that previews are not always safe as price oracles and that implementers and integrators must account for operation-specific rounding and limits."
+        }
+      ]
+    },
+    {
+      "sourceId": "x402-v2-spec",
+      "title": "x402 Protocol Specification, Version 2",
+      "url": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/specs/x402-specification-v2.md",
+      "sourceFileUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/specs/x402-specification-v2.md",
+      "revision": "x402-foundation/x402@4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f",
+      "blobSha": "7f324a6d9af1a2403387dc64e65ad9555d2dd1fc",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/LICENSE",
+      "licenseBlobSha": "b09cd7856d58590578ee1a4f3ad45d1310a97f87",
+      "noticeUrl": "https://github.com/x402-foundation/x402/blob/4f674517cee0bd3c4ef9c7be2b09f16b3efaaa7f/NOTICE",
+      "noticeBlobSha": "25225ce54226551753ecb6fa592f08494fdbf1d5",
+      "licenseEvidence": "The same-pinned-revision LICENSE is Apache-2.0 and the repository contains a NOTICE file; its attribution is preserved in mcp/src/knowledge/THIRD-PARTY-NOTICES.md. This pack stores short paraphrases rather than copied specification text.",
+      "retrievedAt": "2026-11-11",
+      "chunks": [
+        {
+          "id": "x402-v2-request-flow",
+          "topics": [
+            "x402 v2",
+            "HTTP-native payment flow",
+            "PaymentRequired",
+            "PaymentPayload"
+          ],
+          "keywords": [
+            "client request",
+            "payment required",
+            "payment payload",
+            "retry",
+            "resource",
+            "settlement response"
+          ],
+          "sections": [
+            {
+              "heading": "1. Overview",
+              "anchor": "#1-overview",
+              "lineStart": 30,
+              "lineEnd": 35
+            },
+            {
+              "heading": "2. Core Payment Flow",
+              "anchor": "#2-core-payment-flow",
+              "lineStart": 36,
+              "lineEnd": 45
+            },
+            {
+              "heading": "6.1 Asset Transfer Methods and Payment Flow Models",
+              "anchor": "#61-asset-transfer-methods-and-payment-flow-models",
+              "lineStart": 285,
+              "lineEnd": 301
+            },
+            {
+              "heading": "5.1 PaymentRequired Schema / 5.2 PaymentPayload Schema",
+              "anchor": "#5-types",
+              "lineStart": 66,
+              "lineEnd": 224
+            },
+            {
+              "heading": "5.3 SettlementResponse Schema / 5.4 VerifyResponse Schema",
+              "anchor": "#53-settlementresponse-schema",
+              "lineStart": 225,
+              "lineEnd": 271
+            }
+          ],
+          "text": "The client submits a signed payment authorization in a subsequent request; the server verifies it and initiates settlement. This is the default authorization flow, where verification precedes resource execution and settlement follows it. Other schemes may declare different ordering. The spec defines separate PaymentRequired, PaymentPayload, verification, and settlement response structures. This protocol description does not establish that any named endpoint currently accepts a payment."
+        },
+        {
+          "id": "x402-v2-roles-and-facilitator",
+          "topics": [
+            "x402 v2 roles",
+            "resource server",
+            "facilitator",
+            "verify",
+            "settle"
+          ],
+          "keywords": [
+            "client",
+            "resource server",
+            "facilitator",
+            "verify endpoint",
+            "settle endpoint",
+            "supported schemes",
+            "network"
+          ],
+          "sections": [
+            {
+              "heading": "3. Protocol Components",
+              "anchor": "#3-protocol-components",
+              "lineStart": 47,
+              "lineEnd": 54
+            },
+            {
+              "heading": "7. Facilitator Interface",
+              "anchor": "#7-facilitator-interface",
+              "lineStart": 303,
+              "lineEnd": 494
+            }
+          ],
+          "text": "The client requests access and supplies a payment payload. The resource server requires payment for a protected resource and supplies acceptable payment requirements. The facilitator is a service component for payment verification and blockchain settlement; the resource server may delegate those endpoints to a trusted third party or host them itself. The protocol defines a /supported interface for reporting networks and schemes. Scheme-specific payment-flow ordering can vary. Reported protocol capability is not proof of any facilitator's current availability, configuration, or production readiness."
+        }
+      ]
+    }
+  ]
+}

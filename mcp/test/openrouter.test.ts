@@ -1,5 +1,8 @@
 import { expect } from "chai";
-import { createOpenRouterGenerator } from "../src/openrouter";
+import {
+  createOpenRouterFoundationGenerator,
+  createOpenRouterGenerator,
+} from "../src/openrouter";
 
 const source = {
   id: "erc4626-shares",
@@ -183,5 +186,92 @@ describe("OpenRouter answer adapter (fixture transport, no live inference)", () 
         fetch: fetcher,
       })(input)
     );
+  });
+});
+
+describe("OpenRouter foundation answer adapter (fixture transport, no live inference)", () => {
+  const foundationSource = {
+    id: "erc4626-operations",
+    url: "https://eips.ethereum.org/EIPS/eip-4626",
+    sourceFileUrl:
+      "https://github.com/ethereum/ERCs/blob/cf8bff877b00d56cec0c60007a25bae0937d0d03/ERCS/erc-4626.md",
+    revision: "ethereum/ERCs@cf8bff877b00d56cec0c60007a25bae0937d0d03",
+    title: "ERC-4626: Tokenized Vaults",
+    text: "deposit fixes assets; mint fixes shares.",
+  };
+  const foundationInput = {
+    question: "Explain deposit versus mint and give current yield.",
+    sources: [foundationSource],
+  };
+
+  it("sends only retrieved evidence with the four-field partial-answer schema and parses status", async () => {
+    const generated = {
+      status: "partial",
+      answer: "deposit fixes assets; mint fixes shares.",
+      citationIds: [foundationSource.id],
+      unsupportedParts: ["current yield"],
+    };
+    let request: RequestInit | undefined;
+    let url = "";
+    let calls = 0;
+    const fetcher = (async (u: unknown, opts: RequestInit) => {
+      calls++;
+      url = String(u);
+      request = opts;
+      return completion(JSON.stringify(generated));
+    }) as typeof fetch;
+
+    const generate = createOpenRouterFoundationGenerator({
+      apiKey: "test-key",
+      model: "test/model:free",
+      fetch: fetcher,
+    });
+
+    expect(await generate(foundationInput)).to.deep.equal(generated);
+    expect(calls).to.equal(1);
+    expect(url).to.equal("https://openrouter.ai/api/v1/chat/completions");
+    expect(request!.redirect).to.equal("error");
+    expect(request!.signal).to.be.instanceOf(AbortSignal);
+    expect((request!.headers as Record<string, string>).Authorization).to.equal(
+      "Bearer test-key"
+    );
+
+    const body = JSON.parse(request!.body as string);
+    expect(body.model).to.equal("test/model:free");
+    expect(body.models).to.equal(undefined);
+    expect(body.tools).to.equal(undefined);
+    expect(body.provider).to.deep.equal({
+      data_collection: "deny",
+      require_parameters: true,
+      allow_fallbacks: false,
+    });
+    expect(body.response_format).to.deep.equal({
+      type: "json_schema",
+      json_schema: {
+        name: "hedwig_foundation_answer",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            status: {
+              type: "string",
+              enum: ["answered", "partial", "insufficient_evidence"],
+            },
+            answer: { type: "string" },
+            citationIds: { type: "array", items: { type: "string" } },
+            unsupportedParts: { type: "array", items: { type: "string" } },
+          },
+          required: ["status", "answer", "citationIds", "unsupportedParts"],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const systemPrompt = body.messages[0].content as string;
+    expect(systemPrompt).to.contain("only the supplied retrieved evidence");
+    expect(systemPrompt).to.contain("partially supported");
+    expect(systemPrompt).to.contain("current chain state");
+    expect(systemPrompt).to.contain("deposit safety");
+    expect(JSON.parse(body.messages[1].content)).to.deep.equal(foundationInput);
   });
 });
