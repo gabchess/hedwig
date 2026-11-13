@@ -25060,12 +25060,13 @@ var require_model_policy = __commonJS({
     var QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
     var QWEN_INSTRUCT_DEADLINE_MS = 45e3;
     var DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
+    var DEEPSEEK_UPDATED_REASONING_MODEL = "deepseek/deepseek-v4.1-flash-1017";
     var DEEPSEEK_REASONING_DEADLINE_MS = 9e4;
     var DEEPSEEK_REASONING_MAX_TOKENS = 8192;
     var STANDARD_TOOL_CALL_TIMEOUT_MS = 6e4;
     var EXTENDED_TOOL_COMPLETION_MARGIN_MS = 3e4;
     function resolveModelGenerationPolicy(model) {
-      if (model === DEEPSEEK_REASONING_MODEL) {
+      if (model === DEEPSEEK_REASONING_MODEL || model === DEEPSEEK_UPDATED_REASONING_MODEL) {
         return {
           deadlineMs: DEEPSEEK_REASONING_DEADLINE_MS,
           maxTokens: {

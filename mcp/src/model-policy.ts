@@ -26,6 +26,7 @@ const EXTENDED_REASONING_MAX_TOKENS = 6144;
 const QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
 const QWEN_INSTRUCT_DEADLINE_MS = 45_000;
 const DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
+const DEEPSEEK_UPDATED_REASONING_MODEL = "deepseek/deepseek-v4.1-flash-1017";
 const DEEPSEEK_REASONING_DEADLINE_MS = 90_000;
 const DEEPSEEK_REASONING_MAX_TOKENS = 8192;
 const STANDARD_TOOL_CALL_TIMEOUT_MS = 60_000;
@@ -33,7 +34,10 @@ const EXTENDED_TOOL_COMPLETION_MARGIN_MS = 30_000;
 
 /** Only the operator-selected model determines the generation policy. */
 export function resolveModelGenerationPolicy(model: string): GenerationPolicy {
-  if (model === DEEPSEEK_REASONING_MODEL) {
+  if (
+    model === DEEPSEEK_REASONING_MODEL ||
+    model === DEEPSEEK_UPDATED_REASONING_MODEL
+  ) {
     return {
       deadlineMs: DEEPSEEK_REASONING_DEADLINE_MS,
       maxTokens: {

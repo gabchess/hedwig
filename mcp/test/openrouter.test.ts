@@ -132,7 +132,7 @@ describe("OpenRouter serialized request-byte budget", () => {
 
 describe("OpenRouter answer adapter (fixture transport, no live inference)", () => {
   for (const purpose of ["seed", "foundations"] as const) {
-    it(`uses only exact DeepSeek Flash high reasoning without changing ${purpose} evidence or output schema`, async () => {
+    it(`uses only exact DeepSeek Flash selections with high reasoning without changing ${purpose} evidence or output schema`, async () => {
       const bodies: any[] = [];
       const retrievedInput = {
         question: input.question,
@@ -148,8 +148,11 @@ describe("OpenRouter answer adapter (fixture transport, no live inference)", () 
       for (const model of [
         "test/model",
         "deepseek/deepseek-v4-flash-0731",
+        "deepseek/deepseek-v4.1-flash-1017",
         "deepseek/deepseek-v4-flash-0731:free",
         "deepseek/deepseek-v4-flash-20260731",
+        "deepseek/deepseek-v4.1-flash-1017:free",
+        "deepseek/deepseek-v4.1-flash-20261017",
       ]) {
         const config = {
           apiKey: "fixture",
@@ -169,29 +172,38 @@ describe("OpenRouter answer adapter (fixture transport, no live inference)", () 
           ? createOpenRouterGenerator(config)
           : createOpenRouterFoundationGenerator(config))(retrievedInput);
       }
-      const [ordinary, deepseek, freeVariant, canonicalAlias] = bodies;
-      expect(deepseek).to.include({
-        model: "deepseek/deepseek-v4-flash-0731",
-        stream: false,
-        max_tokens: 8192,
-      });
-      expect(deepseek.reasoning).to.deep.equal({
-        effort: "high",
-        exclude: true,
-      });
-      expect(deepseek).not.to.have.property("temperature");
-      expect(deepseek.provider).to.deep.equal({
-        data_collection: "deny",
-        require_parameters: true,
-        allow_fallbacks: false,
-        zdr: true,
-      });
-      expect(deepseek.messages).to.deep.equal(ordinary.messages);
-      expect(JSON.parse(deepseek.messages[1].content)).to.deep.equal(
-        retrievedInput
-      );
-      expect(deepseek.response_format).to.deep.equal(ordinary.response_format);
-      for (const body of [ordinary, freeVariant, canonicalAlias]) {
+      const [ordinary, ...selectedAndAliases] = bodies;
+      for (const deepseek of selectedAndAliases.slice(0, 2)) {
+        expect(deepseek).to.include({
+          stream: false,
+          max_tokens: 8192,
+        });
+        expect(deepseek.reasoning).to.deep.equal({
+          effort: "high",
+          exclude: true,
+        });
+        expect(deepseek).not.to.have.property("temperature");
+        expect(deepseek.provider).to.deep.equal({
+          data_collection: "deny",
+          require_parameters: true,
+          allow_fallbacks: false,
+          zdr: true,
+        });
+        expect(deepseek.messages).to.deep.equal(ordinary.messages);
+        expect(JSON.parse(deepseek.messages[1].content)).to.deep.equal(
+          retrievedInput
+        );
+        expect(deepseek.response_format).to.deep.equal(
+          ordinary.response_format
+        );
+      }
+      expect(
+        selectedAndAliases.slice(0, 2).map((body) => body.model)
+      ).to.deep.equal([
+        "deepseek/deepseek-v4-flash-0731",
+        "deepseek/deepseek-v4.1-flash-1017",
+      ]);
+      for (const body of [ordinary, ...selectedAndAliases.slice(2)]) {
         expect(body).to.include({
           temperature: 0,
           max_tokens: purpose === "seed" ? 1024 : 2048,
