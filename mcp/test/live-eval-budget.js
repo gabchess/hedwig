@@ -15,6 +15,22 @@ const QWEN_INSTRUCT_DEADLINE_MS = 45000;
 const QWEN_MAX_TOKENS = Object.freeze([1024, 2048]);
 const REASONING_PROFILES = new Map([
   [
+    "openai/gpt-5-mini",
+    {
+      maxTokens: 6144,
+      deadlineMs: 90000,
+      reasoning: { effort: "medium", exclude: true },
+    },
+  ],
+  [
+    "deepseek/deepseek-v4.1-flash-1017",
+    {
+      maxTokens: 8192,
+      deadlineMs: 90000,
+      reasoning: { effort: "high", exclude: true },
+    },
+  ],
+  [
     "deepseek/deepseek-v4-flash-0731",
     {
       maxTokens: 8192,
@@ -49,6 +65,20 @@ const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 // Explicitly reviewed public catalog identity, not a model-name heuristic.
 // Retain this historical binding when adding a separately reviewed identity.
 const RECONCILIATION_MODEL_IDENTITIES = Object.freeze([
+  Object.freeze({
+    requestedModel: "openai/gpt-5-mini",
+    canonicalModel: "openai/gpt-5-mini-2025-08-07",
+    catalogRetrievedAt: "2026-11-13T14:38:51.372Z",
+    catalogResponseSha256:
+      "b5f24aea4e26fbf242898539f7361869810234fb3c95bba21e858c4879d72da5",
+  }),
+  Object.freeze({
+    requestedModel: "deepseek/deepseek-v4.1-flash-1017",
+    canonicalModel: "deepseek/deepseek-v4.1-flash-20261017",
+    catalogRetrievedAt: "2026-11-13T14:16:41.450Z",
+    catalogResponseSha256:
+      "2b35a99b9d28619255a304b92ba0fb6e16021f4a322646d69c7238df21c9eff9",
+  }),
   Object.freeze({
     requestedModel: "deepseek/deepseek-v4-flash-0731",
     canonicalModel: "deepseek/deepseek-v4-flash-20260731",
@@ -343,8 +373,10 @@ function accountedCost(entry) {
 function digest(value) {
   return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 }
-function validRecovery(entry) {
+function validRecovery(entry, plan, ledgerSchemaVersion) {
   const recovery = entry.recovery;
+  if (recovery?.kind === "completed_uncertain")
+    return validCompletedRecovery(entry, plan, ledgerSchemaVersion);
   const keys = [
     "disposition",
     "recoveryId",
@@ -450,7 +482,8 @@ function readLedger(filename, plan) {
     }
     if (
       entry.recovery !== undefined &&
-      (entry.status !== "uncertain" || !validRecovery(entry))
+      (entry.status !== "uncertain" ||
+        !validRecovery(entry, entryPlan, ledger.schemaVersion))
     )
       fail("invalid_ledger");
     for (const key of [
@@ -744,6 +777,15 @@ function amendBudgetPlan(filename, suppliedOldPlan, suppliedNewPlan) {
   try {
     const ledger = readLedger(location, oldPlan);
     if (summary(ledger).blocked) fail("unsettled_request");
+    // This legacy migration adds planHash to every entry. It cannot rewrite an
+    // entry whose completed-quarantine provenance hashes its original fields.
+    if (
+      ledger.schemaVersion === 1 &&
+      ledger.entries.some(
+        (entry) => entry.recovery?.kind === "completed_uncertain"
+      )
+    )
+      fail("legacy_completed_quarantine_migration_refused");
     const history = ledger.schemaVersion === 2 ? ledger.planHistory : [oldPlan];
     // Never reactivate an old plan: an already-created old guard must stay invalid.
     if (history.some((previous) => previous.planHash === newPlan.planHash))
@@ -1721,6 +1763,243 @@ function reconcileBudgetEntry(filename, suppliedPlan, request) {
   }
 }
 
+function completedQuarantineEvidence(
+  entry,
+  evidenceJson,
+  evidenceSha256,
+  recoveredAt
+) {
+  if (
+    typeof evidenceJson !== "string" ||
+    evidenceJson.length > 32000 ||
+    !digest(evidenceSha256) ||
+    rawHash(evidenceJson) !== evidenceSha256 ||
+    !timestamp(entry.requestedAt) ||
+    !timestamp(entry.completedAt) ||
+    !validGenerationId(entry.generationId) ||
+    !timestamp(recoveredAt)
+  )
+    return false;
+  let evidence;
+  try {
+    evidence = JSON.parse(evidenceJson);
+  } catch {
+    return false;
+  }
+  return (
+    reconciliationKeys(evidence, [
+      "schemaVersion",
+      "kind",
+      "entryId",
+      "generationId",
+      "completedAt",
+      "reviewedAt",
+      "chargeStatus",
+      "operatorReference",
+    ]) &&
+    evidence.schemaVersion === 1 &&
+    evidence.kind === "operator_quarantine_review" &&
+    evidence.entryId === entry.id &&
+    evidence.generationId === entry.generationId &&
+    evidence.completedAt === entry.completedAt &&
+    evidence.chargeStatus === "unverified" &&
+    typeof evidence.operatorReference === "string" &&
+    evidence.operatorReference.trim().length > 0 &&
+    evidence.operatorReference.length <= 2000 &&
+    timestamp(evidence.reviewedAt) &&
+    Date.parse(entry.requestedAt) <= Date.parse(entry.completedAt) &&
+    (entry.responseReceivedAt === undefined ||
+      (timestamp(entry.responseReceivedAt) &&
+        Date.parse(entry.requestedAt) <= Date.parse(entry.responseReceivedAt) &&
+        Date.parse(entry.responseReceivedAt) <=
+          Date.parse(entry.completedAt))) &&
+    Date.parse(entry.completedAt) <= Date.parse(evidence.reviewedAt) &&
+    Date.parse(evidence.reviewedAt) <= Date.parse(recoveredAt)
+  );
+}
+function completedQuarantineOriginal(entry, plan, ledgerSchemaVersion) {
+  if (ledgerSchemaVersion === 1) {
+    // Legacy entries inherit the ledger's sole plan. Normalize only for strict
+    // validation; the persisted entry and its provenance hash remain untouched.
+    return (
+      !Object.hasOwn(entry, "planHash") &&
+      reconciliationOriginal({ ...entry, planHash: plan.planHash }, plan)
+    );
+  }
+  return reconciliationOriginal(entry, plan);
+}
+function validCompletedRecovery(entry, plan, ledgerSchemaVersion) {
+  const { recovery, ...original } = entry;
+  return (
+    reconciliationKeys(recovery, [
+      "kind",
+      "disposition",
+      "recoveryId",
+      "entryId",
+      "previousStatus",
+      "previousLedgerIntegrity",
+      "originalEntrySha256",
+      "reservedNanoUsd",
+      "recoveredAt",
+      "operatorEvidenceJson",
+      "operatorEvidenceSha256",
+    ]) &&
+    recovery.kind === "completed_uncertain" &&
+    recovery.disposition === "full_reservation_accounted" &&
+    reconciliationUuid(recovery.recoveryId) &&
+    recovery.entryId === entry.id &&
+    recovery.previousStatus === "uncertain" &&
+    digest(recovery.previousLedgerIntegrity) &&
+    recovery.originalEntrySha256 === hash(original) &&
+    recovery.reservedNanoUsd === entry.reservedNanoUsd &&
+    completedQuarantineOriginal(original, plan, ledgerSchemaVersion) &&
+    completedQuarantineEvidence(
+      original,
+      recovery.operatorEvidenceJson,
+      recovery.operatorEvidenceSha256,
+      recovery.recoveredAt
+    )
+  );
+}
+
+/** Operator-only acknowledgement of an unknown completed charge. No money is released. */
+function quarantineCompletedReservation(filename, suppliedPlan, request) {
+  const plan = validatePlan(suppliedPlan);
+  if (
+    !reconciliationKeys(request, [
+      "quarantineId",
+      "expectedLedgerIntegrity",
+      "expectedEntryId",
+      "expectedGenerationId",
+      "expectedReservationNanoUsd",
+      "evidenceJson",
+      "expectedEvidenceSha256",
+    ]) ||
+    !reconciliationUuid(request.quarantineId) ||
+    !digest(request.expectedLedgerIntegrity) ||
+    typeof request.expectedEntryId !== "string" ||
+    !request.expectedEntryId ||
+    request.expectedEntryId.length > 200 ||
+    !validGenerationId(request.expectedGenerationId) ||
+    !integer(request.expectedReservationNanoUsd) ||
+    !request.expectedReservationNanoUsd ||
+    typeof request.evidenceJson !== "string" ||
+    !digest(request.expectedEvidenceSha256)
+  )
+    fail("invalid_quarantine_request");
+  const location = ledgerLocation(filename),
+    unlock = lockLedger(location);
+  let commitAttempted = false,
+    completed = false;
+  try {
+    const ledger = readLedger(location, plan);
+    if (hash(ledger) !== request.expectedLedgerIntegrity)
+      fail("quarantine_state_changed");
+    const entry = ledger.entries.at(-1),
+      index = ledger.entries.length - 1;
+    const entryPlan =
+      ledger.schemaVersion === 1
+        ? plan
+        : ledger.planHistory?.find((item) => item.planHash === entry?.planHash);
+    if (
+      !entry ||
+      entry.id !== request.expectedEntryId ||
+      entry.generationId !== request.expectedGenerationId ||
+      entry.reservedNanoUsd !== request.expectedReservationNanoUsd
+    )
+      fail("quarantine_state_changed");
+    if (
+      !entryPlan ||
+      index < immutableHistoryPrefixCount(ledger) ||
+      !completedQuarantineOriginal(entry, entryPlan, ledger.schemaVersion) ||
+      ledger.entries.some(
+        (item) => item !== entry && item.status !== "settled" && !item.recovery
+      )
+    )
+      fail("ineligible_quarantine");
+    const recovery = {
+      kind: "completed_uncertain",
+      disposition: "full_reservation_accounted",
+      recoveryId: request.quarantineId,
+      entryId: entry.id,
+      previousStatus: "uncertain",
+      previousLedgerIntegrity: request.expectedLedgerIntegrity,
+      originalEntrySha256: hash(entry),
+      reservedNanoUsd: entry.reservedNanoUsd,
+      recoveredAt: new Date().toISOString(),
+      operatorEvidenceJson: request.evidenceJson,
+      operatorEvidenceSha256: request.expectedEvidenceSha256,
+    };
+    const quarantined = { ...entry, recovery };
+    if (!validCompletedRecovery(quarantined, entryPlan, ledger.schemaVersion))
+      fail("invalid_quarantine_evidence");
+    const proposed = {
+      ...ledger,
+      entries: [...ledger.entries.slice(0, -1), quarantined],
+    };
+    if (ledger.schemaVersion >= 3) validateCapHistory(proposed);
+    const before = fs.readFileSync(location);
+    const auditDirectory = path.join(
+      path.dirname(location),
+      `hedwig-budget-quarantine-${request.quarantineId}`
+    );
+    fs.mkdirSync(auditDirectory, { mode: 0o700 });
+    syncParentDirectory(auditDirectory);
+    durableExclusiveWrite(
+      path.join(auditDirectory, "ledger.before.json"),
+      before
+    );
+    durableExclusiveWrite(
+      path.join(auditDirectory, "operator-evidence.json"),
+      request.evidenceJson
+    );
+    durableExclusiveWrite(
+      path.join(auditDirectory, "quarantine.intent.json"),
+      JSON.stringify(
+        {
+          recovery,
+          previousLedgerIntegrity: request.expectedLedgerIntegrity,
+          proposedLedgerIntegrity: hash(proposed),
+          summary: summary(proposed),
+        },
+        null,
+        2
+      ) + "\n"
+    );
+    if (
+      !fs.readFileSync(location).equals(before) ||
+      hash(readLedger(location, plan)) !== request.expectedLedgerIntegrity
+    )
+      fail("quarantine_state_changed");
+    commitAttempted = true;
+    writeLedger(location, proposed);
+    const applied = readLedger(location, plan);
+    if (hash(applied) !== hash(proposed)) fail("quarantine_state_changed");
+    const result = summary(applied);
+    durableExclusiveWrite(
+      path.join(auditDirectory, "quarantine.applied.json"),
+      JSON.stringify(
+        {
+          quarantineId: request.quarantineId,
+          ledgerIntegrity: hash(applied),
+          entryId: entry.id,
+          summary: result,
+        },
+        null,
+        2
+      ) + "\n"
+    );
+    completed = true;
+    return {
+      auditDirectory,
+      quarantineId: request.quarantineId,
+      summary: result,
+    };
+  } finally {
+    unlock({ preserveLock: commitAttempted && !completed });
+  }
+}
+
 function boundedRequest(init, plan, reasoningProfile) {
   if (init?.method !== "POST" || typeof init.body !== "string")
     fail("request_rejected");
@@ -2010,6 +2289,7 @@ module.exports = {
   qualifyExistingBudgetPlan,
   readBudgetSummary,
   recoverInterruptedReservation,
+  quarantineCompletedReservation,
   installBudgetGuard,
 };
 

@@ -25057,15 +25057,18 @@ var require_model_policy = __commonJS({
     var EXTENDED_REASONING_MODEL = "openai/gpt-5.2";
     var EXTENDED_REASONING_DEADLINE_MS = 3e4;
     var EXTENDED_REASONING_MAX_TOKENS = 6144;
+    var MINI_REASONING_MODEL = "openai/gpt-5-mini";
+    var MINI_REASONING_DEADLINE_MS = 9e4;
     var QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
     var QWEN_INSTRUCT_DEADLINE_MS = 45e3;
     var DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
+    var DEEPSEEK_UPDATED_REASONING_MODEL = "deepseek/deepseek-v4.1-flash-1017";
     var DEEPSEEK_REASONING_DEADLINE_MS = 9e4;
     var DEEPSEEK_REASONING_MAX_TOKENS = 8192;
     var STANDARD_TOOL_CALL_TIMEOUT_MS = 6e4;
     var EXTENDED_TOOL_COMPLETION_MARGIN_MS = 3e4;
     function resolveModelGenerationPolicy(model) {
-      if (model === DEEPSEEK_REASONING_MODEL) {
+      if (model === DEEPSEEK_REASONING_MODEL || model === DEEPSEEK_UPDATED_REASONING_MODEL) {
         return {
           deadlineMs: DEEPSEEK_REASONING_DEADLINE_MS,
           maxTokens: {
@@ -25075,9 +25078,9 @@ var require_model_policy = __commonJS({
           requestParameters: { reasoning: { effort: "high", exclude: true } }
         };
       }
-      if (model === EXTENDED_REASONING_MODEL) {
+      if (model === EXTENDED_REASONING_MODEL || model === MINI_REASONING_MODEL) {
         return {
-          deadlineMs: EXTENDED_REASONING_DEADLINE_MS,
+          deadlineMs: model === MINI_REASONING_MODEL ? MINI_REASONING_DEADLINE_MS : EXTENDED_REASONING_DEADLINE_MS,
           maxTokens: {
             seed: EXTENDED_REASONING_MAX_TOKENS,
             foundations: EXTENDED_REASONING_MAX_TOKENS
@@ -25136,7 +25139,8 @@ var require_openrouter = __commonJS({
       "The evidence consists of reviewed paraphrases, not verbatim source quotations. Scope warnings about what these snapshots cannot establish describe this evidence pack's limitations; do not attribute those warnings as explicit statements made by an upstream protocol or specification.",
       "Answer in the language of the user's factual question. Be concise while fully answering each requested part and retaining every necessary condition; do not shorten an answer by dropping a distinction or qualification. Omit adjacent topics and details unless needed to answer that part. Every assertion, including explanatory additions, must be supported by supplied text. Put source IDs only in citationIds. Do not include inline citations or source URLs in answer. Preserve exact field meanings, including the distinction between data and its hash.",
       "Use exact field names as sentence subjects when contrasting data with a digest or identifier. Do not leave the reader to guess which field is empty, stores bytes, or contains a hash. Do not explain neighboring concepts merely because they appear in the evidence.",
-      "Preserve every material condition and scope qualifier in the evidence. Do not turn an optional step, a branch-specific check or an eligible subset into an always-required step, unconditional check or all-assets claim. Check the direction of every inequality or threshold comparison before writing it. Cite the evidence for each factual addition; omit additions that are not needed by the question.",
+      "State supported facts as a specific subject or mechanism branch, its necessary conditions, and its effect. Preserve source relationships: subtype/version boundaries, causal and operation order, distinct failure outcomes, and the direction of quantities or value flows, including income versus debt. Use words such as only, always, never or every only within the exact scope supported by cited evidence. Check inequalities and thresholds in that same scope; omit unsupported or unrequested additions.",
+      "For each requested role, explain its supported responsibilities and boundaries. When the question asks how an operation or mechanism works or begins, explain the supported actors, actions and resulting state or value changes, with their material conditions. A trigger or threshold alone does not explain the operation. Keep every requested mechanism distinct; do not replace its actions with neighboring accounting formulas. When only a definition or trigger is asked, do not add an unrequested operation tutorial.",
       "Split the question into requested parts. Answer only parts directly supported by the supplied evidence and cite the source IDs you used.",
       "When every requested part is supported, leave unsupportedParts empty.",
       "When the request is partially supported, answer only the supported parts and list each unsupported part briefly in unsupportedParts. A missing live observation does not erase a separately supported educational explanation.",
@@ -25151,7 +25155,6 @@ var require_openrouter = __commonJS({
       "For this comparison, apply the answer, citation and unsupportedParts rules independently to each deployment's section. Return exactly the two sections keyed by the supplied deployment IDs, with no overall answer or summary.",
       "Each section must include a requested boolean. Set requested=false only when the question requests neither a factual answer nor a concrete action concerning that deployment. For requested=false, answer must be exactly an empty string and citationIds and unsupportedParts must both be empty arrays. For requested=true, answer supported parts and preserve genuine evidence gaps under the normal content rules. An evidence gap does not make a requested deployment unrequested. A request for transaction approval or execution requires requested=true with its unsupported action recorded as a gap. A question shared by both deployments requires requested=true in both sections.",
       "Preserve which deployment each requested factual part concerns. Apply a shared question to both deployments, but a question naming only one deployment applies only to that deployment. Do not turn an unasked behavior on the other side into an unsupported part. A supported explanation for one deployment does not answer a requested part for the other. Preserve only genuinely requested unsupported parts in that deployment's unsupportedParts; if none of its requested parts is supported, use an empty answer and empty citationIds in that section.",
-      "When the question asks how an operation or mechanism works or begins, explain the supported actors, actions and resulting state or value changes, with their material conditions. A trigger or threshold alone does not explain the operation. Keep every requested mechanism distinct; do not replace its actions with neighboring accounting formulas. When only a definition or trigger is asked, do not add an unrequested operation tutorial.",
       "Each section may cite only that deployment's evidence.byDeployment source IDs and evidence.sharedSourceIds. Describe only that deployment in its section; the application supplies the labels. Do not merge claims about different protocols into one section.",
       "Do not present reviewed paraphrases as verbatim quotations from upstream documentation. Explain their supported meaning in your own words, preserving all conditions and scope limits."
     ].join(" ");
@@ -48033,10 +48036,22 @@ var require_foundations = __commonJS({
               ],
               sections: [
                 {
+                  heading: "2. Core Payment Flow",
+                  anchor: "#2-core-payment-flow",
+                  lineStart: 36,
+                  lineEnd: 45
+                },
+                {
                   heading: "3. Protocol Components",
                   anchor: "#3-protocol-components",
                   lineStart: 47,
                   lineEnd: 54
+                },
+                {
+                  heading: "6.1 Asset Transfer Methods and Payment Flow Models",
+                  anchor: "#61-asset-transfer-methods-and-payment-flow-models",
+                  lineStart: 285,
+                  lineEnd: 301
                 },
                 {
                   heading: "7. Facilitator Interface",
@@ -48045,7 +48060,7 @@ var require_foundations = __commonJS({
                   lineEnd: 494
                 }
               ],
-              text: "The client requests access and supplies a payment payload. The resource server requires payment for a protected resource and supplies acceptable payment requirements. The facilitator is a service component for payment verification and blockchain settlement; the resource server may delegate those endpoints to a trusted third party or host them itself. The protocol defines a /supported interface for reporting networks and schemes. Scheme-specific payment-flow ordering can vary. Reported protocol capability is not proof of any facilitator's current availability, configuration, or production readiness."
+              text: "The client requests access and constructs a payment payload for supported payment requirements; in the default authorization flow it submits a signed payment authorization in a subsequent request. The resource server supplies acceptable payment requirements and gates access to the protected resource: it rejects unsupported transfer-method/payment-flow combinations and requires the resolved flow's pre-resource verification or settlement check before executing the request. The facilitator is a service component for payment verification and blockchain settlement; the resource server may delegate those endpoints to a trusted third party or host them itself. The protocol defines a /supported interface for reporting networks and schemes. Scheme-specific payment-flow ordering can vary. Reported protocol capability is not proof of any facilitator's current availability, configuration, or production readiness."
             },
             {
               id: "x402-verification-settlement",
@@ -50287,7 +50302,7 @@ var require_foundation_pack_integrity = __commonJS({
     exports2.BUILTIN_FOUNDATION_PACK_SHA256 = void 0;
     exports2.assertBuiltinFoundationPack = assertBuiltinFoundationPack;
     var node_crypto_1 = require("node:crypto");
-    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = "d61ab07018c7d84eebd0f014c58bd2f6c2b005661cb27054c6b1a0957b9bc40a";
+    exports2.BUILTIN_FOUNDATION_PACK_SHA256 = "523fc62ae7a7950691b5d38cf76015545e0000e1a8fb6bd0b1ccc2b1a2b4e747";
     function canonicalJson(value) {
       if (value === null || typeof value === "string" || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) {
         return JSON.stringify(value);

@@ -132,73 +132,113 @@ describe("OpenRouter serialized request-byte budget", () => {
 
 describe("OpenRouter answer adapter (fixture transport, no live inference)", () => {
   for (const purpose of ["seed", "foundations"] as const) {
-    it(`uses only exact DeepSeek Flash high reasoning without changing ${purpose} evidence or output schema`, async () => {
-      const bodies: any[] = [];
-      const retrievedInput = {
-        question: input.question,
-        sources: [
-          {
-            ...source,
-            sourceFileUrl: source.url,
-            revision: "reviewed-fixture",
-            title: "Reviewed fixture",
-          },
+    for (const { selectedModels, aliases, effort, maxTokens } of [
+      {
+        selectedModels: [
+          "deepseek/deepseek-v4-flash-0731",
+          "deepseek/deepseek-v4.1-flash-1017",
         ],
-      };
-      for (const model of [
-        "test/model",
-        "deepseek/deepseek-v4-flash-0731",
-        "deepseek/deepseek-v4-flash-0731:free",
-        "deepseek/deepseek-v4-flash-20260731",
-      ]) {
-        const config = {
-          apiKey: "fixture",
-          model,
-          fetch: (async (_url: unknown, options: RequestInit) => {
-            bodies.push(JSON.parse(options.body as string));
-            return completion(
-              JSON.stringify({
-                answer: "",
-                citationIds: [],
-                ...(purpose === "foundations" ? { unsupportedParts: [] } : {}),
-              })
-            );
-          }) as typeof fetch,
-        };
-        await (purpose === "seed"
-          ? createOpenRouterGenerator(config)
-          : createOpenRouterFoundationGenerator(config))(retrievedInput);
-      }
-      const [ordinary, deepseek, freeVariant, canonicalAlias] = bodies;
-      expect(deepseek).to.include({
-        model: "deepseek/deepseek-v4-flash-0731",
-        stream: false,
-        max_tokens: 8192,
-      });
-      expect(deepseek.reasoning).to.deep.equal({
+        aliases: [
+          "deepseek/deepseek-v4-flash-0731:free",
+          "deepseek/deepseek-v4-flash-20260731",
+          "deepseek/deepseek-v4.1-flash-1017:free",
+          "deepseek/deepseek-v4.1-flash-20261017",
+        ],
         effort: "high",
-        exclude: true,
+        maxTokens: 8192,
+      },
+      {
+        selectedModels: ["openai/gpt-5-mini"],
+        aliases: [
+          "openai/gpt-5-mini-2025-08-07",
+          "openai/gpt-5-mini:free",
+          "openai/gpt-5-mini-latest",
+        ],
+        effort: "medium",
+        maxTokens: 6144,
+      },
+    ]) {
+      it(`uses only exact ${selectedModels.join(
+        " / "
+      )} selections without changing ${purpose} evidence or output schema`, async () => {
+        const bodies: any[] = [];
+        const retrievedInput = {
+          question: input.question,
+          sources: [
+            {
+              ...source,
+              sourceFileUrl: source.url,
+              revision: "reviewed-fixture",
+              title: "Reviewed fixture",
+            },
+          ],
+        };
+        for (const model of ["test/model", ...selectedModels, ...aliases]) {
+          const config = {
+            apiKey: "fixture",
+            model,
+            fetch: (async (_url: unknown, options: RequestInit) => {
+              bodies.push(JSON.parse(options.body as string));
+              return completion(
+                JSON.stringify({
+                  answer: "",
+                  citationIds: [],
+                  ...(purpose === "foundations"
+                    ? { unsupportedParts: [] }
+                    : {}),
+                })
+              );
+            }) as typeof fetch,
+          };
+          await (purpose === "seed"
+            ? createOpenRouterGenerator(config)
+            : createOpenRouterFoundationGenerator(config))(retrievedInput);
+        }
+        const [ordinary, ...selectedAndAliases] = bodies;
+        for (const selected of selectedAndAliases.slice(
+          0,
+          selectedModels.length
+        )) {
+          expect(selected).to.include({
+            stream: false,
+            max_tokens: maxTokens,
+          });
+          expect(selected.reasoning).to.deep.equal({
+            effort,
+            exclude: true,
+          });
+          expect(selected).not.to.have.property("temperature");
+          expect(selected.provider).to.deep.equal({
+            data_collection: "deny",
+            require_parameters: true,
+            allow_fallbacks: false,
+            zdr: true,
+          });
+          expect(selected.messages).to.deep.equal(ordinary.messages);
+          expect(JSON.parse(selected.messages[1].content)).to.deep.equal(
+            retrievedInput
+          );
+          expect(selected.response_format).to.deep.equal(
+            ordinary.response_format
+          );
+        }
+        expect(
+          selectedAndAliases
+            .slice(0, selectedModels.length)
+            .map((body) => body.model)
+        ).to.deep.equal(selectedModels);
+        for (const body of [
+          ordinary,
+          ...selectedAndAliases.slice(selectedModels.length),
+        ]) {
+          expect(body).to.include({
+            temperature: 0,
+            max_tokens: purpose === "seed" ? 1024 : 2048,
+          });
+          expect(body).not.to.have.property("reasoning");
+        }
       });
-      expect(deepseek).not.to.have.property("temperature");
-      expect(deepseek.provider).to.deep.equal({
-        data_collection: "deny",
-        require_parameters: true,
-        allow_fallbacks: false,
-        zdr: true,
-      });
-      expect(deepseek.messages).to.deep.equal(ordinary.messages);
-      expect(JSON.parse(deepseek.messages[1].content)).to.deep.equal(
-        retrievedInput
-      );
-      expect(deepseek.response_format).to.deep.equal(ordinary.response_format);
-      for (const body of [ordinary, freeVariant, canonicalAlias]) {
-        expect(body).to.include({
-          temperature: 0,
-          max_tokens: purpose === "seed" ? 1024 : 2048,
-        });
-        expect(body).not.to.have.property("reasoning");
-      }
-    });
+    }
   }
   for (const purpose of ["seed", "foundations"] as const) {
     it(`sorts only exact Qwen requests by throughput while preserving ${purpose} evidence, schema and limits`, async () => {

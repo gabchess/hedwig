@@ -23,9 +23,12 @@ const REASONING_MODEL = "openai/gpt-5.1";
 const EXTENDED_REASONING_MODEL = "openai/gpt-5.2";
 const EXTENDED_REASONING_DEADLINE_MS = 30_000;
 const EXTENDED_REASONING_MAX_TOKENS = 6144;
+const MINI_REASONING_MODEL = "openai/gpt-5-mini";
+const MINI_REASONING_DEADLINE_MS = 90_000;
 const QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
 const QWEN_INSTRUCT_DEADLINE_MS = 45_000;
 const DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
+const DEEPSEEK_UPDATED_REASONING_MODEL = "deepseek/deepseek-v4.1-flash-1017";
 const DEEPSEEK_REASONING_DEADLINE_MS = 90_000;
 const DEEPSEEK_REASONING_MAX_TOKENS = 8192;
 const STANDARD_TOOL_CALL_TIMEOUT_MS = 60_000;
@@ -33,7 +36,10 @@ const EXTENDED_TOOL_COMPLETION_MARGIN_MS = 30_000;
 
 /** Only the operator-selected model determines the generation policy. */
 export function resolveModelGenerationPolicy(model: string): GenerationPolicy {
-  if (model === DEEPSEEK_REASONING_MODEL) {
+  if (
+    model === DEEPSEEK_REASONING_MODEL ||
+    model === DEEPSEEK_UPDATED_REASONING_MODEL
+  ) {
     return {
       deadlineMs: DEEPSEEK_REASONING_DEADLINE_MS,
       maxTokens: {
@@ -43,9 +49,12 @@ export function resolveModelGenerationPolicy(model: string): GenerationPolicy {
       requestParameters: { reasoning: { effort: "high", exclude: true } },
     };
   }
-  if (model === EXTENDED_REASONING_MODEL) {
+  if (model === EXTENDED_REASONING_MODEL || model === MINI_REASONING_MODEL) {
     return {
-      deadlineMs: EXTENDED_REASONING_DEADLINE_MS,
+      deadlineMs:
+        model === MINI_REASONING_MODEL
+          ? MINI_REASONING_DEADLINE_MS
+          : EXTENDED_REASONING_DEADLINE_MS,
       maxTokens: {
         seed: EXTENDED_REASONING_MAX_TOKENS,
         foundations: EXTENDED_REASONING_MAX_TOKENS,
