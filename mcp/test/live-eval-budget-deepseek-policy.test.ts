@@ -7,7 +7,30 @@ import { createOpenRouterFoundationGenerator } from "../src/openrouter";
 import { resolveToolCallTimeoutMs } from "../src/model-policy";
 const budget = require("./live-eval-budget.js");
 const endpoint = "https://openrouter.ai/api/v1/chat/completions";
-for (const { model, pricing, maxPrice, reservedNanoUsd } of [
+for (const {
+  model,
+  pricing,
+  maxPrice,
+  reservedNanoUsd,
+  contextLength = 1048576,
+  maxCompletionTokens = 943718,
+  maxTokens = 8192,
+  effort = "high",
+} of [
+  {
+    model: "openai/gpt-5-mini",
+    pricing: {
+      prompt: "0.00000025",
+      completion: "0.000002",
+      input_cache_read: "0.000000025",
+    },
+    maxPrice: { prompt: 0.25, completion: 2, request: 0, image: 0 },
+    reservedNanoUsd: 112288000,
+    contextLength: 400000,
+    maxCompletionTokens: 128000,
+    maxTokens: 6144,
+    effort: "medium",
+  },
   {
     model: "deepseek/deepseek-v4-flash-0731",
     pricing: {
@@ -31,8 +54,8 @@ for (const { model, pricing, maxPrice, reservedNanoUsd } of [
 ]) {
   const catalog = {
     id: model,
-    context_length: 1048576,
-    top_provider: { max_completion_tokens: 943718 },
+    context_length: contextLength,
+    top_provider: { max_completion_tokens: maxCompletionTokens },
     pricing,
   };
   const source = {
@@ -52,8 +75,8 @@ for (const { model, pricing, maxPrice, reservedNanoUsd } of [
     return {
       model,
       stream: false,
-      reasoning: { effort: "high", exclude: true },
-      max_tokens: 8192,
+      reasoning: { effort, exclude: true },
+      max_tokens: maxTokens,
       provider: {
         data_collection: "deny",
         require_parameters: true,
@@ -84,9 +107,13 @@ for (const { model, pricing, maxPrice, reservedNanoUsd } of [
         fetch: async (_url: unknown, init: RequestInit) => {
           calls++;
           const sent = JSON.parse(init.body as string);
-          expect(sent).to.include({ model, max_tokens: 8192, stream: false });
+          expect(sent).to.include({
+            model,
+            max_tokens: maxTokens,
+            stream: false,
+          });
           expect(sent.reasoning).to.deep.equal({
-            effort: "high",
+            effort,
             exclude: true,
           });
           expect(sent).not.to.have.property("temperature");
@@ -154,13 +181,13 @@ for (const { model, pricing, maxPrice, reservedNanoUsd } of [
       const before = readFileSync(ledgerPath);
       const mutations: Array<(b: any) => void> = [
         (b) => {
-          b.reasoning.effort = "medium";
+          b.reasoning.effort = effort === "medium" ? "high" : "medium";
         },
         (b) => {
           b.reasoning.exclude = false;
         },
         (b) => {
-          b.reasoning.max_tokens = 8192;
+          b.reasoning.max_tokens = maxTokens;
         },
         (b) => {
           delete b.reasoning;
@@ -169,7 +196,7 @@ for (const { model, pricing, maxPrice, reservedNanoUsd } of [
           b.temperature = 0;
         },
         (b) => {
-          b.max_tokens = 8193;
+          b.max_tokens = maxTokens + 1;
         },
         (b) => {
           b.max_tokens = 4096;
@@ -220,6 +247,8 @@ for (const { model, pricing, maxPrice, reservedNanoUsd } of [
         "deepseek/deepseek-v4-flash-20260731",
         "deepseek/deepseek-v4.1-flash",
         "deepseek/deepseek-v4.1-flash-20261017",
+        "openai/gpt-5-mini-2025-08-07",
+        "openai/gpt-5-mini:free",
         model + ":free",
       ])
         expect(() =>

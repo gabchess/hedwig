@@ -25057,6 +25057,8 @@ var require_model_policy = __commonJS({
     var EXTENDED_REASONING_MODEL = "openai/gpt-5.2";
     var EXTENDED_REASONING_DEADLINE_MS = 3e4;
     var EXTENDED_REASONING_MAX_TOKENS = 6144;
+    var MINI_REASONING_MODEL = "openai/gpt-5-mini";
+    var MINI_REASONING_DEADLINE_MS = 9e4;
     var QWEN_INSTRUCT_MODEL = "qwen/qwen3-235b-a22b-2507";
     var QWEN_INSTRUCT_DEADLINE_MS = 45e3;
     var DEEPSEEK_REASONING_MODEL = "deepseek/deepseek-v4-flash-0731";
@@ -25076,9 +25078,9 @@ var require_model_policy = __commonJS({
           requestParameters: { reasoning: { effort: "high", exclude: true } }
         };
       }
-      if (model === EXTENDED_REASONING_MODEL) {
+      if (model === EXTENDED_REASONING_MODEL || model === MINI_REASONING_MODEL) {
         return {
-          deadlineMs: EXTENDED_REASONING_DEADLINE_MS,
+          deadlineMs: model === MINI_REASONING_MODEL ? MINI_REASONING_DEADLINE_MS : EXTENDED_REASONING_DEADLINE_MS,
           maxTokens: {
             seed: EXTENDED_REASONING_MAX_TOKENS,
             foundations: EXTENDED_REASONING_MAX_TOKENS

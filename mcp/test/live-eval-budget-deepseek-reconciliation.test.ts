@@ -13,7 +13,27 @@ for (const {
   retrievedAt,
   catalogHash,
   pricing,
+  contextLength = 1048576,
+  maxCompletionTokens = 943718,
+  maxTokens = 8192,
+  effort = "high",
 } of [
+  {
+    requestedModel: "openai/gpt-5-mini",
+    canonicalModel: "openai/gpt-5-mini-2025-08-07",
+    retrievedAt: "2026-11-13T14:38:51.372Z",
+    catalogHash:
+      "b5f24aea4e26fbf242898539f7361869810234fb3c95bba21e858c4879d72da5",
+    pricing: {
+      prompt: "0.00000025",
+      completion: "0.000002",
+      input_cache_read: "0.000000025",
+    },
+    contextLength: 400000,
+    maxCompletionTokens: 128000,
+    maxTokens: 6144,
+    effort: "medium",
+  },
   {
     requestedModel: "deepseek/deepseek-v4-flash-0731",
     canonicalModel: "deepseek/deepseek-v4-flash-20260731",
@@ -127,8 +147,8 @@ for (const {
         extended,
         {
           id: requestedModel,
-          context_length: 1048576,
-          top_provider: { max_completion_tokens: 943718 },
+          context_length: contextLength,
+          top_provider: { max_completion_tokens: maxCompletionTokens },
           pricing,
         },
         {
@@ -151,8 +171,8 @@ for (const {
         body: JSON.stringify({
           model: requestedModel,
           stream: false,
-          reasoning: { effort: "high", exclude: true },
-          max_tokens: 8192,
+          reasoning: { effort, exclude: true },
+          max_tokens: maxTokens,
           provider: {
             require_parameters: true,
             allow_fallbacks: false,
@@ -213,7 +233,7 @@ for (const {
       });
     }
 
-    it("retains the genuine canonical model and both histories while settling only the captured DeepSeek Flash generation", () => {
+    it("retains the genuine canonical model and both histories while settling only the captured generation", () => {
       const before = read(ledgerPath),
         op = operation();
       budget.reconcileBudgetEntry(ledgerPath, plan, op);
@@ -298,6 +318,10 @@ for (const {
           r.modelIdentity.data.id = "openai/gpt-5.2";
         },
         (r) => {
+          r.data.model = r.modelIdentity.data.canonical_slug =
+            "openai/gpt-5.2-20251211";
+        },
+        (r) => {
           r.modelIdentity.providerResponseSha256 =
             "43199a7f1e2e3aaac2e82c1e4d928671454ee8e620d5e53a9e3e1d9dd0886e1d";
         },
@@ -363,7 +387,7 @@ for (const {
       );
     });
 
-    it("revalidates the retained DeepSeek Flash identity after settlement", () => {
+    it("revalidates the retained model identity after settlement", () => {
       budget.reconcileBudgetEntry(ledgerPath, plan, operation());
       const ledger = read(ledgerPath),
         record = ledger.entries.at(-1).reconciliation;
